@@ -5,8 +5,8 @@
 </head>
 <body>
 <div style="display: flex; margin: 9px">
-    <div style="text-align: center; flex: 1">
-        <h1>kunkka-torrent</h1>
+    <div style="text-align: center; flex: 1; margin-top: 24px;">
+        <h1><span class="kunkka-color">kunkka</span>-<span class="torrent-color">torrent</span></h1>
         <p>A web app that allows playing video/music from torrents directly in the browser, without downloading to PC</p>
         <p>(I'll also host here certain editor choice hard-to-obtain cartoons/music)</p>
     </div>
@@ -14,9 +14,22 @@
         <img src="./assets/img/kunkka-torrent-masked.png"/>
     </div>
 </div>
-<div>
-    <h2>Steven Universe the Movie</h2>
+<div style="text-align: center">
     <p>Watch Online</p>
+    <h2>Steven Universe the Movie</h2>
     <video controls="controls" preload="auto" src="./kunkka_host/handmade/torrent_downloads/Steven.Universe.The.Movie.2019.720p.WEBRip.NewStation.mp4"></video>
 </div>
 </body>
+
+<style>
+    body {
+        background-color: black;
+        color: white;
+    }
+    .kunkka-color {
+        color: #6dd0f1;
+    }
+    .torrent-color {
+        color: #1bffff;
+    }
+</style>
