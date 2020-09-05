@@ -1,0 +1,22 @@
+{
+  "name": "kunkka-torrent",
+  "version": "0.0.1",
+  "description": "A web app that allows playing video/music from torrents directly in the browser, without downloading to PC",
+  "keywords": [
+    "torrent",
+    "anime",
+    "subs",
+    "watch",
+    "online"
+  ],
+  "author": "klesun",
+  "license": "ISC",
+  "dependencies": {
+    "klesun-node-tools": "git+https://github.com/klesun-misc/klesun-node-tools.git#bf555291e0aab4f42ce2f65769b1a6246189dc69",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.7"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.27"
+  }
+}
