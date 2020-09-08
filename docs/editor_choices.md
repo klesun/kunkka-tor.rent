@@ -1,7 +1,8 @@
 Here is a list of a must-watch stuff I'll be hosting here regardless of torrents
 
 ### Must-Watchers
-- My Little Pony (including movies)
+- My Little Pony (including movies) + FiW + Scooterix Abridged + Few Alumx best videos + Few Argodaemon
+ best videos + maybe something else
 - Jojo
 - Monogatari
 - Adventure Time
