@@ -2,7 +2,7 @@ Here is a list of a must-watch stuff I'll be hosting here regardless of torrents
 
 ### Must-Watchers
 - My Little Pony (including movies) + FiW + Scooterix Abridged + Few Alumx best videos + Few Argodaemon
- best videos + maybe something else
+ best videos + maybe something else + Eurobeat Brony + Soldiers of the Night + Few of WoodenToaster songs + Nightmare Night + (maybe) Curse of Pinkamina + Add some text along the lines "Welcome, fellow brony/pegasister! You've come to the right place to get the most concentrated quality experience you could possibly gain from the MLP - I cherry-picked here all must-watch copyrighted and fan-made content I'm aware of."
 - Jojo
 - Monogatari
 - Adventure Time
