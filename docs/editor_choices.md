@@ -11,6 +11,7 @@ Here is a list of a must-watch stuff I'll be hosting here regardless of torrents
 - Rick and Morty
 - Breaking Bad
 - Jinrui wa Suitai Shimashita
+- ...
 
 (following possibly, they can be usually found on other hostings, but still)
 - Family Guy
