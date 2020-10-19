@@ -49,3 +49,4 @@ Here is a list of a must-watch stuff I'll be hosting here regardless of torrents
 Music
 
 - Confusion will be my requiem
+- Всё что есть в моём плейлисте в ютубе, потому что ютуб дно копирайтное, вк вроде тоже
