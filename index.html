@@ -15,7 +15,30 @@
     </div>
 </div>
 <div style="text-align: center">
-    <p>Watch Online</p>
+    <h2>Watch Online Before FBI Puts Me Down</h2>
+    <h3>Editor's Choice</h3>
+
+    <div class="first-episodes-card-list">
+        <div>
+            <h4>My Little Pony S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/MLPFiM/Season%201/MLP_FiM%20-%20S01E01%20-%20Friendship%20is%20Magic%20Part%201.mkv.better_bitrate.mkv">
+                <track src="./kunkka_host/handmade/torrent_downloads/MLPFiM/Season%201/subs.vtt" default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Breaking Bad S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Breaking%20Bad/Breaking%20Bad%20Season%201/Breaking%20Bad%20-%20%5B1x01%5D%20-%20Pilot.mkv">
+                <track src="./kunkka_host/handmade/torrent_downloads/Breaking%20Bad/Breaking%20Bad%20Season%201/S01E01.vtt" default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Steven Universe S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/%5BAliQ%5D%20Steven%20Universe%20Season%201%20%5B1080p%20WEB_DL%20x264%5D/%5BAliQ%5D%20S01E01%20-%20Gem%20Glow.mp4">
+                <track default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+    </div>
+
     <h2>Steven Universe the Movie</h2>
     <video controls="controls" preload="auto" src="./kunkka_host/handmade/torrent_downloads/Steven.Universe.The.Movie.2019.720p.WEBRip.NewStation.mp4"></video>
 </div>
@@ -23,13 +46,31 @@
 
 <style>
     body {
-        background-color: black;
-        color: white;
+        background-color: #00030e;
+        color: #bfd9ff;
     }
     .kunkka-color {
         color: #6dd0f1;
     }
     .torrent-color {
-        color: #1bffff;
+        color: #19bdbd;
+    }
+
+    .first-episodes-card-list {
+        text-align: center;
+    }
+    .first-episodes-card-list > div {
+        display: inline-block;
+        width: 500px;
+        height: 300px;
+    }
+    .first-episodes-card-list > div > video {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    video::cue {
+        background-color: transparent;
+        text-shadow: #000 1px 1px 3px;
     }
 </style>

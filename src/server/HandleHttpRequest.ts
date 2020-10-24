@@ -28,9 +28,10 @@ const serveMkv = async (absPath: string, params: HandleHttpParams) => {
     const stats = await fs.stat(absPath);
     const range = params.rq.headers.range || null;
     if (!range) {
-        throw new Error('range header is mandatory for mp4 request');
+        // requested to download full file rather than stream a part of it. Sure, why not
+        fsSync.createReadStream(absPath).pipe(params.rs);
+        return;
     }
-    console.debug('ololo range - ' + range);
     let [_, start, rqEnd] = range.match(/^bytes=(\d+)-(\d*)/).map(n => +n);
     const total = stats.size;
     rqEnd = rqEnd || total - 1;
@@ -71,6 +72,9 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
         rs.setHeader('Content-Type', 'video/mp4');
     } else if (ext === 'mkv') {
         rs.setHeader('Content-Type', 'video/x-matroska');
+    } else if (ext === 'vtt') {
+        // rs.setHeader('Content-Type', 'TextTrack');
+        rs.setHeader('Content-Type', 'text/vtt');
     }
     if (['mkv', 'mp4'].includes(ext)) {
         await serveMkv(absPath, params);
