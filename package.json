@@ -12,6 +12,8 @@
   "author": "klesun",
   "license": "ISC",
   "dependencies": {
+    "parse-torrent": "latest",
+    "torrent-stream": "latest",
     "klesun-node-tools": "git+https://github.com/klesun-misc/klesun-node-tools.git#bf555291e0aab4f42ce2f65769b1a6246189dc69",
     "ts-node": "^8.10.2",
     "typescript": "^3.9.7"
