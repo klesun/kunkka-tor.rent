@@ -10,19 +10,30 @@
         <p>A web app that allows playing video/music from torrents directly in the browser, without downloading to PC</p>
         <p>(I'll also host here certain editor choice hard-to-obtain cartoons/music)</p>
     </div>
-    <div>
-        <img src="./assets/img/kunkka-torrent-masked.png"/>
-    </div>
 </div>
 <div style="text-align: center">
     <h2>Watch Online Before FBI Puts Me Down</h2>
     <h3>Editor's Choice</h3>
 
+    <!-- would be cool, if guy already watched first episode (localStorage) to suggest next unwatched episode in this list -->
+    <!-- also, for visual purposes would be cool to scroll video to random point (on playback start event - rewind to start on the first time) -->
     <div class="first-episodes-card-list">
         <div>
             <h4>My Little Pony S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/MLPFiM/Season%201/MLP_FiM%20-%20S01E01%20-%20Friendship%20is%20Magic%20Part%201.mkv.better_bitrate.mkv">
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads_webm/MLPFiM/Season%201/MLP_FiM%20-%20S01E01%20-%20Friendship%20is%20Magic%20Part%201.mkv.better_bitrate.mkv">
                 <track src="./kunkka_host/handmade/torrent_downloads/MLPFiM/Season%201/subs.vtt" default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Kenan And Kel S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Kenan%20And%20Kel%20Complete%20Pack%20(Tv%20series,%20Pilot,%202%20movies)%20(WAZZ)/Kenan%20And%20Kel%20Season%201/h264.mp4">
+                <track default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Mob Psycho 100 S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Mob%20Psycho%20100%20Season%201%20%5BEng%20Sub%5D/Mob%20Psycho%20100%20-%2001%20%5B1080p%5D.mkv">
+                <track default kind="subtitles" label="English" srclang="en"/>
             </video>
         </div>
         <div>
@@ -32,24 +43,52 @@
             </video>
         </div>
         <div>
+            <h4>Adventure Time S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Adventure%20Time%20S01-S10%20(2010-)/Adventure%20Time%20S01%20(360p%20re-blurip)/Adventure%20Time%20S01E01%20Slumber%20Party%20Panic.mp4">
+                <track default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Humanity Declined S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Jinrui%20wa%20Suitai%20Shimashita/%5BNemDiggers%5D%20Jinrui%20wa%20Suitai%20Shimashita%20-%2001%20%5BBD%5D%20%5B720p%5D%20%5BH264%20AAC%20MP4%5D.mp4">
+                <track default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Daria S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Daria/Season%201/Daria%20-%20S01E01%20-%20Esteemsters.mp4">
+                <track default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
+            <h4>Rick And Morty S01E01</h4>
+            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Rick%20and%20Morty/Rick%20and%20Morty%20-%20Season%201/Rick%20and%20Morty%20-%20S01E01%20-%20Pilot.mp4">
+                <track default kind="subtitles" label="English" srclang="en"/>
+            </video>
+        </div>
+        <div>
             <h4>Steven Universe S01E01</h4>
             <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/%5BAliQ%5D%20Steven%20Universe%20Season%201%20%5B1080p%20WEB_DL%20x264%5D/%5BAliQ%5D%20S01E01%20-%20Gem%20Glow.mp4">
                 <track default kind="subtitles" label="English" srclang="en"/>
             </video>
         </div>
     </div>
-
-    <h2>Steven Universe the Movie</h2>
-    <video controls="controls" preload="auto" src="./kunkka_host/handmade/torrent_downloads/Steven.Universe.The.Movie.2019.720p.WEBRip.NewStation.mp4"></video>
-    <div id="output">
-        <div id="progressBar"></div>
-        <!-- The video player will be added here -->
-    </div>
+</div>
+<div>
     <video controls="controls" preload="auto" src="./api/testTorrentStream"></video>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
 <script>
 (() => {
+    /** @param {HTMLElement} parent */
+    const shuffleChildren = (parent) => {
+        const cards = [...parent.children];
+        for (const child of cards) {
+            const newPlace = Math.floor(Math.random() * cards.length);
+            parent.insertBefore(child, cards[newPlace + 1] || null);
+        }
+    };
+
     // var torrentId = 'magnet:?xt=urn:btih:241FA42D67355718C9DD71E6F0B5B2459D77361E';
     // var torrentId = 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fsintel.torrent';
     var torrentId = 'magnet:?xt=urn:btih:241fa42d67355718c9dd71e6f0b5b2459d77361e&dn=Steven.Universe.The.Movie.2019.720p.WEBRip.NewStation.mkv&tr=http%3A%2F%2Fbt01.nnm-club.cc%3A2710%2Fffffffffd18150cb8e66c02d6822c1f0%2Fannounce&tr=http%3A%2F%2Fbt01.nnm-club.info%3A2710%2Fffffffffd18150cb8e66c02d6822c1f0%2Fannounce&tr=http%3A%2F%2Fretracker.local%2Fannounce.php%3Fsize%3D1515809210%26comment%3Dhttp%253A%252F%252Fnnmclub.to%252Fforum%252Fviewtopic.php%253Fp%253D10413891%26name%3D%25C2%25F1%25E5%25EB%25E5%25ED%25ED%25E0%25FF%2B%25D1%25F2%25E8%25E2%25E5%25ED%25E0%253A%2B%25D4%25E8%25EB%25FC%25EC%2B%252F%2BSteven%2BUniverse%253A%2BThe%2BMovie%2B%25282019%2529%2BWEBRip%2B%2B%255BH.264%252F720p-LQ%255D%2B%2528MVO%2529&tr=http%3A%2F%2F%5B2001%3A470%3A25%3A482%3A%3A2%5D%3A2710%2Fffffffffd18150cb8e66c02d6822c1f0%2Fannounce';
@@ -82,7 +121,13 @@
             console.log('ololo done');
             onProgress();
         }
-    })
+    });
+
+    const firstEpisodesCardList = document.querySelector('.first-episodes-card-list');
+    shuffleChildren(firstEpisodesCardList);
+    [...firstEpisodesCardList.querySelectorAll('video')].forEach(video => {
+        video.currentTime = Math.random() * 11 * 60;
+    });
 })();
 </script>
 </body>
@@ -115,5 +160,10 @@
     video::cue {
         background-color: transparent;
         text-shadow: #000 1px 1px 3px;
+    }
+    body {
+        background-image: url(./assets/img/kunkka-torrent-masked.png);
+        background-repeat: no-repeat;
+        background-position: top right;
     }
 </style>

@@ -35,7 +35,7 @@ const serveMkv = async (absPath: string, params: HandleHttpParams) => {
     const total = stats.size;
     rqEnd = rqEnd || total - 1;
     // I take it that this works as a buffering size...
-    const chunkSize = Math.min(rqEnd - start + 1, 16 * 1024 * 1024);
+    const chunkSize = Math.min(rqEnd - start + 1, 4 * 1024 * 1024);
     const end = start + chunkSize - 1;
     params.rs.writeHead(206, {
         'Content-Range': 'bytes ' + start + '-' + end + '/' + total,
