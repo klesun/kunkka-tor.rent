@@ -3,6 +3,62 @@
     <meta charset="utf-8"/>
     <link rel="icon" href="./favicon.ico"/>
 </head>
+
+<style>
+    body {
+        background-color: #00030e;
+        color: #bfd9ff;
+    }
+    .kunkka-color {
+        color: #6dd0f1;
+    }
+    .torrent-color {
+        color: #19bdbd;
+    }
+
+    .first-episodes-card-list {
+        text-align: center;
+    }
+    .first-episodes-card-list > div {
+        display: inline-block;
+        margin: 4px;
+        border: solid #565555 2px;
+        background-color: #3d4044d9;
+    }
+    .first-episodes-card-list > div > div > h4 {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+    .first-episodes-card-list > div > div > div {
+        width: 512px;
+        height: 288px;
+        position: relative;
+        flex: 1;
+        display: flex;
+    }
+    .first-episodes-card-list video {
+        left: 0;
+        right: 0;
+        margin: auto;
+        max-width: 100%;
+        height: 100%;
+        position: absolute;
+        object-fit: contain;
+        background-image: url(./assets/img/static_noise.png);
+    }
+
+    video::cue {
+        background-color: transparent;
+        text-shadow: #000 1px 1px 3px;
+    }
+    body {
+        background-image: url(./assets/img/kunkka-torrent-masked.png);
+        background-repeat: no-repeat;
+        background-position: top right;
+    }
+</style>
+
 <body>
 <div style="display: flex; margin: 9px">
     <div style="text-align: center; flex: 1; margin-top: 24px;">
@@ -18,60 +74,78 @@
     <!-- would be cool, if guy already watched first episode (localStorage) to suggest next unwatched episode in this list -->
     <!-- also, for visual purposes would be cool to scroll video to random point (on playback start event - rewind to start on the first time) -->
     <div class="first-episodes-card-list">
-        <div>
+        <div><div>
             <h4>My Little Pony S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads_webm/MLPFiM/Season%201/MLP_FiM%20-%20S01E01%20-%20Friendship%20is%20Magic%20Part%201.mkv.better_bitrate.mkv">
-                <track src="./kunkka_host/handmade/torrent_downloads/MLPFiM/Season%201/subs.vtt" default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads_webm/MLPFiM/Season%201/MLP_FiM%20-%20S01E01%20-%20Friendship%20is%20Magic%20Part%201.mkv.better_bitrate.mkv">
+                    <track src="./kunkka_host/handmade/torrent_downloads/MLPFiM/Season%201/subs.vtt" default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Kenan And Kel S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Kenan%20And%20Kel%20Complete%20Pack%20(Tv%20series,%20Pilot,%202%20movies)%20(WAZZ)/Kenan%20And%20Kel%20Season%201/h264.mp4">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Kenan%20And%20Kel%20Complete%20Pack%20(Tv%20series,%20Pilot,%202%20movies)%20(WAZZ)/Kenan%20And%20Kel%20Season%201/h264.mp4">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Mob Psycho 100 S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Mob%20Psycho%20100%20Season%201%20%5BEng%20Sub%5D/Mob%20Psycho%20100%20-%2001%20%5B1080p%5D.mkv">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Mob%20Psycho%20100%20Season%201%20%5BEng%20Sub%5D/Mob%20Psycho%20100%20-%2001%20%5B1080p%5D.mkv">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Breaking Bad S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Breaking%20Bad/Breaking%20Bad%20Season%201/Breaking%20Bad%20-%20%5B1x01%5D%20-%20Pilot.mkv">
-                <track src="./kunkka_host/handmade/torrent_downloads/Breaking%20Bad/Breaking%20Bad%20Season%201/S01E01.vtt" default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Breaking%20Bad/Breaking%20Bad%20Season%201/Breaking%20Bad%20-%20%5B1x01%5D%20-%20Pilot.mkv">
+                    <track src="./kunkka_host/handmade/torrent_downloads/Breaking%20Bad/Breaking%20Bad%20Season%201/S01E01.vtt" default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Adventure Time S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Adventure%20Time%20S01-S10%20(2010-)/Adventure%20Time%20S01%20(360p%20re-blurip)/Adventure%20Time%20S01E01%20Slumber%20Party%20Panic.mp4">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Adventure%20Time%20S01-S10%20(2010-)/Adventure%20Time%20S01%20(360p%20re-blurip)/Adventure%20Time%20S01E01%20Slumber%20Party%20Panic.mp4">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Humanity Declined S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Jinrui%20wa%20Suitai%20Shimashita/%5BNemDiggers%5D%20Jinrui%20wa%20Suitai%20Shimashita%20-%2001%20%5BBD%5D%20%5B720p%5D%20%5BH264%20AAC%20MP4%5D.mp4">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Jinrui%20wa%20Suitai%20Shimashita/%5BNemDiggers%5D%20Jinrui%20wa%20Suitai%20Shimashita%20-%2001%20%5BBD%5D%20%5B720p%5D%20%5BH264%20AAC%20MP4%5D.mp4">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Daria S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Daria/Season%201/Daria%20-%20S01E01%20-%20Esteemsters.mp4">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Daria/Season%201/Daria%20-%20S01E01%20-%20Esteemsters.mp4">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Rick And Morty S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Rick%20and%20Morty/Rick%20and%20Morty%20-%20Season%201/Rick%20and%20Morty%20-%20S01E01%20-%20Pilot.mp4">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
-        <div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/Rick%20and%20Morty/Rick%20and%20Morty%20-%20Season%201/Rick%20and%20Morty%20-%20S01E01%20-%20Pilot.mp4">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
+        <div><div>
             <h4>Steven Universe S01E01</h4>
-            <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/%5BAliQ%5D%20Steven%20Universe%20Season%201%20%5B1080p%20WEB_DL%20x264%5D/%5BAliQ%5D%20S01E01%20-%20Gem%20Glow.mp4">
-                <track default kind="subtitles" label="English" srclang="en"/>
-            </video>
-        </div>
+            <div>
+                <video controls="controls" src="./kunkka_host/handmade/torrent_downloads/%5BAliQ%5D%20Steven%20Universe%20Season%201%20%5B1080p%20WEB_DL%20x264%5D/%5BAliQ%5D%20S01E01%20-%20Gem%20Glow.mp4">
+                    <track default kind="subtitles" label="English" srclang="en"/>
+                </video>
+            </div>
+        </div></div>
     </div>
 </div>
 <div>
@@ -131,39 +205,3 @@
 })();
 </script>
 </body>
-
-<style>
-    body {
-        background-color: #00030e;
-        color: #bfd9ff;
-    }
-    .kunkka-color {
-        color: #6dd0f1;
-    }
-    .torrent-color {
-        color: #19bdbd;
-    }
-
-    .first-episodes-card-list {
-        text-align: center;
-    }
-    .first-episodes-card-list > div {
-        display: inline-block;
-        width: 500px;
-        height: 300px;
-    }
-    .first-episodes-card-list > div > video {
-        max-width: 100%;
-        max-height: 100%;
-    }
-
-    video::cue {
-        background-color: transparent;
-        text-shadow: #000 1px 1px 3px;
-    }
-    body {
-        background-image: url(./assets/img/kunkka-torrent-masked.png);
-        background-repeat: no-repeat;
-        background-position: top right;
-    }
-</style>
