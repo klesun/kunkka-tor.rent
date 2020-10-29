@@ -97,23 +97,10 @@ const limitTime = <T>(maxSeconds: number, promise: Promise<T>): Promise<T> => {
             if (!resolved) {
                 rejected = true;
                 const msg = 'Promise timed out after ' + maxSeconds + ' seconds';
-                reject(new Error(msg));
+                reject(Rej.GatewayTimeout.makeExc(msg, {isOk: true}));
             }
         }, maxSeconds * 1000);
     });
-};
-
-const getCircularReplacer = () => {
-    const seen = new WeakSet();
-    return (key, value) => {
-        if (typeof value === "object" && value !== null) {
-            if (seen.has(value)) {
-                return;
-            }
-            seen.add(value);
-        }
-        return value;
-    };
 };
 
 const makeSwarmSummary = (swarm) => {
@@ -159,7 +146,13 @@ const Api = {
                     });
                 });
             });
-            return limitTime(30, whenMeta)
+
+            const startedMs = Date.now();
+            return limitTime(5, whenMeta)
+                .then(meta => {
+                    console.log('ololo meta in ' + ((Date.now() - startedMs) / 1000).toFixed(3) + ' seconds - ' + meta.name);
+                    return meta;
+                })
                 .finally(() => engine.destroy());
         },
         '/api/checkInfoHashPeers': async rq => {
