@@ -85,7 +85,7 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
 };
 
 type Action = (rq: http.IncomingMessage) => Promise<SerialData> | SerialData;
-type ActionForApi = (IApi) => Action;
+type ActionForApi = (api: IApi) => Action;
 
 const apiController: Record<string, ActionForApi> = {
     '/api/checkInfoHashMeta': api => api.checkInfoHashMeta,
