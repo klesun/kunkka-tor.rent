@@ -1,6 +1,8 @@
 import * as http from 'http';
 import HandleHttpRequest, {HandleHttpParams} from './HandleHttpRequest';
 import Api from "./Api";
+import * as SocketIo from 'socket.io';
+import ScanInfoHashStatus from "./actions/ScanInfoHashStatus";
 
 const HTTP_PORT = 36865;
 
@@ -18,12 +20,32 @@ const handleRq = (params: HandleHttpParams) => {
 
 /** @param rootPath - file system path matching the root of the website hosting this request */
 const Server = async (rootPath: string) => {
+    const socketIo = SocketIo();
+    socketIo.on('connection', socket => {
+        socket.on('message', (data, reply) => {
+            if (data.messageType === 'SCAN_INFO_HASH_STATUS') {
+                try {
+                    ScanInfoHashStatus(data.infoHashes, itemStatus => socket.send({
+                        messageType: 'INFO_HASH_STATUS',
+                        messageData: itemStatus,
+                    }));
+                    reply({status: 'SCANNING_STARTED'});
+                } catch (exc) {
+                    reply({status: 'ERROR', message: exc + ''});
+                }
+            } else {
+                console.log('Unexpected message from client', data);
+                reply({status: 'UNEXPECTED_MESSAGE_TYPE'});
+            }
+        });
+    });
     const api = Api();
     const server = http
         .createServer((rq, rs) => handleRq({rq, rs, rootPath, api}))
         .listen(HTTP_PORT, '0.0.0.0', () => {
             console.log('listening kunkka-torrent requests on http://localhost:' + HTTP_PORT);
         });
+    socketIo.listen(server);
 };
 
 export default Server;

@@ -1,27 +1,7 @@
 import * as url from 'url';
-import * as parseTorrent from 'parse-torrent';
+import {shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
 const torrentStream = require('torrent-stream');
-const Rej = require('klesun-node-tools/src/Rej.js');
-
-const limitTime = <T>(maxSeconds: number, promise: Promise<T>): Promise<T> => {
-    return new Promise((resolve, reject) => {
-        let resolved = false;
-        let rejected = false;
-        promise.then(result => {
-            if (!rejected) {
-                resolved = true;
-                resolve(result);
-            }
-        });
-        setTimeout(() => {
-            if (!resolved) {
-                rejected = true;
-                const msg = 'Promise timed out after ' + maxSeconds + ' seconds';
-                reject(Rej.GatewayTimeout.makeExc(msg, {isOk: true}));
-            }
-        }, maxSeconds * 1000);
-    });
-};
+const {timeout} = require('klesun-node-tools/src/Lang.js');
 
 const makeSwarmSummary = (swarm) => {
     let seederWires = 0;
@@ -40,16 +20,6 @@ const makeSwarmSummary = (swarm) => {
     };
 };
 
-const shortenTorrentInfo = (torrent: any) => ({
-    name: torrent.name,
-    length: torrent.length,
-    files: torrent.files.map(f => ({
-        path: f.path, length: f.length,
-    })),
-});
-
-type TorrentInfo = ReturnType<typeof shortenTorrentInfo>;
-
 const checkInfoHashMeta = async rq => {
     const {infoHash} = url.parse(rq.url, true).query;
     if (!infoHash || infoHash.length !== 40) {
@@ -64,7 +34,7 @@ const checkInfoHashMeta = async rq => {
     });
 
     const startedMs = Date.now();
-    return limitTime(5, whenMeta)
+    return timeout(5, whenMeta)
         .then(meta => {
             console.log('ololo meta in ' + ((Date.now() - startedMs) / 1000).toFixed(3) + ' seconds - ' + meta.name);
             return meta;
