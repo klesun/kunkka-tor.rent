@@ -1,8 +1,12 @@
 import * as url from 'url';
+import * as pump from 'pump'
 import * as fsSync from 'fs';
 import * as http from "http";
 import {IApi} from "./Api";
 import {SerialData} from "./TypeDefs";
+import { lookup } from 'mime-types'
+const torrentStream = require('torrent-stream');
+const {timeout} = require('klesun-node-tools/src/Lang.js');
 
 const fs = fsSync.promises;
 
@@ -84,12 +88,53 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     }
 };
 
+const serveTorrentStream = async (infoHash: string, params: HandleHttpParams) => {
+    const {rq, rs, api} = params;
+    const engine = await api.prepareTorrentStream(infoHash);
+    const file = engine.files[0];
+    rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(file.name));
+    rs.setHeader('Content-Type', lookup(file.name) || 'application/octet-stream');
+
+    rs.setHeader('Accept-Ranges', 'bytes');
+    rq.connection.setTimeout(3600000);
+
+    const rangeStr = rq.headers.range || null;
+    if (!rangeStr) {
+        rs.setHeader('Content-Length', file.length - 1);
+        if (rq.method === 'HEAD') {
+            return rs.end();
+        }
+        const stream = file.createReadStream()
+            .on('open', () => stream.pipe(rs))
+            .on('error', err => {
+                console.error('huj err ', err);
+                rs.end(err);
+            });
+        // return;
+        return pump(file.createReadStream(), rs);
+    }
+
+    let [_, start, end] = rangeStr.match(/^bytes=(\d+)-(\d*)/).map(n => +n);
+    end = end || file.length - 1;
+    rs.statusCode = 206;
+    rs.setHeader('Content-Length', end - start + 1);
+    rs.setHeader('Content-Range', 'bytes ' + start + '-' + end + '/' + file.length);
+    rs.setHeader('Connection', 'keep-alive');
+
+    if (rq.method === 'HEAD') {
+        return rs.end();
+    }
+
+    pump(file.createReadStream({start, end}), rs)
+};
+
 type Action = (rq: http.IncomingMessage) => Promise<SerialData> | SerialData;
-type ActionForApi = (IApi) => Action;
+type ActionForApi = (api: IApi) => Action;
 
 const apiController: Record<string, ActionForApi> = {
     '/api/checkInfoHashMeta': api => api.checkInfoHashMeta,
     '/api/checkInfoHashPeers': api => api.checkInfoHashPeers,
+    '/api/getFfmpegInfo': api => api.getFfmpegInfo,
 };
 
 const HandleHttpRequest = async (params: HandleHttpParams) => {
@@ -112,6 +157,13 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
                 rs.statusCode = 200;
                 rs.end(JSON.stringify(result));
             });
+    } else if (pathname.startsWith('/torrent-stream/')) {
+        const infoHash = pathname.slice('/torrent-stream/'.length);
+        // BA0B39DE2C19CEADCFB1B441D8B6D668E57458EF
+        if (infoHash.length !== 40) {
+            return Rej.BadRequest('Invalid infohash: ' + infoHash);
+        }
+        return serveTorrentStream(infoHash, params);
     } else if (pathname.startsWith('/')) {
         return serveStaticFile(pathname, params);
     } else {

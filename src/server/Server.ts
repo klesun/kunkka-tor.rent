@@ -3,13 +3,14 @@ import HandleHttpRequest, {HandleHttpParams} from './HandleHttpRequest';
 import Api from "./Api";
 import * as SocketIo from 'socket.io';
 import ScanInfoHashStatus from "./actions/ScanInfoHashStatus";
-
-const HTTP_PORT = 36865;
+import {HTTP_PORT} from "./Constants";
 
 const handleRq = (params: HandleHttpParams) => {
     HandleHttpRequest(params).catch(exc => {
         params.rs.statusCode = exc.httpStatusCode || 500;
-        params.rs.statusMessage = ((exc || {}).message || exc + '' || '(empty error)').slice(0, 300);
+        params.rs.statusMessage = ((exc || {}).message || exc + '' || '(empty error)')
+            // sanitize, as statusMessage seems to not allow special characters
+            .slice(0, 300).replace(/[^ -~]/g, '?');
         params.rs.end(JSON.stringify({error: exc + '', stack: exc.stack}));
         const msg = 'kunkka-torrent HTTP request ' + params.rq.url + ' ' + ' failed';
         if (!exc.isOk) {

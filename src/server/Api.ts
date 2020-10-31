@@ -1,7 +1,11 @@
 import * as url from 'url';
 import {shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
+import * as http from "http";
+import {HTTP_PORT} from "./Constants";
 const torrentStream = require('torrent-stream');
 const {timeout} = require('klesun-node-tools/src/Lang.js');
+const util = require('util');
+const execFile = util.promisify(require('child_process').execFile);
 
 const makeSwarmSummary = (swarm) => {
     let seederWires = 0;
@@ -42,7 +46,7 @@ const checkInfoHashMeta = async rq => {
         .finally(() => engine.destroy());
 };
 
-const checkInfoHashPeers = async rq => {
+const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
     const {infoHash} = url.parse(rq.url, true).query;
     if (!infoHash || infoHash.length !== 40) {
         throw new Error('Invalid infoHash, must be a 40 characters long hex string');
@@ -72,9 +76,44 @@ const checkInfoHashPeers = async rq => {
 };
 
 const Api = () => {
+    const infoHashToWhenEngine: Record<string, Promise<TorrentStream.TorrentEngine>> = {};
+
+    const prepareTorrentStream = async (infoHash: string) => {
+        if (!infoHash || infoHash.length !== 40) {
+            throw new Error('Invalid infoHash, must be a 40 characters long hex string');
+        }
+        if (!infoHashToWhenEngine[infoHash]) {
+            // TODO: clear when no ping for 5 minutes or something
+            infoHashToWhenEngine[infoHash] = Promise.resolve().then(async () => {
+                const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
+                await new Promise(
+                    resolve => engine.on('ready', resolve)
+                );
+                return engine;
+            });
+        }
+        return infoHashToWhenEngine[infoHash];
+    };
+
+    const getFfmpegInfo = async (rq: http.IncomingMessage) => {
+        const {infoHash} = <Record<string, string>>url.parse(rq.url, true).query;
+        if (!infoHash || infoHash.length !== 40) {
+            throw new Error('Invalid infoHash, must be a 40 characters long hex string');
+        }
+        await prepareTorrentStream(infoHash);
+        const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream/' + infoHash;
+        const execResult = await execFile('ffprobe', ['-hide_banner', streamUrl]);
+        const {stdout, stderr} = execResult;
+        return {stdout, stderr};
+    };
+
     return {
         checkInfoHashMeta: checkInfoHashMeta,
         checkInfoHashPeers: checkInfoHashPeers,
+        getFfmpegInfo: getFfmpegInfo,
+
+        // following not serializable - for internal use only
+        prepareTorrentStream: prepareTorrentStream,
     };
 };
 
