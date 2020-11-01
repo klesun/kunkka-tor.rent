@@ -102,7 +102,7 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
     if (!file) {
         throw Exc.BadRequest('filePath not found in this torrent, possible options: ' + engine.files.map(f => f.path));
     }
-    rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(file.name));
+    rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(file.name).replace(/[^ -~]/g, '?'));
     rs.setHeader('Content-Type', lookup(file.name) || 'application/octet-stream');
 
     rs.setHeader('Accept-Ranges', 'bytes');
