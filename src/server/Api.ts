@@ -2,12 +2,26 @@ import * as url from 'url';
 import {shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
 import * as http from "http";
 import {HTTP_PORT} from "./Constants";
+import Exc from "./utils/Exc";
+import Swarm = TorrentStream.Swarm;
+import TorrentEngine = TorrentStream.TorrentEngine;
 const torrentStream = require('torrent-stream');
 const {timeout} = require('klesun-node-tools/src/Lang.js');
 const util = require('util');
 const execFile = util.promisify(require('child_process').execFile);
 
-const makeSwarmSummary = (swarm) => {
+interface NowadaysSwarm extends Swarm {
+    wires: {
+        isSeeder: boolean,
+    }[],
+    _peers: unknown[],
+}
+
+interface NowadaysEngine extends TorrentEngine {
+    swarm: NowadaysSwarm;
+}
+
+const makeSwarmSummary = (swarm: NowadaysSwarm) => {
     let seederWires = 0;
     let otherWires = 0;
     for (const wire of swarm.wires) {
@@ -76,14 +90,14 @@ const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
 };
 
 const Api = () => {
-    const infoHashToWhenEngine: Record<string, Promise<TorrentStream.TorrentEngine>> = {};
+    const infoHashToWhenEngine: Record<string, Promise<NowadaysEngine>> = {};
 
-    const prepareTorrentStream = async (infoHash: string) => {
+    const prepareTorrentStream = async (infoHash: string): Promise<NowadaysEngine> => {
         if (!infoHash || infoHash.length !== 40) {
             throw new Error('Invalid infoHash, must be a 40 characters long hex string');
         }
         if (!infoHashToWhenEngine[infoHash]) {
-            // TODO: clear when no ping for 5 minutes or something
+            // TODO: clear when no ping for 30 seconds or something
             infoHashToWhenEngine[infoHash] = Promise.resolve().then(async () => {
                 const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
                 await new Promise(
@@ -96,24 +110,38 @@ const Api = () => {
     };
 
     const getFfmpegInfo = async (rq: http.IncomingMessage) => {
-        const {infoHash} = <Record<string, string>>url.parse(rq.url, true).query;
+        const {infoHash, filePath} = <Record<string, string>>url.parse(rq.url, true).query;
         if (!infoHash || infoHash.length !== 40) {
-            throw new Error('Invalid infoHash, must be a 40 characters long hex string');
+            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+        } else if (!filePath) {
+            throw Exc.BadRequest('filePath parameter is mandatory');
         }
         await prepareTorrentStream(infoHash);
-        const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream/' + infoHash;
-        const execResult = await execFile('ffprobe', ['-hide_banner', streamUrl]);
+        const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
+            infoHash + '&filePath=' + encodeURIComponent(filePath);
+        const execResult = await execFile('ffprobe', ['-v' ,'quiet', '-print_format', 'json', '-show_format', '-show_streams', streamUrl]);
         const {stdout, stderr} = execResult;
-        return {stdout, stderr};
+        return JSON.parse(stdout);
+    };
+
+    const getSwarmInfo = async (rq: http.IncomingMessage) => {
+        const {infoHash} = <Record<string, string>>url.parse(rq.url, true).query;
+        if (!infoHash || infoHash.length !== 40) {
+            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+        }
+        const engine = await prepareTorrentStream(infoHash);
+        return makeSwarmSummary(engine.swarm);
     };
 
     return {
         checkInfoHashMeta: checkInfoHashMeta,
         checkInfoHashPeers: checkInfoHashPeers,
         getFfmpegInfo: getFfmpegInfo,
+        getSwarmInfo: getSwarmInfo,
 
         // following not serializable - for internal use only
         prepareTorrentStream: prepareTorrentStream,
+        getPreparingStream: infoHash => infoHashToWhenEngine[infoHash],
     };
 };
 

@@ -21,15 +21,18 @@ const handleRq = (params: HandleHttpParams) => {
 
 /** @param rootPath - file system path matching the root of the website hosting this request */
 const Server = async (rootPath: string) => {
+    const api = Api();
     const socketIo = SocketIo();
     socketIo.on('connection', socket => {
         socket.on('message', (data, reply) => {
             if (data.messageType === 'SCAN_INFO_HASH_STATUS') {
                 try {
-                    ScanInfoHashStatus(data.infoHashes, itemStatus => socket.send({
+                    const {infoHashes} = data;
+                    const itemCallback = itemStatus => socket.send({
                         messageType: 'INFO_HASH_STATUS',
                         messageData: itemStatus,
-                    }));
+                    });
+                    ScanInfoHashStatus({infoHashes, itemCallback, api});
                     reply({status: 'SCANNING_STARTED'});
                 } catch (exc) {
                     reply({status: 'ERROR', message: exc + ''});
@@ -40,7 +43,6 @@ const Server = async (rootPath: string) => {
             }
         });
     });
-    const api = Api();
     const server = http
         .createServer((rq, rs) => handleRq({rq, rs, rootPath, api}))
         .listen(HTTP_PORT, '0.0.0.0', () => {

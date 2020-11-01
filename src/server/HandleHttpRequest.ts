@@ -5,6 +5,7 @@ import * as http from "http";
 import {IApi} from "./Api";
 import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
+import Exc from "./utils/Exc";
 const torrentStream = require('torrent-stream');
 const {timeout} = require('klesun-node-tools/src/Lang.js');
 
@@ -88,10 +89,19 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     }
 };
 
-const serveTorrentStream = async (infoHash: string, params: HandleHttpParams) => {
+const serveTorrentStream = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
+    const {infoHash, filePath} = <Record<string, string>>url.parse(rq.url, true).query;
+    if (!infoHash || infoHash.length !== 40) {
+        throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+    } else if (!filePath) {
+        throw Exc.BadRequest('filePath parameter is mandatory');
+    }
     const engine = await api.prepareTorrentStream(infoHash);
-    const file = engine.files[0];
+    const file = engine.files.find(f => f.path === filePath);
+    if (!file) {
+        throw Exc.BadRequest('filePath not found in this torrent, possible options: ' + engine.files.map(f => f.path));
+    }
     rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(file.name));
     rs.setHeader('Content-Type', lookup(file.name) || 'application/octet-stream');
 
@@ -135,6 +145,7 @@ const apiController: Record<string, ActionForApi> = {
     '/api/checkInfoHashMeta': api => api.checkInfoHashMeta,
     '/api/checkInfoHashPeers': api => api.checkInfoHashPeers,
     '/api/getFfmpegInfo': api => api.getFfmpegInfo,
+    '/api/getSwarmInfo': api => api.getSwarmInfo,
 };
 
 const HandleHttpRequest = async (params: HandleHttpParams) => {
@@ -157,13 +168,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
                 rs.statusCode = 200;
                 rs.end(JSON.stringify(result));
             });
-    } else if (pathname.startsWith('/torrent-stream/')) {
-        const infoHash = pathname.slice('/torrent-stream/'.length);
-        // BA0B39DE2C19CEADCFB1B441D8B6D668E57458EF
-        if (infoHash.length !== 40) {
-            return Rej.BadRequest('Invalid infohash: ' + infoHash);
-        }
-        return serveTorrentStream(infoHash, params);
+    } else if (pathname === '/torrent-stream') {
+        return serveTorrentStream(params);
     } else if (pathname.startsWith('/')) {
         return serveStaticFile(pathname, params);
     } else {
