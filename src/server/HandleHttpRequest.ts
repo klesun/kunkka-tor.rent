@@ -6,13 +6,14 @@ import {IApi} from "./Api";
 import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
 import Exc from "./utils/Exc";
-const torrentStream = require('torrent-stream');
-const {timeout} = require('klesun-node-tools/src/Lang.js');
+import {HTTP_PORT} from "./Constants";
+import * as util from "util";
+const execFile = util.promisify(require('child_process').execFile);
 
 const fs = fsSync.promises;
 
 const Rej = require('klesun-node-tools/src/Rej.js');
-const {getMimeByExt, removeDots, setCorsHeaders} = require('klesun-node-tools/src/Utils/HttpUtil.js');
+const {getMimeByExt, removeDots} = require('klesun-node-tools/src/Utils/HttpUtil.js');
 
 export interface HandleHttpParams {
     rq: http.IncomingMessage,
@@ -26,6 +27,14 @@ const redirect = (rs: http.ServerResponse, url: string) => {
         'Location': url,
     });
     rs.end();
+};
+
+/** @param {http.ServerResponse} rs */
+const setCorsHeaders = rs => {
+    rs.setHeader('Access-Control-Allow-Origin', '*');
+    rs.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+    rs.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,pragma,cache-control');
+    rs.setHeader('Access-Control-Allow-Credentials', true);
 };
 
 /** see https://stackoverflow.com/a/24977085/2750743 */
@@ -57,6 +66,12 @@ const serveMkv = async (absPath: string, params: HandleHttpParams) => {
         });
 };
 
+async function checkFileExists(file) {
+    return fs.access(file, fsSync.constants.F_OK)
+        .then(() => true)
+        .catch(() => false)
+}
+
 const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     const {rq, rs, rootPath} = params;
     pathname = decodeURIComponent(pathname);
@@ -64,8 +79,8 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     if (absPath.endsWith('/')) {
         absPath += 'index.html';
     }
-    if (!fsSync.existsSync(absPath)) {
-        return Rej.NotFound('File ' + pathname + ' does not exist');
+    if (!(await checkFileExists(absPath))) {
+        return Rej.NotFound('File ' + pathname + ' does not exist or not accessible');
     }
     if ((await fs.lstat(absPath)).isDirectory()) {
         return redirect(rs, pathname + '/');
@@ -138,6 +153,20 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
     pump(file.createReadStream({start, end}), rs)
 };
 
+const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
+    const {rq, rs, api} = params;
+    const {infoHash, filePath, subsIndex} = <Record<string, string>>url.parse(rq.url, true).query;
+    await api.prepareTorrentStream(infoHash);
+    const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
+        infoHash + '&filePath=' + encodeURIComponent(filePath);
+    const {stdout, stderr} = await execFile('ffmpeg', [
+        '-y', '-i', streamUrl, '-map',
+        '0:s:' + subsIndex, '-f', 'webvtt', '-',
+    ]);
+    rs.setHeader('Content-Type', 'text/vtt');
+    rs.end(stdout);
+};
+
 type Action = (rq: http.IncomingMessage) => Promise<SerialData> | SerialData;
 type ActionForApi = (api: IApi) => Action;
 
@@ -170,6 +199,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
             });
     } else if (pathname === '/torrent-stream') {
         return serveTorrentStream(params);
+    } else if (pathname === '/torrent-stream-subs') {
+        return serveTorrentStreamSubs(params);
     } else if (pathname.startsWith('/')) {
         return serveStaticFile(pathname, params);
     } else {

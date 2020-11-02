@@ -36,7 +36,7 @@ export const shortenTorrentInfo = (torrent: any) => ({
 
 export type TorrentInfo = ReturnType<typeof shortenTorrentInfo>;
 
-const MAX_META_WAIT_SECONDS = 30;
+const MAX_META_WAIT_SECONDS = 45;
 
 const ScanInfoHashStatus = ({infoHashes, itemCallback, api}: {
     infoHashes: string[],
