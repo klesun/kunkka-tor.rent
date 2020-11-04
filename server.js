@@ -1,7 +1,11 @@
 
 const tsNode = require('ts-node');
 
-tsNode.register({transpileOnly: true});
+tsNode.register({
+    transpileOnly: true,
+    // otherwise it ignores ts files imported from node_modules
+    ignore: [],
+});
 
 const Server = require('./src/server/Server').default;
 

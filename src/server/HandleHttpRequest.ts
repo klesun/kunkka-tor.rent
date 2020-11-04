@@ -5,7 +5,7 @@ import * as http from "http";
 import {IApi} from "./Api";
 import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
-import Exc from "./utils/Exc";
+import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
 import * as util from "util";
 const execFile = util.promisify(require('child_process').execFile);
@@ -167,7 +167,7 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     rs.end(stdout);
 };
 
-type Action = (rq: http.IncomingMessage) => Promise<SerialData> | SerialData;
+type Action = (rq: http.IncomingMessage, rs: http.ServerResponse) => Promise<SerialData> | SerialData;
 type ActionForApi = (api: IApi) => Action;
 
 const apiController: Record<string, ActionForApi> = {
@@ -175,6 +175,8 @@ const apiController: Record<string, ActionForApi> = {
     '/api/checkInfoHashPeers': api => api.checkInfoHashPeers,
     '/api/getFfmpegInfo': api => api.getFfmpegInfo,
     '/api/getSwarmInfo': api => api.getSwarmInfo,
+    '/api/qbtv2/search/start': api => api.qbtv2.search.start,
+    '/api/qbtv2/search/results': api => api.qbtv2.search.results,
 };
 
 const HandleHttpRequest = async (params: HandleHttpParams) => {
@@ -190,8 +192,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         rs.write('CORS ok');
         rs.end();
     } else if (actionForApi) {
-        return Promise.resolve(rq)
-            .then(actionForApi(api))
+        return Promise.resolve()
+            .then(() => actionForApi(api)(rq, rs))
             .then(result => {
                 rs.setHeader('Content-Type', 'application/json');
                 rs.statusCode = 200;

@@ -2,9 +2,10 @@ import * as url from 'url';
 import {shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
 import * as http from "http";
 import {HTTP_PORT} from "./Constants";
-import Exc from "./utils/Exc";
+import Exc from "klesun-node-tools/src/ts/Exc";
 import Swarm = TorrentStream.Swarm;
 import TorrentEngine = TorrentStream.TorrentEngine;
+import Qbtv2 from "./Qbtv2";
 const torrentStream = require('torrent-stream');
 const {timeout} = require('klesun-node-tools/src/Lang.js');
 const util = require('util');
@@ -138,6 +139,8 @@ const Api = () => {
         checkInfoHashPeers: checkInfoHashPeers,
         getFfmpegInfo: getFfmpegInfo,
         getSwarmInfo: getSwarmInfo,
+
+        qbtv2: Qbtv2(),
 
         // following not serializable - for internal use only
         prepareTorrentStream: prepareTorrentStream,

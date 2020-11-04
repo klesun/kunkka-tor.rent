@@ -2,20 +2,11 @@
     <title>kunkka-torrent - stream media to browser</title>
     <meta charset="utf-8"/>
     <link rel="icon" href="./favicon.ico"/>
+    <link rel="stylesheet" href="./styles/common.css"/>
 </head>
 
+<!-- possibly should move it to /public/ -->
 <style>
-    body {
-        background-color: #00030e;
-        color: #bfd9ff;
-    }
-    .kunkka-color {
-        color: #6dd0f1;
-    }
-    .torrent-color {
-        color: #19bdbd;
-    }
-
     .first-episodes-card-list {
         text-align: center;
     }
@@ -47,27 +38,44 @@
         object-fit: contain;
         background-image: url(./assets/img/static_noise.png);
     }
-
-    video::cue {
-        background-color: transparent;
-        text-shadow: #000 1px 1px 3px;
-    }
-    body {
-        background-image: url(./assets/img/kunkka-torrent-masked.png);
-        background-repeat: no-repeat;
-        background-position: top right;
-    }
 </style>
 
 <body>
-<div style="display: flex; margin: 9px">
-    <div style="text-align: center; flex: 1; margin-top: 24px;">
-        <h1><span class="kunkka-color">kunkka</span>-<span class="torrent-color">torrent</span></h1>
-        <p>A web app that allows playing video/music from torrents directly in the browser, without downloading to PC</p>
-        <p>(I'll also host here certain editor choice hard-to-obtain cartoons/music)</p>
-    </div>
-</div>
-<div style="text-align: center">
+    <header>
+        <div class="header-text-block-space">
+            <div class="header-title-with-search-form">
+                <div class="header-main-title">
+                    <a href="https://kunkka-torrent.online">
+                        <span class="kunkka-color">kunkka</span>-<span class="torrent-color">torrent</span>
+                    </a>
+                </div>
+                <div>
+                    <form method="get" action="./views/search.html">
+                        <input required="required" placeholder="Type file name here" name="pattern" type="text"/>
+                        <select name="category">
+                            <option selected value="all">All categories</option>
+                            <option disabled="">──────────</option>
+                            <option value="anime">Anime</option>
+                            <option value="books">Books</option>
+                            <option value="games">Games</option>
+                            <option value="movies">Movies</option>
+                            <option value="music">Music</option>
+                            <option value="pictures">Pictures</option>
+                            <option value="software">Software</option>
+                            <option value="tv">TV shows</option>
+                        </select>
+                        <input type="hidden" name="plugins" value="all"/>
+                        <button>Search</button>
+                    </form>
+                </div>
+            </div>
+            <p class="title-secondary-text">A web app that allows playing video/music from torrents directly in the browser, without downloading to PC</p>
+        </div>
+        <div class="header-image-remainder-space"></div>
+    </header>
+
+<!-- TODO: indent -->
+<main style="text-align: center">
     <h2>Watch Online Before FBI Puts Me Down</h2>
     <h3>Editor's Choice</h3>
 
@@ -147,10 +155,11 @@
             </div>
         </div></div>
     </div>
-</div>
-<div>
-    <video controls="controls" preload="auto" src="./api/testTorrentStream"></video>
-</div>
+</main>
+    <footer>
+        <video controls="controls" preload="auto" src="./api/testTorrentStream"></video>
+    </footer>
+
 <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
 <script>
 (() => {

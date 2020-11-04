@@ -1,0 +1,58 @@
+
+body {
+    background-color: #00030e;
+    color: #bfd9ff;
+    background-image: url(../assets/img/kunkka-torrent-masked.png);
+    background-repeat: no-repeat;
+    background-position: top right;
+}
+header {
+    margin-top: 24px;
+    display: flex;
+}
+a:not(:visited) {
+    color: #40afff;
+}
+a:visited {
+    color: #ff5eff;
+}
+.header-text-block-space {
+    flex: 2;
+}
+.header-image-remainder-space {
+    flex: 1;
+}
+.header-title-with-search-form {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+.header-main-title {
+    font-size: 54px;
+    margin-right: 24px;
+    cursor: pointer;
+}
+.header-main-title:hover {
+    filter: brightness(1.1);
+}
+.title-secondary-text {
+    text-align: center;
+}
+
+form {
+    margin-bottom: 0;
+}
+.header-main-title a {
+    text-decoration: none;
+    color: unset;
+}
+.kunkka-color {
+    color: #6dd0f1;
+}
+.torrent-color {
+    color: #19bdbd;
+}
+video::cue {
+    background-color: transparent;
+    text-shadow: #000 1px 1px 3px;
+}
