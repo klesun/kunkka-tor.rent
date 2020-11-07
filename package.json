@@ -12,6 +12,7 @@
   "author": "klesun",
   "license": "ISC",
   "dependencies": {
+    "@types/node-fetch": "^2.5.7",
     "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/1afb235108feb8bed53c7fd2e57e2e4bcc153855",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
