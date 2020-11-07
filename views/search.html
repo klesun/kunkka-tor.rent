@@ -20,6 +20,9 @@
     .torrent-size {
         text-align: right;
     }
+    .torrent-file-name {
+        font-size: 12px;
+    }
 </style>
 
 <body>
@@ -110,8 +113,6 @@ const main = async () => {
         }
     });
 
-    console.log('huj id ' + id);
-
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     /** @type {QbtSearchResult} */
@@ -147,7 +148,7 @@ const main = async () => {
 
     for (const resultItem of results) {
         const tr = Dom('tr', {}, [
-            Dom('td', {}, resultItem.fileName),
+            Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
             Dom('td', {class: 'torrent-size'}, resultItem.fileSize <= 0
                 ? resultItem.fileSize
                 : (resultItem.fileSize / 1024 / 1024).toFixed(1) + 'MiB'),

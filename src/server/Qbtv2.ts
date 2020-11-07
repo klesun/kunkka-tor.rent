@@ -51,7 +51,9 @@ const Qbtv2 = ({port = 44011} = {}) => {
                     body: rqBody,
                 });
                 fetchRs.headers.forEach((value, name) => {
-                    rs.setHeader(name, value);
+                    if (name.toLowerCase() !== 'content-encoding') {
+                        rs.setHeader(name, value);
+                    }
                 });
                 const body = await fetchRs.text();
                 try {
