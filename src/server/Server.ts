@@ -4,6 +4,7 @@ import Api from "./Api";
 import * as SocketIo from 'socket.io';
 import ScanInfoHashStatus from "./actions/ScanInfoHashStatus";
 import {HTTP_PORT} from "./Constants";
+const fetch = require('node-fetch');
 
 const handleRq = (params: HandleHttpParams) => {
     HandleHttpRequest(params).catch(exc => {

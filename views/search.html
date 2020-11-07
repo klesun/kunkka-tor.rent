@@ -102,7 +102,15 @@ const main = async () => {
         },
         'body': window.location.search.slice('?'.length),
         'method': 'POST',
-    }).then(rs => rs.json());
+    }).then(rs => {
+        if (rs.status !== 200) {
+            throw new Error(rs.statusText);
+        } else {
+            return rs.json();
+        }
+    });
+
+    console.log('huj id ' + id);
 
     await new Promise(resolve => setTimeout(resolve, 3000));
 
@@ -115,7 +123,13 @@ const main = async () => {
             id: id, limit: 500, offset: 0,
         }).toString(),
         'method': 'POST',
-    }).then(rs => rs.json());
+    }).then(rs => {
+        if (rs.status !== 200) {
+            throw new Error(rs.statusText);
+        } else {
+            return rs.json();
+        }
+    });
 
     gui.status_text.textContent = resultsRs.status;
 
