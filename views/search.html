@@ -54,7 +54,7 @@
                     </form>
                 </div>
             </div>
-            <p class="title-secondary-text">A web app that allows playing video/music from torrents directly in the browser, without downloading to PC</p>
+            <p class="title-secondary-text">A web app that allows playing video/music from torrents (like popcorn time) directly in the browser, without downloading to PC</p>
         </div>
         <div class="header-image-remainder-space"></div>
     </header>
@@ -97,8 +97,156 @@ const getScore = (item) => {
     }
 };
 
+const getInfoHash = async resultItem => {
+    if (resultItem.infoHash) {
+        return resultItem.infoHash;
+    } else {
+        throw new Error('TODO: convert torrent to info hash - ' + resultItem.fileUrl);
+    }
+};
+
+const playVideo = (video, infoHash, file) => {
+    video.setAttribute('data-info-hash', infoHash);
+    video.setAttribute('data-file-path', file.path);
+    video.setAttribute('src', '/torrent-stream?' + new URLSearchParams({
+        infoHash: video.getAttribute('data-info-hash'),
+        filePath: video.getAttribute('data-file-path'),
+    }));
+    video.innerHTML = '';
+    video.play();
+    // gui.video_player_popdown.classList.toggle('video-selected', true);
+    // gui.selected_video_ffmpeg_info.textContent = 'It may take a minute or so before playback can be started...';
+    // gui.selected_video_container_info.innerHTML = '';
+    // gui.selected_video_stream_list.innerHTML = '';
+    // gui.selected_video_filename.textContent = file.path;
+    // gui.selected_video_size.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
+
+    const url = '/api/getFfmpegInfo?' + new URLSearchParams({
+        infoHash: video.getAttribute('data-info-hash'),
+        filePath: video.getAttribute('data-file-path'),
+    });
+    // fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {
+    //     if (video.getAttribute('data-info-hash') === infoHash &&
+    //         video.getAttribute('data-file-path') === file.path
+    //     ) {
+    //         displayFfprobeOutput(ffprobeOutput, video);
+    //     }
+    // });
+    // updateSwarmInfo = async () => {
+    //     if (video.getAttribute('data-info-hash') !== infoHash || video.ended) {
+    //         updateSwarmInfo = () => {};
+    //     } else {
+    //         const url = 'https://kunkka-torrent.online/api/getSwarmInfo?' +
+    //             new URLSearchParams({infoHash});
+    //         fetch(url).then(rs => rs.json()).then(swarmSummary => {
+    //             gui.selected_video_ffmpeg_info.textContent = JSON.stringify(swarmSummary);
+    //         });
+    //     }
+    // };
+};
+
+const makeFilesList = ({resultItem, infoHash, seconds, video, files}) => {
+    const isBadCodec =
+        resultItem.fileName.match(/265/) ||
+        resultItem.fileName.match(/hevc/i) ||
+        resultItem.fileName.match(/mpeg-?4/i);
+    return Dom('div', {}, [
+        Dom('span', {}, seconds),
+        Dom('span', {}, 'Show Files:'),
+        Dom('input', {type: 'checkbox', class: 'hide-following-flag'}),
+        Dom('table', {}, [
+            Dom('tbody', {}, files.map(f => Dom('tr', {}, [
+                Dom('td', {}, f.path),
+                Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
+                Dom('td', {}, [
+                    Dom('button', {
+                        onclick: () => playVideo(video, infoHash, f),
+                        ...(!isBadCodec ? {} : {
+                            disabled: 'disabled',
+                            style: 'cursor: help',
+                            title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
+                        }),
+                    }, 'Watch'),
+                ]),
+            ]))),
+        ]),
+    ]);
+};
+
+const toExpandView = (resultItem, getTr) => {
+    let expandedView = null;
+    let whenMetaInfo = null;
+    let whenInfoHash = null;
+    return () => {
+        const tr = getTr();
+        if (expandedView) {
+            expandedView.remove();
+            expandedView = null;
+            return;
+        }
+        const fileListCont = Dom('div', {}, 'Loading File List...');
+        const video = Dom('video', {controls: 'controls'});
+        expandedView = Dom('tr', {}, [
+            Dom('td', {colspan: 999}, [
+                Dom('div', {style: 'display: flex; justify-content: space-evenly'}, [
+                    fileListCont,
+                    Dom('div', {}, [video]),
+                ]),
+            ]),
+        ]);
+        tr.parentNode.insertBefore(expandedView, tr);
+        const startedMs = Date.now();
+        whenInfoHash = whenInfoHash || getInfoHash(resultItem);
+        whenMetaInfo = whenMetaInfo || whenInfoHash
+            .then((ih) => fetch('/api/getSwarmInfo?infoHash=' + ih))
+            .then(rs => {
+                if (rs.status !== 200) {
+                    throw new Error(rs.statusText);
+                } else {
+                    return rs.json();
+                }
+            });
+        whenMetaInfo.then(async metaInfo => {
+            const seconds = (Date.now() - startedMs) / 1000;
+            const infoHash = await whenInfoHash;
+            const filesList = makeFilesList({
+                resultItem, infoHash, seconds,
+                video, files: metaInfo.files,
+            });
+            fileListCont.innerHTML = '';
+            fileListCont.appendChild(filesList);
+        });
+    };
+};
+
+const makeResultTr = (resultItem) => {
+    const tr = Dom('tr', {}, [
+        Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
+        Dom('td', {class: 'torrent-size'}, resultItem.fileSize <= 0
+            ? resultItem.fileSize
+            : (resultItem.fileSize / 1024 / 1024).toFixed(1) + 'MiB'),
+        Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
+        Dom('td', {class: 'seeders-number'}, resultItem.nbSeeders),
+        Dom('td', {}, [
+            Dom('a', {
+                href: resultItem.fileUrl,
+            }, resultItem.infoHash || resultItem.fileUrl),
+        ]),
+        Dom('td', {}, [
+            Dom('a', {
+                href: resultItem.descrLink,
+            }, new URL(resultItem.descrLink).hostname),
+        ]),
+        Dom('td', {}, [
+            Dom('button', {
+                onclick: toExpandView(resultItem, () => tr),
+            }, 'Connect'),
+        ]),
+    ]);
+    return tr;
+};
+
 const main = async () => {
-    // if need https, can just proxy through main domain
     const {id} = await fetch('/api/qbtv2/search/start', {
         headers: {
             'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -147,24 +295,7 @@ const main = async () => {
         .sort((a,b) => getScore(b) - getScore(a));
 
     for (const resultItem of results) {
-        const tr = Dom('tr', {}, [
-            Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
-            Dom('td', {class: 'torrent-size'}, resultItem.fileSize <= 0
-                ? resultItem.fileSize
-                : (resultItem.fileSize / 1024 / 1024).toFixed(1) + 'MiB'),
-            Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
-            Dom('td', {class: 'seeders-number'}, resultItem.nbSeeders),
-            Dom('td', {}, [
-                Dom('a', {
-                    href: resultItem.fileUrl,
-                }, resultItem.infoHash || resultItem.fileUrl),
-            ]),
-            Dom('td', {}, [
-                Dom('a', {
-                    href: resultItem.descrLink,
-                }, new URL(resultItem.descrLink).hostname),
-            ]),
-        ]);
+        const tr = makeResultTr(resultItem);
         gui.search_results_list.appendChild(tr);
     }
 };

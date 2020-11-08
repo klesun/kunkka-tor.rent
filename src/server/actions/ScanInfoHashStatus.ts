@@ -26,12 +26,14 @@ type ItemStatus = BaseItemStatus & ({
     status: 'TIMEOUT',
 });
 
+export const shortenFileInfo = f => ({
+    path: f.path, length: f.length,
+});
+
 export const shortenTorrentInfo = (torrent: any) => ({
     name: torrent.name,
     length: torrent.length,
-    files: torrent.files.map(f => ({
-        path: f.path, length: f.length,
-    })),
+    files: torrent.files.map(shortenFileInfo),
 });
 
 export type TorrentInfo = ReturnType<typeof shortenTorrentInfo>;

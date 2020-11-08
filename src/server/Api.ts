@@ -1,5 +1,5 @@
 import * as url from 'url';
-import {shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
+import {shortenFileInfo, shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
 import * as http from "http";
 import {HTTP_PORT} from "./Constants";
 import Exc from "klesun-node-tools/src/ts/Exc";
@@ -131,7 +131,10 @@ const Api = () => {
             throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         }
         const engine = await prepareTorrentStream(infoHash);
-        return makeSwarmSummary(engine.swarm);
+        return {
+            ...makeSwarmSummary(engine.swarm),
+            files: engine.files.map(shortenFileInfo),
+        };
     };
 
     return {
