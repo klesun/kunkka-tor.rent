@@ -9,6 +9,7 @@ import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
 import * as util from "util";
 const execFile = util.promisify(require('child_process').execFile);
+const {spawn} = require('child_process');
 
 const fs = fsSync.promises;
 
@@ -159,12 +160,12 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     await api.prepareTorrentStream(infoHash);
     const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
         infoHash + '&filePath=' + encodeURIComponent(filePath);
-    const {stdout, stderr} = await execFile('ffmpeg', [
+    const args = [
         '-y', '-i', streamUrl, '-map',
         '0:s:' + subsIndex, '-f', 'webvtt', '-',
-    ]);
-    rs.setHeader('Content-Type', 'text/vtt');
-    rs.end(stdout);
+    ];
+    const spawned = spawn('ffmpeg', args);
+    spawned.stdout.pipe(rs);
 };
 
 type Action = (rq: http.IncomingMessage, rs: http.ServerResponse) => Promise<SerialData> | SerialData;
