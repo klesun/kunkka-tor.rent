@@ -47,3 +47,13 @@ video::cue {
     background-color: transparent;
     text-shadow: #000 2px 2px 2px;
 }
+
+.big-torrent {
+    color: #ff5400;
+}
+.single-episode-torrent {
+    color: #989800;
+}
+.small-torrent {
+    color: grey;
+}

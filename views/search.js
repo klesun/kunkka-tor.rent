@@ -231,12 +231,34 @@ const toExpandView = (resultItem, getTr) => {
     };
 };
 
+const makeSizeTd = (fileSize) => {
+    const classes = ['torrent-size'];
+    let content;
+    if (fileSize <= 0) {
+        content = fileSize;
+        classes.push('invalid-size');
+    } else {
+        const sizeMib = fileSize / 1024 / 1024;
+        if (sizeMib > 30 * 1024) {
+            classes.push('big-torrent');
+        } else if (sizeMib < 100) {
+            classes.push('small-torrent');
+        } else if (sizeMib < 500) {
+            classes.push('single-episode-torrent');
+        }
+        if (sizeMib >= 1024) {
+            content = (sizeMib / 1024).toFixed(1) + 'GiB';
+        } else {
+            content = sizeMib.toFixed(1) + 'MiB';
+        }
+    }
+    return Dom('td', {class: classes.join(' ')}, content);
+};
+
 const makeResultTr = (resultItem) => {
     const tr = Dom('tr', {}, [
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
-        Dom('td', {class: 'torrent-size'}, resultItem.fileSize <= 0
-            ? resultItem.fileSize
-            : (resultItem.fileSize / 1024 / 1024).toFixed(1) + 'MiB'),
+        makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
         Dom('td', {class: 'seeders-number'}, resultItem.nbSeeders),
         Dom('td', {}, [
