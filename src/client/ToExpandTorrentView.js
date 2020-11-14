@@ -1,11 +1,15 @@
 
 import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
+import Api from "../client/Api.js";
 
+/** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
     if (resultItem.infoHash) {
         return resultItem.infoHash;
     } else {
-        throw new Error('TODO: convert torrent to info hash - ' + resultItem.fileUrl);
+        const torrentFileData = await Api()
+            .downloadTorrentFile({fileUrl: resultItem.fileUrl});
+        return torrentFileData.infoHash;
     }
 };
 
@@ -39,7 +43,7 @@ const typeToStreamInfoMaker = {
 
 /**
  * @param {FfprobeOutput} ffprobeOutput
- * @param {HTMLVideoElement} video
+ * @param {HTMLElement} expandedView
  */
 const displayFfprobeOutput = (ffprobeOutput, expandedView) => {
     const video = expandedView.querySelector('video');
@@ -106,11 +110,10 @@ const playVideo = (expandedView, infoHash, file, isBadCodec) => {
     expandedView.querySelector('.file-name').textContent = file.path;
     expandedView.querySelector('.file-size').textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
 
-    const url = '/api/getFfmpegInfo?' + new URLSearchParams({
+    Api().getFfmpegInfo({
         infoHash: video.getAttribute('data-info-hash'),
         filePath: video.getAttribute('data-file-path'),
-    });
-    fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {
+    }).then((ffprobeOutput) => {
         if (video.getAttribute('data-info-hash') === infoHash &&
             video.getAttribute('data-file-path') === file.path
         ) {
@@ -158,6 +161,10 @@ const makeFilesList = ({resultItem, infoHash, seconds, expandedView, files}) => 
     ]);
 };
 
+/**
+ * @param {QbtSearchResultItem} resultItem
+ * @param {function(): HTMLTableRowElement} getTr
+ */
 const ToExpandTorrentView = ({
     resultItem, getTr,
 }) => {
@@ -196,14 +203,7 @@ const ToExpandTorrentView = ({
         const startedMs = Date.now();
         whenInfoHash = whenInfoHash || getInfoHash(resultItem);
         whenMetaInfo = whenMetaInfo || whenInfoHash
-            .then((ih) => fetch('/api/getSwarmInfo?infoHash=' + ih))
-            .then(rs => {
-                if (rs.status !== 200) {
-                    throw new Error(rs.statusText);
-                } else {
-                    return rs.json();
-                }
-            });
+            .then(ih => Api().getSwarmInfo({infoHash: ih}));
         whenMetaInfo.then(async metaInfo => {
             const seconds = (Date.now() - startedMs) / 1000;
             const infoHash = await whenInfoHash;

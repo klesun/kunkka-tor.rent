@@ -1,5 +1,7 @@
 import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
 import ToExpandTorrentView from "../src/client/ToExpandTorrentView.js";
+import Api from "../src/client/Api.js";
+import {parseMagnetUrl} from "../src/common/Utils.js";
 
 const gui = {
     status_text: document.getElementById('status_text'),
@@ -10,12 +12,12 @@ const getScore = (item) => {
     if (item.siteUrl === 'https://eztv.io') {
         // returns irrelevant results if nothing matched query
         return 0;
-    } else if (item.infoHash) {
-        return item.nbSeeders;
+    } else if (item.siteUrl === 'https://bakabt.me') {
+        // tried few Kara no Kyoukai torrents, reports 44 and 38 seeds, but both seems to be dead, seems like
+        // numbers weren't updated in years - in this regard torrents.csv would be much more credible for example
+        return item.nbSeeders / 4;
     } else {
-        // would still be able to fetch them most likely,
-        // but will be some hassle, not implemented yet
-        return item.nbSeeders / 2;
+        return item.nbSeeders;
     }
 };
 
@@ -48,7 +50,7 @@ const makeResultTr = (resultItem) => {
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
-        Dom('td', {class: 'seeders-number'}, resultItem.nbSeeders),
+        Dom('td', {class: 'seeders-number'}, (resultItem.siteUrl === 'https://bakabt.me' ? '(≖_≖)' : '') + resultItem.nbSeeders),
         Dom('td', {}, [
             Dom('a', {
                 href: resultItem.fileUrl,
@@ -69,46 +71,24 @@ const makeResultTr = (resultItem) => {
 };
 
 const main = async () => {
-    const {id} = await fetch('/api/qbtv2/search/start', {
-        headers: {
-            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        },
-        'body': window.location.search.slice('?'.length),
-        'method': 'POST',
-    }).then(rs => {
-        if (rs.status !== 200) {
-            throw new Error(rs.statusText);
-        } else {
-            return rs.json();
-        }
+    const api = Api();
+    const searchParams = new URLSearchParams(window.location.search);
+    const {id} = await api.qbtv2.search.start({
+        pattern: searchParams.get('pattern'),
+        category: searchParams.get('category') || 'all',
+        plugins: searchParams.get('plugins') || 'all',
     });
 
     const allResults = [];
     for (let i = 0; i < 60; ++i) {
-        /** @type {QbtSearchResult} */
-        const resultsRs = await fetch('/api/qbtv2/search/results', {
-            headers: {
-                'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            },
-            'body': new URLSearchParams({
-                id: id, limit: 500, offset: allResults.length,
-            }).toString(),
-            'method': 'POST',
-        }).then(rs => {
-            if (rs.status !== 200) {
-                throw new Error(rs.statusText);
-            } else {
-                return rs.json();
-            }
+        const resultsRs = await api.qbtv2.search.results({
+            id: id, limit: 500, offset: allResults.length,
         });
 
         gui.status_text.textContent = resultsRs.status;
         const resultsChunk = resultsRs.results
             .map(r => {
-                const match = r.fileUrl.match(/^magnet:\?xt=urn:btih:([a-fA-F0-9]{40}).*/);
-                if (match) {
-                    r.infoHash = match[1];
-                }
+                r.infoHash = (parseMagnetUrl(r.fileUrl) || {}).infoHash;
                 return r;
             });
         if (resultsChunk.length > 0) {
