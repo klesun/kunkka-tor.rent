@@ -1,4 +1,5 @@
 import {IApi} from "../Api";
+import TorrentFile = TorrentStream.TorrentFile;
 
 const torrentStream = require('torrent-stream');
 const {timeout} = require('klesun-node-tools/src/Lang.js');
@@ -26,17 +27,27 @@ type ItemStatus = BaseItemStatus & ({
     status: 'TIMEOUT',
 });
 
-export const shortenFileInfo = f => ({
+export const shortenFileInfo = (f: TorrentFile): ShortTorrentFileInfo => ({
     path: f.path, length: f.length,
 });
 
-export const shortenTorrentInfo = (torrent: any) => ({
+export type TorrentMainInfo = {
+    name: string,
+    length: number,
+    files: TorrentFile[],
+}
+
+export const shortenTorrentInfo = (torrent: TorrentMainInfo) => ({
     name: torrent.name,
     length: torrent.length,
     files: torrent.files.map(shortenFileInfo),
 });
 
 export type TorrentInfo = ReturnType<typeof shortenTorrentInfo>;
+type ShortTorrentFileInfo = {
+    path: string,
+    length: number,
+};
 
 const MAX_META_WAIT_SECONDS = 45;
 

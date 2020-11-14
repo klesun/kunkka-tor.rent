@@ -1,5 +1,5 @@
 import * as url from 'url';
-import {shortenFileInfo, shortenTorrentInfo, TorrentInfo} from "./actions/ScanInfoHashStatus";
+import {shortenFileInfo, shortenTorrentInfo, TorrentInfo, TorrentMainInfo} from "./actions/ScanInfoHashStatus";
 import * as http from "http";
 import {HTTP_PORT} from "./Constants";
 import Exc from "klesun-node-tools/src/ts/Exc";
@@ -44,22 +44,22 @@ const makeSwarmSummary = (swarm: NowadaysSwarm) => {
     };
 };
 
-const checkInfoHashMeta = async rq => {
-    const {infoHash} = url.parse(rq.url, true).query;
+const checkInfoHashMeta = async (rq: http.IncomingMessage) => {
+    const {infoHash} = url.parse(<string>rq.url, true).query;
     if (!infoHash || infoHash.length !== 40) {
         throw new Error('Invalid infoHash, must be a 40 characters long hex string');
     }
 
     const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
     const whenMeta = new Promise<TorrentInfo>(resolve => {
-        engine.on('torrent', async (torrent) => {
+        engine.on('torrent', async (torrent: TorrentMainInfo) => {
             resolve(shortenTorrentInfo(torrent));
         });
     });
 
     const startedMs = Date.now();
     return timeout(5, whenMeta)
-        .then(meta => {
+        .then((meta: TorrentInfo) => {
             console.log('ololo meta in ' + ((Date.now() - startedMs) / 1000).toFixed(3) + ' seconds - ' + meta.name);
             return meta;
         })
@@ -67,7 +67,7 @@ const checkInfoHashMeta = async rq => {
 };
 
 const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
-    const {infoHash} = url.parse(rq.url, true).query;
+    const {infoHash} = url.parse(<string>rq.url, true).query;
     if (!infoHash || infoHash.length !== 40) {
         throw new Error('Invalid infoHash, must be a 40 characters long hex string');
     }
@@ -116,7 +116,7 @@ const Api = () => {
     };
 
     const getFfmpegInfo = async (rq: http.IncomingMessage) => {
-        const {infoHash, filePath} = <Record<string, string>>url.parse(rq.url, true).query;
+        const {infoHash, filePath} = <Record<string, string>>url.parse(<string>rq.url, true).query;
         if (!infoHash || infoHash.length !== 40) {
             throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         } else if (!filePath) {
@@ -131,7 +131,7 @@ const Api = () => {
     };
 
     const getSwarmInfo = async (rq: http.IncomingMessage) => {
-        const {infoHash} = <Record<string, string>>url.parse(rq.url, true).query;
+        const {infoHash} = <Record<string, string>>url.parse(<string>rq.url, true).query;
         if (!infoHash || infoHash.length !== 40) {
             throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         }
@@ -147,7 +147,7 @@ const Api = () => {
      * to download torrents, so need to integrate with qbt python plugins
      */
     const downloadTorrentFile = async (rq: http.IncomingMessage) => {
-        const {fileUrl} = <Record<string, string>>url.parse(rq.url, true).query;
+        const {fileUrl} = <Record<string, string>>url.parse(<string>rq.url, true).query;
         const scriptPath = __dirname + '/../../scripts/download_torrent_file.sh';
         const args = [fileUrl];
         const result = await execFile(scriptPath, args);
@@ -190,7 +190,7 @@ const Api = () => {
 
         // following not serializable - for internal use only
         prepareTorrentStream: prepareTorrentStream,
-        getPreparingStream: infoHash => infoHashToWhenEngine[infoHash],
+        getPreparingStream: (infoHash: string) => infoHashToWhenEngine[infoHash],
     };
 };
 

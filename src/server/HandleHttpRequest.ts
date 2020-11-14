@@ -189,7 +189,7 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
         '0:s:' + subsIndex, '-f', 'webvtt', '-',
     ];
     const spawned = spawn('ffmpeg', args);
-    spawned.stderr.on('data', (buf) => {
+    spawned.stderr.on('data', (buf: Buffer) => {
         if (rs.headersSent) {
             console.log('subs stderr', buf.toString('utf8'));
         } else {
