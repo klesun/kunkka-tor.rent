@@ -64,3 +64,20 @@ video {
 .media-info-section > div {
     margin-top: 6px;
 }
+
+tbody.files-in-torrent > tr[data-file-extension="srt"],
+tbody.files-in-torrent > tr[data-file-extension="ass"],
+tbody.files-in-torrent > tr[data-file-extension="aac"] {
+    /* external subs/audio files, should not be of big interest to user */
+    color: grey;
+    opacity: 0.7;
+}
+
+tbody.files-in-torrent > tr[data-file-extension="mp4"],
+tbody.files-in-torrent > tr[data-file-extension="mkv"],
+tbody.files-in-torrent > tr[data-file-extension="mpg"],
+tbody.files-in-torrent > tr[data-file-extension="avi"],
+tbody.files-in-torrent > tr[data-file-extension="mov"] {
+    /* actual video files, the main thing that should interest the user */
+    font-weight: bold;
+}

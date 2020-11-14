@@ -147,6 +147,7 @@ const playVideo = (expandedView, infoHash, file, isBadCodec) => {
     // };
 };
 
+/** @param {ShortTorrentFileInfo[]} files */
 const makeFilesList = ({resultItem, infoHash, seconds, expandedView, files}) => {
     const isBadCodec =
         resultItem.fileName.match(/265/) ||
@@ -157,7 +158,9 @@ const makeFilesList = ({resultItem, infoHash, seconds, expandedView, files}) => 
         Dom('span', {}, 'Show Files:'),
         Dom('input', {type: 'checkbox', class: 'hide-following-flag'}),
         Dom('table', {}, [
-            Dom('tbody', {}, files.map(f => Dom('tr', {}, [
+            Dom('tbody', {class: 'files-in-torrent'}, files.map(f => Dom('tr', {
+                'data-file-extension': f.path.replace(/^.*\./, ''),
+            }, [
                 Dom('td', {}, f.path),
                 Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
                 Dom('td', {}, [
