@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"target": "es2019",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"strict": true,
+		"noImplicitAny": true
+	},
+	"include": ["src/server", "src/common"],
+	"exclude": ["node_modules"]
+}
