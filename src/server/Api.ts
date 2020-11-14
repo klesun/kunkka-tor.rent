@@ -6,10 +6,15 @@ import Exc from "klesun-node-tools/src/ts/Exc";
 import Swarm = TorrentStream.Swarm;
 import TorrentEngine = TorrentStream.TorrentEngine;
 import Qbtv2 from "./Qbtv2";
+import {parseMagnetUrl} from "../common/Utils.js";
 const torrentStream = require('torrent-stream');
 const {timeout} = require('klesun-node-tools/src/Lang.js');
 const util = require('util');
 const execFile = util.promisify(require('child_process').execFile);
+import * as fs from 'fs';
+import * as parseTorrent from 'parse-torrent';
+import * as ParseTorrentFile from "parse-torrent-file";
+import {Instance} from "parse-torrent";
 
 interface NowadaysSwarm extends Swarm {
     wires: {
@@ -137,11 +142,49 @@ const Api = () => {
         };
     };
 
+    /**
+     * sites like rutracker, bakabt, kinozal, etc... require login and password
+     * to download torrents, so need to integrate with qbt python plugins
+     */
+    const downloadTorrentFile = async (rq: http.IncomingMessage) => {
+        const {fileUrl} = <Record<string, string>>url.parse(rq.url, true).query;
+        const scriptPath = __dirname + '/../../scripts/download_torrent_file.sh';
+        const args = [fileUrl];
+        const result = await execFile(scriptPath, args);
+        const {stdout, stderr} = result;
+        const [path, effectiveUrl] = stdout.trim().split(/\s+/);
+        if (!effectiveUrl.match(/^https?:\/\//)) {
+            const msg = 'Unexpected response from python script,' +
+                '\nSTDOUT:\n' + stdout + (stderr.trim() ? '\nSTDERR:\n' + stderr : '') + '\nno match:\n' +
+                fileUrl + '\n' +
+                effectiveUrl;
+            throw Exc.BadGateway(msg);
+        }
+        let infoHash;
+        let torrentFileData: Instance | null = null;
+        const asMagnet = parseMagnetUrl(path);
+        if (asMagnet) {
+            infoHash = asMagnet.infoHash;
+        } else if (path.match(/^[A-Fa-f0-9]{40}$/)) {
+            infoHash = path;
+        } else if (path.startsWith('/tmp/')) {
+            const torrentFileBuf = await fs.promises.readFile(path);
+            torrentFileData = <Instance>parseTorrent(torrentFileBuf);
+            infoHash = torrentFileData.infoHash;
+        } else {
+            const msg = 'Unexpected downloaded torrent file path format - ' + path;
+            throw Exc.NotImplemented(msg);
+        }
+
+        return {infoHash, ...(torrentFileData || {})};
+    };
+
     return {
         checkInfoHashMeta: checkInfoHashMeta,
         checkInfoHashPeers: checkInfoHashPeers,
         getFfmpegInfo: getFfmpegInfo,
         getSwarmInfo: getSwarmInfo,
+        downloadTorrentFile: downloadTorrentFile,
 
         qbtv2: Qbtv2(),
 
@@ -154,3 +197,5 @@ const Api = () => {
 export default Api;
 
 export type IApi = ReturnType<typeof Api>;
+
+export type IApi_getSwarmInfo_rs = ReturnType<ReturnType<typeof Api>['getSwarmInfo']>;

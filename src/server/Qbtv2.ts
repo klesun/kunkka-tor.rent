@@ -17,11 +17,13 @@ const readPost = (rq: http.IncomingMessage) => new Promise<string>((ok, err) => 
  * a mapping to the Web API of qbittorrent
  * needed to proxy requests to the plugin search from trackers
  * aggregation, as this feature is ridiculously useful and convenient
+ *
+ * @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list
  */
 const Qbtv2 = ({port = 44011} = {}) => {
     return {
         search: {
-            // probably better would be just use node-fetch...
+            /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#start-search */
             start: async (rq: http.IncomingMessage, rs: http.ServerResponse) => {
                 const url = 'http://localhost:' + port + '/api/v2/search/start';
                 const params = {
@@ -43,6 +45,7 @@ const Qbtv2 = ({port = 44011} = {}) => {
                     throw Exc.BadGateway('Failed to parse qbt json response - ' + body);
                 }
             },
+            /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-search-results */
             results: async (rq: http.IncomingMessage, rs: http.ServerResponse) => {
                 const rqBody = await readPost(rq);
                 const url = 'http://localhost:' + port + '/api/v2/search/results';

@@ -8,7 +8,6 @@ import { lookup } from 'mime-types'
 import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
 import * as util from "util";
-const execFile = util.promisify(require('child_process').execFile);
 const {spawn} = require('child_process');
 
 const fs = fsSync.promises;
@@ -209,6 +208,7 @@ const apiController: Record<string, ActionForApi> = {
     '/api/checkInfoHashPeers': api => api.checkInfoHashPeers,
     '/api/getFfmpegInfo': api => api.getFfmpegInfo,
     '/api/getSwarmInfo': api => api.getSwarmInfo,
+    '/api/downloadTorrentFile': api => api.downloadTorrentFile,
     '/api/qbtv2/search/start': api => api.qbtv2.search.start,
     '/api/qbtv2/search/results': api => api.qbtv2.search.results,
 };
