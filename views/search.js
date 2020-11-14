@@ -83,42 +83,54 @@ const main = async () => {
         }
     });
 
-    await new Promise(resolve => setTimeout(resolve, 10000));
-
-    /** @type {QbtSearchResult} */
-    const resultsRs = await fetch('/api/qbtv2/search/results', {
-        headers: {
-            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        },
-        'body': new URLSearchParams({
-            id: id, limit: 500, offset: 0,
-        }).toString(),
-        'method': 'POST',
-    }).then(rs => {
-        if (rs.status !== 200) {
-            throw new Error(rs.statusText);
-        } else {
-            return rs.json();
-        }
-    });
-
-    gui.status_text.textContent = resultsRs.status;
-
-    const results = resultsRs.results
-        // forged seed numbers, no way to exclude on API level apparently
-        .filter(r => r.siteUrl !== 'https://limetor.com')
-        .map(r => {
-            const match = r.fileUrl.match(/^magnet:\?xt=urn:btih:([a-fA-F0-9]{40}).*/);
-            if (match) {
-                r.infoHash = match[1];
+    const allResults = [];
+    for (let i = 0; i < 60; ++i) {
+        /** @type {QbtSearchResult} */
+        const resultsRs = await fetch('/api/qbtv2/search/results', {
+            headers: {
+                'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            },
+            'body': new URLSearchParams({
+                id: id, limit: 500, offset: allResults.length,
+            }).toString(),
+            'method': 'POST',
+        }).then(rs => {
+            if (rs.status !== 200) {
+                throw new Error(rs.statusText);
+            } else {
+                return rs.json();
             }
-            return r;
-        })
-        .sort((a,b) => getScore(b) - getScore(a));
+        });
 
-    for (const resultItem of results) {
-        const tr = makeResultTr(resultItem);
-        gui.search_results_list.appendChild(tr);
+        gui.status_text.textContent = resultsRs.status;
+        const resultsChunk = resultsRs.results
+            .map(r => {
+                const match = r.fileUrl.match(/^magnet:\?xt=urn:btih:([a-fA-F0-9]{40}).*/);
+                if (match) {
+                    r.infoHash = match[1];
+                }
+                return r;
+            });
+        if (resultsChunk.length > 0) {
+            allResults.push(...resultsChunk);
+            allResults.sort((a,b) => getScore(b) - getScore(a));
+
+            gui.search_results_list.textContent = '';
+            for (const resultItem of allResults) {
+                // forged seed numbers, no way to exclude on API level apparently
+                if (resultItem.siteUrl === 'https://limetor.com') continue;
+
+                const tr = makeResultTr(resultItem);
+                gui.search_results_list.appendChild(tr);
+            }
+        }
+
+        if (resultsRs.status !== 'Running' &&
+            allResults.length >= resultsRs.total
+        ) {
+            break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 };
 
