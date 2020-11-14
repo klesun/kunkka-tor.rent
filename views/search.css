@@ -60,3 +60,7 @@ video {
     justify-content: space-evenly;
     font-size: 12px;
 }
+
+.media-info-section > div {
+    margin-top: 6px;
+}

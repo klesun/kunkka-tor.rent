@@ -42,6 +42,11 @@ const typeToStreamInfoMaker = {
             ] : []),
         ]);
     },
+    'attachment': (stream) => {
+        const {tags = {}} = stream;
+        const {filename} = tags;
+        return Dom('span', {}, filename || JSON.stringify(tags));
+    },
 };
 
 /**
@@ -57,14 +62,9 @@ const displayFfprobeOutput = (ffprobeOutput, expandedView) => {
     const streamList = expandedView.querySelector('.stream-list');
     streamList.innerHTML = '';
     let subsIndex = 0;
-    const attachments = [];
     const audioTracks = [];
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
-        if (codec_type === 'attachment') {
-            attachments.push(stream);
-            continue;
-        }
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
         const isBadCodec = ['h265', 'mpeg4', 'ac3', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
@@ -102,11 +102,6 @@ const displayFfprobeOutput = (ffprobeOutput, expandedView) => {
         } else if (codec_type === 'audio') {
             audioTracks.push(stream);
         }
-    }
-    if (attachments.length) {
-        streamList.appendChild(
-            Dom('div', {}, attachments + ' attachments: ' + attachments.map(a => a.codec_name).join(', '))
-        );
     }
     if (audioTracks.length > 0 || audioTracks.some(tr => tr.codec_name === 'ac3')) {
         // TODO: add tracks
@@ -207,7 +202,7 @@ const ToExpandTorrentView = ({
                         Dom('div', {}, [
                             Dom('video', {controls: 'controls'}),
                         ]),
-                        Dom('div', {}, [
+                        Dom('div', {class: 'media-info-section'}, [
                             Dom('div', {class: 'file-name'}),
                             Dom('div', {class: 'file-size'}),
                             Dom('div', {class: 'container-info'}),
