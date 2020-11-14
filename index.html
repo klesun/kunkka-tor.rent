@@ -155,10 +155,16 @@
             </div>
         </div></div>
     </div>
+
+    <div>
+        <div>Simple HEVC/H.265 bitstream player in pure JavaScript.</div>
+        <div><small>Copyright &copy; 2014 by <a href="http://www.struktur.de">struktur AG</a></small></div>
+        <canvas id="video" width="0" height="0"></canvas>
+    </div>
+    <button id="play">Play</button>
+    <span id="status"></span>
+
 </main>
-    <footer>
-        <video controls="controls" preload="auto" src="./api/testTorrentStream"></video>
-    </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
 <script>
@@ -213,4 +219,62 @@
     });
 })();
 </script>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.4/dist/ffmpeg.min.js"></script>
+<script>
+(async () => {
+    var VIDEO_URL = "./kunkka_host/handmade/torrent_downloads/Steven.Universe.Future.2019.1080p.WEB-DL.OPUS.x265.HEVC-TCZ/Season%201/Steven%20Universe%20Future%20-%20S01E02%20-%20%5Bx265%20Opus%20%5BEN%5D%5D%20-%20%5BWEBDL-1080p%5D.mkv";
+    // var VIDEO_URL = "./kunkka_host/handmade/torrent_downloads/Steven.Universe.Future.2019.1080p.WEB-DL.OPUS.x265.HEVC-TCZ/Season%201/bbb.mkv";
+    // var VIDEO_URL = "https://strukturag.github.io/libde265.js/spreedmovie.hevc";
+
+    // const { createFFmpeg, fetchFile } = FFmpeg;
+    // const ffmpeg = createFFmpeg({
+    //     log: true,
+    //     progress: (step) => {
+    //         console.log('step huj', step);
+    //     },
+    // });
+    // await ffmpeg.load();
+    //
+    // const inputBuf = await fetch(VIDEO_URL).then(rs => rs.arrayBuffer());
+    // const inputBytes = new Uint8Array(inputBuf);
+    // ffmpeg.FS('writeFile', 'zalupa.mkv', await fetchFile(inputBytes));
+    // await ffmpeg.run('-i', 'zalupa.mkv', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '51', '-vf', 'scale=480:-2,setsar=1:1', 'output.mp4');
+
+    // await ffmpeg.run('-i', name, 'output.mp4');
+    //
+    // console.log('converting mkv to mp4', inputBuf);
+    // const outputBuf = mkvToMp4();
+    // console.log('converted', outputBuf);
+    // const blob = new Blob([outputBuf], {type: 'video/mp4'});
+    // const dataUri = window.URL.createObjectURL(blob);
+    //
+    function mkvToMp4(arrayBuffer) {
+        var result = ffmpeg({
+            MEMFS: [{name: "sample.mkv", data: arrayBuffer}],
+            arguments: ["-i", "sample.mkv", "-c", "copy", "out.mp4"],
+            // Ignore stdin read requests.
+            stdin: function() {},
+        });
+        // Write out.webm to disk.
+        var out = result.MEMFS[0];
+        if (!out) {
+            throw new Error('Could not convert video')
+        }
+        return Uint8Array.from(out.data)
+    }
+    //
+    // (async () => {
+    //     await ffmpeg.load();
+    //
+    //
+    //
+    //     ffmpeg.FS('writeFile', 'test.avi', await fetchFile('./test.avi'));
+    //     await ffmpeg.run('-i', 'test.avi', 'test.mp4');
+    //     await fs.promises.writeFile('./test.mp4', ffmpeg.FS('readFile', 'test.mp4'));
+    //     process.exit(0);
+    // })();
+})();
+</script>
+
 </body>

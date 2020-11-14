@@ -154,6 +154,31 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
     pump(file.createReadStream({start, end}), rs)
 };
 
+const serveTorrentStreamHevc = async (params: HandleHttpParams) => {
+    const {rq, rs, api} = params;
+    const {infoHash, filePath} = <Record<string, string>>url.parse(rq.url, true).query;
+    await api.prepareTorrentStream(infoHash);
+    const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
+        infoHash + '&filePath=' + encodeURIComponent(filePath);
+    const args = [
+        '-i', streamUrl, '-c:v', 'libx264', '-preset', 'ultrafast',
+        '-vf', 'scale=960:-2,setsar=1:1', '-f', 'matroska', '-',
+    ];
+    console.log('ffmpeg', args.map(a => '"' + a + '"').join(' '));
+    const spawned = spawn('ffmpeg', args);
+    rs.setHeader('content-type', 'video/x-matroska');
+    rs.setHeader('connection', 'keep-alive');
+    spawned.stderr.on('data', (buf) => {
+        if (rs.headersSent) {
+            console.log('hevc stderr', buf.toString('utf8'));
+        } else {
+            rs.setHeader('ffmpeg-stderr', buf.toString('utf8').replace(/[^ -~]/g, '?'));
+        }
+    });
+    rs.on('close', () => spawned.kill());
+    spawned.stdout.pipe(rs);
+};
+
 const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
     const {infoHash, filePath, subsIndex} = <Record<string, string>>url.parse(rq.url, true).query;
@@ -165,6 +190,14 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
         '0:s:' + subsIndex, '-f', 'webvtt', '-',
     ];
     const spawned = spawn('ffmpeg', args);
+    spawned.stderr.on('data', (buf) => {
+        if (rs.headersSent) {
+            console.log('subs stderr', buf.toString('utf8'));
+        } else {
+            rs.setHeader('ffmpeg-stderr', buf.toString('utf8').replace(/[^ -~]/g, '?'));
+        }
+    });
+    rs.on('close', () => spawned.kill());
     spawned.stdout.pipe(rs);
 };
 
@@ -202,6 +235,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
             });
     } else if (pathname === '/torrent-stream') {
         return serveTorrentStream(params);
+    } else if (pathname === '/torrent-stream-hevc') {
+        return serveTorrentStreamHevc(params);
     } else if (pathname === '/torrent-stream-subs') {
         return serveTorrentStreamSubs(params);
     } else if (pathname.startsWith('/')) {
