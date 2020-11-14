@@ -23,8 +23,11 @@ const typeToStreamInfoMaker = {
         ]);
     },
     'audio': (stream) => {
-        const {sample_fmt, sample_rate, channels, ...rest} = stream;
+        const {sample_fmt, sample_rate, channels, tags = {}, ...rest} = stream;
+        const {language, title} = tags;
         return Dom('span', {}, [
+            Dom('span', {}, language || ''),
+            Dom('span', {}, title || ''),
             Dom('span', {}, (sample_rate / 1000) + ' kHz'),
             Dom('span', {}, channels + ' ch'),
         ]);
@@ -32,8 +35,8 @@ const typeToStreamInfoMaker = {
     'subtitle': (stream) => {
         const {language, title, NUMBER_OF_FRAMES} = stream.tags || {};
         return Dom('span', {}, [
-            Dom('span', {}, title || ''),
             Dom('span', {}, language),
+            Dom('span', {}, title || ''),
             ...(NUMBER_OF_FRAMES ? [
                 Dom('span', {}, NUMBER_OF_FRAMES + ' frames'),
             ] : []),
@@ -54,8 +57,14 @@ const displayFfprobeOutput = (ffprobeOutput, expandedView) => {
     const streamList = expandedView.querySelector('.stream-list');
     streamList.innerHTML = '';
     let subsIndex = 0;
+    const attachments = [];
+    const audioTracks = [];
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+        if (codec_type === 'attachment') {
+            attachments.push(stream);
+            continue;
+        }
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
         const isBadCodec = ['h265', 'mpeg4', 'ac3', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
@@ -90,7 +99,17 @@ const displayFfprobeOutput = (ffprobeOutput, expandedView) => {
                 }, [])
             );
             ++subsIndex;
+        } else if (codec_type === 'audio') {
+            audioTracks.push(stream);
         }
+    }
+    if (attachments.length) {
+        streamList.appendChild(
+            Dom('div', {}, attachments + ' attachments: ' + attachments.map(a => a.codec_name).join(', '))
+        );
+    }
+    if (audioTracks.length > 0 || audioTracks.some(tr => tr.codec_name === 'ac3')) {
+        // TODO: add tracks
     }
 };
 
