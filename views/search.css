@@ -43,10 +43,6 @@ video {
 .stream-list span.good-codec {
     color: green;
 }
-video::cue {
-    background-color: transparent;
-    text-shadow: #000 2px 2px 2px;
-}
 
 .big-torrent {
     color: #ff5400;
@@ -56,4 +52,10 @@ video::cue {
 }
 .small-torrent {
     color: grey;
+}
+
+.expanded-torrent-block {
+    display: flex;
+    justify-content: space-evenly;
+    font-size: 12px;
 }
