@@ -161,7 +161,6 @@ const Api = () => {
             throw Exc.BadGateway(msg);
         }
         let infoHash;
-        let torrentFileData: Instance | null = null;
         const asMagnet = parseMagnetUrl(path);
         if (asMagnet) {
             infoHash = asMagnet.infoHash;
@@ -169,14 +168,14 @@ const Api = () => {
             infoHash = path;
         } else if (path.startsWith('/tmp/')) {
             const torrentFileBuf = await fs.promises.readFile(path);
-            torrentFileData = <Instance>parseTorrent(torrentFileBuf);
+            let torrentFileData = parseTorrent(torrentFileBuf);
             infoHash = torrentFileData.infoHash;
         } else {
             const msg = 'Unexpected downloaded torrent file path format - ' + path;
             throw Exc.NotImplemented(msg);
         }
 
-        return {infoHash, ...(torrentFileData || {})};
+        return {infoHash};
     };
 
     return {

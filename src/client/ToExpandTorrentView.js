@@ -49,6 +49,9 @@ const typeToStreamInfoMaker = {
     },
 };
 
+const subsExtensions = ['srt', 'vtt', 'subrip', 'ass'];
+const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
+
 /**
  * @param {FfprobeOutput} ffprobeOutput
  * @param {HTMLVideoElement} video
@@ -70,7 +73,7 @@ const displayFfprobeOutput = ({
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
         const isBadCodec = ['h265', 'mpeg4', 'ac3', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
-        const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis', 'flac', 'mp3', 'opus', 'srt', 'vtt', 'subrip', 'ass'].includes(codec_name);
+        const isGoodCodec = ['h264', 'vp9', ...subsExtensions, ...goodAudioExtensions].includes(codec_name);
         streamList.appendChild(
             Dom('div', {'data-codec-type': codec_type}, [
                 Dom('span', {}, '#' + index),
@@ -122,15 +125,16 @@ const initPlayer = (infoHash, file, isBadCodec) => {
     const src = streamPath + '?' + new URLSearchParams({
         infoHash: infoHash, filePath: file.path,
     });
-    if (file.path.match(/\.png/i) ||
-        file.path.toLowerCase().endsWith('.jpg') ||
-        file.path.toLowerCase().endsWith('.jpeg')
-    ) {
+
+    const extension = file.path.toLowerCase().replace(/^.*\./, '');
+    if (['png', 'jpg', 'jpeg'].includes(extension)) {
         // разожми меня покрепче, шакал
         return Dom('div', {}, [
             Dom('img', {src: src, style: 'max-width: 100%; max-height: 900px'}),
             Dom('div', {}, 'Loading image...'),
         ]);
+    } else if ([...subsExtensions, 'txt', 'xml'].includes(extension)) {
+
     }
 
     const video = Dom('video', {

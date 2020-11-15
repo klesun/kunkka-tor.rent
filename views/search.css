@@ -66,6 +66,9 @@ video {
     display: flex;
     font-size: 12px;
 }
+.expanded-torrent-block * {
+    font-size: 12px;
+}
 .file-list-cont {
     max-height: 900px;
     overflow-y: auto;
