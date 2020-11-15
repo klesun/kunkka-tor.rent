@@ -19,7 +19,7 @@ tbody {
 table.resulting-list-of-torrents {
     width: 100%;
 }
-tr:hover {
+tr:not(.expanded-view-row):hover {
     filter: brightness(1.3);
     background-color: #33466970;
 }
@@ -64,8 +64,11 @@ video {
 
 .expanded-torrent-block {
     display: flex;
-    justify-content: space-evenly;
     font-size: 12px;
+}
+.file-list-cont {
+    max-height: 900px;
+    overflow-y: auto;
 }
 
 .media-info-section > div {
@@ -89,4 +92,8 @@ tbody.files-in-torrent > tr[data-file-extension="mov"],
 tbody.files-in-torrent > tr[data-file-extension="flac"] {
     /* actual video files, the main thing that should interest the user */
     font-weight: bold;
+}
+
+tr.viewed-file {
+    background-color: #288e7296;
 }

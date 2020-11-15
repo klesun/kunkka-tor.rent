@@ -116,11 +116,22 @@ const displayFfprobeOutput = ({
     ffmpegInfoBlock.appendChild(streamList);
 };
 
+/** @param {ShortTorrentFileInfo} file */
 const initPlayer = (infoHash, file, isBadCodec) => {
     const streamPath = isBadCodec ? '/torrent-stream-hevc' : '/torrent-stream';
     const src = streamPath + '?' + new URLSearchParams({
         infoHash: infoHash, filePath: file.path,
     });
+    if (file.path.match(/\.png/i) ||
+        file.path.toLowerCase().endsWith('.jpg') ||
+        file.path.toLowerCase().endsWith('.jpeg')
+    ) {
+        // разожми меня покрепче, шакал
+        return Dom('div', {}, [
+            Dom('img', {src: src, style: 'max-width: 100%; max-height: 900px'}),
+            Dom('div', {}, 'Loading image...'),
+        ]);
+    }
 
     const video = Dom('video', {
         controls: 'controls',
@@ -170,25 +181,34 @@ const initPlayer = (infoHash, file, isBadCodec) => {
  * @param {function(f: ShortTorrentFileInfo): void} playCallback
  */
 const makeFilesList = ({isBadCodec, seconds, files, playCallback}) => {
+    let activeTr = null;
     return Dom('div', {}, [
-        Dom('span', {}, seconds),
-        Dom('span', {}, 'Show Files:'),
-        Dom('input', {type: 'checkbox', class: 'hide-following-flag'}),
+        Dom('span', {}, seconds + ' seconds'),
         Dom('table', {}, [
-            Dom('tbody', {class: 'files-in-torrent'}, files.map(f => Dom('tr', {
-                'data-file-extension': f.path.replace(/^.*\./, ''),
-            }, [
-                Dom('td', {}, f.path),
-                Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
-                Dom('td', {}, [
-                    Dom('button', {
-                        onclick: () => playCallback(f),
-                        ...(!isBadCodec ? {} : {
-                            title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
-                        }),
-                    }, 'Watch'),
-                ]),
-            ]))),
+            Dom('tbody', {class: 'files-in-torrent'}, files.map(f => {
+                const tr = Dom('tr', {
+                    'data-file-extension': f.path.replace(/^.*\./, ''),
+                }, [
+                    Dom('td', {}, f.path),
+                    Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
+                    Dom('td', {}, [
+                        Dom('button', {
+                            onclick: () => {
+                                if (activeTr) {
+                                    activeTr.classList.toggle('viewed-file', false);
+                                }
+                                activeTr = tr;
+                                activeTr.classList.toggle('viewed-file', true);
+                                playCallback(f);
+                            },
+                            ...(!isBadCodec ? {} : {
+                                title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
+                            }),
+                        }, 'Watch'),
+                    ]),
+                ]);
+                return tr;
+            })),
         ]),
     ]);
 };
@@ -215,9 +235,9 @@ const ToExpandTorrentView = ({
             expandedView = null;
             return;
         }
-        const fileListCont = Dom('div', {}, 'Loading File List...');
+        const fileListCont = Dom('div', {class: 'file-list-cont'}, 'Loading File List...');
         const playerCont = Dom('div', {}, 'Choose a File from the List...');
-        expandedView = Dom('tr', {}, [
+        expandedView = Dom('tr', {class: 'expanded-view-row'}, [
             Dom('td', {colspan: 999}, [
                 Dom('div', {class: 'expanded-torrent-block'}, [
                     fileListCont, playerCont,
@@ -238,7 +258,7 @@ const ToExpandTorrentView = ({
                     playerCont.innerHTML = '';
                     const player = initPlayer(infoHash, f, isBadCodec);
                     playerCont.appendChild(player);
-                    player.querySelector('video').play();
+                    [...player.querySelectorAll('video')].forEach(v => v.play());
                 },
             });
             fileListCont.innerHTML = '';
