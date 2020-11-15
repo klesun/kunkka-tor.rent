@@ -131,9 +131,9 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
         }
         const stream = file.createReadStream()
             .on('open', () => stream.pipe(rs))
-            .on('error', err => {
-                console.error('huj err ', err);
-                rs.end(err);
+            .on('error', (err: Error) => {
+                console.error('Error while reading torrent stream', err);
+                rs.end(err + '');
             });
         // return;
         return pump(file.createReadStream(), rs);
@@ -155,19 +155,25 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
 
 const serveTorrentStreamHevc = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
-    const {infoHash, filePath} = <Record<string, string>>url.parse(rq.url, true).query;
+    const {infoHash, filePath} = <Record<string, string>>url.parse(<string>rq.url, true).query;
     await api.prepareTorrentStream(infoHash);
     const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
         infoHash + '&filePath=' + encodeURIComponent(filePath);
     const args = [
-        '-i', streamUrl, '-c:v', 'libx264', '-preset', 'ultrafast',
-        '-vf', 'scale=960:-2,setsar=1:1', '-f', 'matroska', '-',
+        '-i', streamUrl, '-c:v', 'libx264',
+        // it's really a big waste to watch high quality videos this way, as both ultrafast and scale
+        // affect image quality badly, but rendering in initial quality even for just single user
+        // has speed of 0.6 on my pc, and with ffmpeg.js on client side it's 10 times slower
+        // maybe should consider integrating with vlc browser extension
+         '-preset', 'ultrafast',
+        '-vf', 'scale=960:-2,setsar=1:1',
+        '-f', 'matroska', '-',
     ];
     console.log('ffmpeg', args.map(a => '"' + a + '"').join(' '));
     const spawned = spawn('ffmpeg', args);
     rs.setHeader('content-type', 'video/x-matroska');
     rs.setHeader('connection', 'keep-alive');
-    spawned.stderr.on('data', (buf) => {
+    spawned.stderr.on('data', (buf: Buffer) => {
         if (rs.headersSent) {
             console.log('hevc stderr', buf.toString('utf8'));
         } else {
@@ -180,7 +186,7 @@ const serveTorrentStreamHevc = async (params: HandleHttpParams) => {
 
 const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
-    const {infoHash, filePath, subsIndex} = <Record<string, string>>url.parse(rq.url, true).query;
+    const {infoHash, filePath, subsIndex} = <Record<string, string>>url.parse(<string>rq.url, true).query;
     await api.prepareTorrentStream(infoHash);
     const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
         infoHash + '&filePath=' + encodeURIComponent(filePath);

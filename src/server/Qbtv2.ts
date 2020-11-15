@@ -35,7 +35,7 @@ const Qbtv2 = ({port = 44011} = {}) => {
                 const fetchRs = await fetch(url, params);
                 // extracting cookie on server side would be much better, but I failed
                 // to make it work from get-go, would need to spend some time...
-                fetchRs.headers.forEach((value, name) => {
+                fetchRs.headers.forEach((value: string, name: string) => {
                     rs.setHeader(name, value);
                 });
                 const body = await fetchRs.text();
