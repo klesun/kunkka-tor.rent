@@ -148,12 +148,19 @@ const Api = () => {
         const {fileUrl} = <Record<string, string>>url.parse(<string>rq.url, true).query;
         const scriptPath = __dirname + '/../../scripts/download_torrent_file.sh';
         const args = [fileUrl];
-        const result = await execFile(scriptPath, args);
+        let result;
+        try {
+            result = await execFile(scriptPath, args);
+        } catch (exc) {
+            const msg = (exc.stderr ? 'STDERR: ' + exc.stderr.trim() + '\n' : '') +
+                'Python script failed to retrieve torrent';
+            throw Exc.BadGateway(msg);
+        }
         const {stdout, stderr} = result;
         const [path, effectiveUrl] = stdout.trim().split(/\s+/);
         if (!effectiveUrl.match(/^https?:\/\//)) {
             const msg = 'Unexpected response from python script,' +
-                '\nSTDOUT:\n' + stdout + (stderr.trim() ? '\nSTDERR:\n' + stderr : '') + '\nno match:\n' +
+                '\nSTDOUT:\n' + stdout + (stderr.trim() ? 'STDERR:\n' + stderr : '') + '\nno match:\n' +
                 fileUrl + '\n' +
                 effectiveUrl;
             throw Exc.BadGateway(msg);

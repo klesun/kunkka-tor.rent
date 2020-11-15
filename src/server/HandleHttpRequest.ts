@@ -7,8 +7,9 @@ import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
 import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
-import stream from "stream";
+import { Writable } from "stream";
 import * as EventEmitter from "events";
+import {ReadStream} from "fs";
 const {spawn} = require('child_process');
 const unzip = require('unzip-stream');
 
@@ -31,12 +32,11 @@ const redirect = (rs: http.ServerResponse, url: string) => {
     rs.end();
 };
 
-/** @param {http.ServerResponse} rs */
-const setCorsHeaders = rs => {
+const setCorsHeaders = (rs: http.ServerResponse) => {
     rs.setHeader('Access-Control-Allow-Origin', '*');
     rs.setHeader('Access-Control-Allow-Methods', 'GET, POST');
     rs.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,pragma,cache-control');
-    rs.setHeader('Access-Control-Allow-Credentials', true);
+    rs.setHeader('Access-Control-Allow-Credentials', 'true');
 };
 
 /** see https://stackoverflow.com/a/24977085/2750743 */
@@ -49,7 +49,11 @@ const serveMkv = async (absPath: string, params: HandleHttpParams) => {
         fsSync.createReadStream(absPath).pipe(params.rs);
         return;
     }
-    let [_, start, rqEnd] = range.match(/^bytes=(\d+)-(\d*)/).map(n => +n);
+    const match = range.match(/^bytes=(\d+)-(\d*)/);
+    if (!match) {
+        throw Exc.BadRequest('Malformed "range" header: ' + range);
+    }
+    let [_, start, rqEnd] = match.map(n => +n);
     const total = stats.size;
     rqEnd = rqEnd || total - 1;
     // I take it that this works as a buffering size...
@@ -60,16 +64,16 @@ const serveMkv = async (absPath: string, params: HandleHttpParams) => {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
     });
-    const stream = fsSync.createReadStream(absPath, {start, end})
+    const stream: ReadStream = fsSync.createReadStream(absPath, {start, end})
         .on('open', () => stream.pipe(params.rs))
         .on('error', err => {
-            console.error('huj err ', err);
+            console.error('Error while streaming mkv file\n' + absPath + '\n', err);
             params.rs.end(err);
         });
 };
 
-async function checkFileExists(file) {
-    return fs.access(file, fsSync.constants.F_OK)
+async function checkFileExists(path: string) {
+    return fs.access(path, fsSync.constants.F_OK)
         .then(() => true)
         .catch(() => false)
 }
@@ -156,7 +160,11 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
         return pump(file.createReadStream(), rs);
     }
 
-    let [_, start, end] = rangeStr.match(/^bytes=(\d+)-(\d*)/).map(n => +n);
+    const match = rangeStr.match(/^bytes=(\d+)-(\d*)/);
+    if (!match) {
+        throw Exc.BadRequest('Malformed "range" header: ' + rangeStr);
+    }
+    let [_, start, end] = match.map(n => +n);
     end = end || file.length - 1;
     rs.statusCode = 206;
     rs.setHeader('Content-Length', end - start + 1);
@@ -232,7 +240,7 @@ type UnzipEntry = {
     allowHalfOpen: boolean,
     type: 'File' | 'Directory',
 
-    pipe: (destination: stream.Writable) => EventEmitter.EventEmitter,
+    pipe: (destination: Writable) => EventEmitter.EventEmitter,
     autodrain: () => void,
 
     _readableState: unknown,
