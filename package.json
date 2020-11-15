@@ -12,7 +12,7 @@
   "author": "klesun",
   "license": "ISC",
   "dependencies": {
-    "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/a2e3fd628dcdbfdf2a90effdf3e94cdb2df96191",
+    "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/3e44f2bb4ad8ee34a3eb78dbae9b7b7295965c8c",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
     "parse-torrent": "9.1.0",
@@ -25,10 +25,12 @@
     "unzip-stream": "^0.3.1"
   },
   "devDependencies": {
+    "@types/mime-types": "^2.1.0",
+    "@types/node": "^14.0.27",
     "@types/node-fetch": "^2.5.7",
     "@types/parse-torrent": "^5.8.3",
-    "@types/torrent-stream": "0.0.5",
-    "@types/node": "^14.0.27",
-    "@types/socket.io": "latest"
+    "@types/pump": "^1.1.0",
+    "@types/socket.io": "latest",
+    "@types/torrent-stream": "0.0.5"
   }
 }
