@@ -119,22 +119,79 @@ const displayFfprobeOutput = ({
     ffmpegInfoBlock.appendChild(streamList);
 };
 
-/** @param {ShortTorrentFileInfo} file */
-const initPlayer = (infoHash, file, isBadCodec) => {
-    const streamPath = isBadCodec ? '/torrent-stream-hevc' : '/torrent-stream';
-    const src = streamPath + '?' + new URLSearchParams({
-        infoHash: infoHash, filePath: file.path,
-    });
-
-    const extension = file.path.toLowerCase().replace(/^.*\./, '');
+const makeFileView = ({src, extension}) => {
     if (['png', 'jpg', 'jpeg'].includes(extension)) {
         // разожми меня покрепче, шакал
         return Dom('div', {}, [
             Dom('img', {src: src, style: 'max-width: 100%; max-height: 900px'}),
             Dom('div', {}, 'Loading image...'),
         ]);
-    } else if ([...subsExtensions, 'txt', 'xml'].includes(extension)) {
+    } else if ([...subsExtensions, 'txt', 'xml', 'json', 'yml', 'yaml', 'nfo', 'info', 'md5', 'sha', 'bat', 'rtf'].includes(extension)) {
+        const textarea = Dom('textarea', {rows: 36, cols: 140});
+        fetch(src)
+            .then(rs => rs.text())
+            .then(text => textarea.value = text);
+        return Dom('div', {}, [
+            textarea,
+            Dom('div', {}, 'Loading text...'),
+        ]);
+    } else if (['exe', 'msi', 'zip', 'rar', 'pdf'].includes(extension)) {
+        window.open(src, '_blank');
+        return Dom('div', {}, 'Binary file, initiating download...');
+    } else {
+        return null;
+    }
+};
 
+/** @param {ShortTorrentFileInfo} file */
+const initPlayer = (infoHash, file, isBadCodec) => {
+    const streamPath = isBadCodec ? '/torrent-stream-hevc' : '/torrent-stream';
+    const fileApiParams = {
+        infoHash: infoHash,
+        filePath: file.path,
+    };
+    const src = streamPath + '?' + new URLSearchParams(fileApiParams);
+
+    const extension = file.path.toLowerCase().replace(/^.*\./, '');
+    const fileView = makeFileView({src, extension});
+    if (fileView) {
+        return fileView;
+    } else if (['zip', 'cbz'].includes(extension)) {
+        const zippedFilesList = Dom('div');
+        const statusPanel = Dom('div', {}, 'Loading archive contents...');
+        Api().prepareZipReader(fileApiParams).then(async iter => {
+            for await (const entry of iter) {
+                const openFileCont = Dom('div', {});
+                const extension = entry.path.toLowerCase().replace(/^.*\./, '');
+                const src = '/ftp/zipReaderFile?' + new URLSearchParams({
+                    ...fileApiParams, zippedFilePath: entry.path,
+                });
+                const dom = Dom('div', {style: 'text-align: right'}, [
+                    Dom('div', {}, [
+                        Dom('span', {}, entry.path),
+                        Dom('span', {}, ' '),
+                        Dom('span', {}, (entry.size / 1024 / 1024).toFixed(2) + ' MiB'),
+                        Dom('span', {}, ' '),
+                        Dom('button', {
+                            onclick: () => {
+                                openFileCont.innerHTML = '';
+                                let fileView = makeFileView({src, extension});
+                                if (!fileView) {
+                                    window.open(src, '_blank');
+                                    fileView = Dom('div', {}, 'Binary file, initiating download...');
+                                }
+                                openFileCont.appendChild(fileView);
+                            },
+                        }, 'View'),
+                    ]),
+                    openFileCont,
+                ]);
+                zippedFilesList.appendChild(dom);
+            }
+            statusPanel.textContent = 'Extracted ' + zippedFilesList.children.length + ' files';
+        });
+        return Dom('div', {}, [zippedFilesList, statusPanel]);
+    // would be nice to extract rar and allow to explore further
     }
 
     const video = Dom('video', {
@@ -145,16 +202,21 @@ const initPlayer = (infoHash, file, isBadCodec) => {
     });
     const ffmpegInfoBlock = Dom('div', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
 
-    Api().getFfmpegInfo({
-        infoHash: infoHash,
-        filePath: file.path,
-    }).then((ffprobeOutput) => {
-        displayFfprobeOutput({
-            ffprobeOutput, gui: {
-                video, ffmpegInfoBlock,
+    Api().getFfmpegInfo(fileApiParams)
+        .then((ffprobeOutput) => {
+            displayFfprobeOutput({
+                ffprobeOutput, gui: {
+                    video, ffmpegInfoBlock,
+                }
+            });
+        }).catch(exc => {
+            if (['mkv', 'mp4', 'mov', 'mpg', 'm2v', 'mp3', 'flac', 'aac'].includes(extension)) {
+                throw exc;
+            } else {
+                // not a video file probably
+                window.open(src, '_blank');
             }
         });
-    });
     // updateSwarmInfo = async () => {
     //     if (video.getAttribute('data-info-hash') !== infoHash || video.ended) {
     //         updateSwarmInfo = () => {};
@@ -240,7 +302,7 @@ const ToExpandTorrentView = ({
             return;
         }
         const fileListCont = Dom('div', {class: 'file-list-cont'}, 'Loading File List...');
-        const playerCont = Dom('div', {}, 'Choose a File from the List...');
+        const playerCont = Dom('div', {class: 'player-cont'}, 'Choose a File from the List...');
         expandedView = Dom('tr', {class: 'expanded-view-row'}, [
             Dom('td', {colspan: 999}, [
                 Dom('div', {class: 'expanded-torrent-block'}, [

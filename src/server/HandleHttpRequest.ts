@@ -7,8 +7,8 @@ import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
 import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
-import * as util from "util";
 const {spawn} = require('child_process');
+const unzip = require('unzip-stream');
 
 const fs = fsSync.promises;
 
@@ -72,6 +72,21 @@ async function checkFileExists(file) {
         .catch(() => false)
 }
 
+const getMimeByName = (filePath: string) => {
+    const ext = filePath.replace(/^.*\./, '');
+    const mime = getMimeByExt(ext);
+    if (mime) {
+        return mime;
+    } else if (ext === 'mp4') {
+        return 'video/mp4';
+    } else if (ext === 'mkv') {
+        return 'video/x-matroska';
+    } else if (ext === 'vtt') {
+        // rs.setHeader('Content-Type', 'TextTrack');
+        return  'text/vtt';
+    }
+};
+
 const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     const {rq, rs, rootPath} = params;
     pathname = decodeURIComponent(pathname);
@@ -85,38 +100,38 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     if ((await fs.lstat(absPath)).isDirectory()) {
         return redirect(rs, pathname + '/');
     }
-    const ext = absPath.replace(/^.*\./, '');
-    const mime = getMimeByExt(ext);
-    if (mime) {
-        rs.setHeader('Content-Type', mime);
-    } else if (ext === 'mp4') {
-        rs.setHeader('Content-Type', 'video/mp4');
-    } else if (ext === 'mkv') {
-        rs.setHeader('Content-Type', 'video/x-matroska');
-    } else if (ext === 'vtt') {
-        // rs.setHeader('Content-Type', 'TextTrack');
-        rs.setHeader('Content-Type', 'text/vtt');
-    }
-    if (['mkv', 'mp4'].includes(ext)) {
+    const mime = getMimeByName(absPath);
+    if (mime) rs.setHeader('Content-Type', mime);
+
+    if (['video/x-matroska', 'video/mp4'].includes(mime)) {
         await serveMkv(absPath, params);
     } else {
         fsSync.createReadStream(absPath).pipe(rs);
     }
 };
 
-const serveTorrentStream = async (params: HandleHttpParams) => {
+const getFileInTorrent = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
-    const {infoHash, filePath} = <Record<string, string>>url.parse(rq.url, true).query;
+    const {infoHash, filePath, ...restParams} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+
     if (!infoHash || infoHash.length !== 40) {
         throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
     } else if (!filePath) {
         throw Exc.BadRequest('filePath parameter is mandatory');
     }
+
     const engine = await api.prepareTorrentStream(infoHash);
     const file = engine.files.find(f => f.path === filePath);
     if (!file) {
         throw Exc.BadRequest('filePath not found in this torrent, possible options: ' + engine.files.map(f => f.path));
     }
+    return {file, restParams};
+};
+
+const serveTorrentStream = async (params: HandleHttpParams) => {
+    const {rq, rs} = params;
+    const {file} = await getFileInTorrent(params);
+
     rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(file.name).replace(/[^ -~]/g, '?'));
     rs.setHeader('Content-Type', lookup(file.name) || 'application/octet-stream');
 
@@ -125,7 +140,7 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
 
     const rangeStr = rq.headers.range || null;
     if (!rangeStr) {
-        rs.setHeader('Content-Length', file.length - 1);
+        rs.setHeader('Content-Length', file.length);
         if (rq.method === 'HEAD') {
             return rs.end();
         }
@@ -206,6 +221,59 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     spawned.stdout.pipe(rs);
 };
 
+const serveZipReader = async (params: HandleHttpParams) => {
+    const {rs} = params;
+    const {file} = await getFileInTorrent(params);
+    const readStream = file.createReadStream();
+
+    let started = false;
+    const startMs = Date.now();
+    rs.setHeader('content-type', 'application/json');
+    readStream.pipe(unzip.Parse()).on('entry', (entry: unknown) => {
+        if (!started) {
+            rs.statusCode = 200;
+            rs.write('[\n');
+            started = true;
+        }
+        const {path, size, isDirectory} = entry;
+        //const {_readableState, _events, _writableState, _transformState, isDirectory, _maxListeners, _eventsCount, readable, writable, allowHalfOpen, type} = entry;
+        if (!isDirectory) {
+            rs.write(JSON.stringify({type: 'item', item: {path, size}}) + ',\n');
+        }
+    }).on('close', () => {
+        if (started) {
+            // because don't want to mess with comas
+            rs.write(JSON.stringify({type: 'end', processingTimeMs: Date.now() - startMs}) + '\n');
+            rs.write(']')
+        } else {
+            rs.statusCode = 424;
+        }
+        rs.end();
+    });
+};
+
+const serveZipReaderFile = async (params: HandleHttpParams) => {
+    const {rs} = params;
+    const {file, restParams: {zippedFilePath}} = await getFileInTorrent(params);
+    const readStream = file.createReadStream();
+
+    readStream.pipe(unzip.Parse()).on('entry', (entry: unknown) => {
+        const {path, size, isDirectory} = entry;
+        //const {_readableState, _events, _writableState, _transformState, isDirectory, _maxListeners, _eventsCount, readable, writable, allowHalfOpen, type, ...rest} = entry;
+        if (path === zippedFilePath) {
+            const mime = getMimeByName(zippedFilePath);
+            if (mime) rs.setHeader('Content-Type', mime);
+
+            entry.pipe(rs).on('close', () => rs.end());
+        } else {
+            entry.autodrain();
+        }
+    }).on('close', () => {
+        rs.statusCode = 424;
+        rs.end();
+    });
+};
+
 type Action = (rq: http.IncomingMessage, rs: http.ServerResponse) => Promise<SerialData> | SerialData;
 type ActionForApi = (api: IApi) => Action;
 
@@ -245,6 +313,10 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         return serveTorrentStreamHevc(params);
     } else if (pathname === '/torrent-stream-subs') {
         return serveTorrentStreamSubs(params);
+    } else if (pathname === '/api/prepareZipReader') {
+        return serveZipReader(params);
+    } else if (pathname === '/ftp/zipReaderFile') {
+        return serveZipReaderFile(params);
     } else if (pathname.startsWith('/')) {
         return serveStaticFile(pathname, params);
     } else {

@@ -13,8 +13,6 @@ const util = require('util');
 const execFile = util.promisify(require('child_process').execFile);
 import * as fs from 'fs';
 import * as parseTorrent from 'parse-torrent';
-import * as ParseTorrentFile from "parse-torrent-file";
-import {Instance} from "parse-torrent";
 
 interface NowadaysSwarm extends Swarm {
     wires: {

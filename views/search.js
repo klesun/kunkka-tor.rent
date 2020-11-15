@@ -29,7 +29,9 @@ const makeSizeTd = (fileSize) => {
         classes.push('invalid-size');
     } else {
         const sizeMib = fileSize / 1024 / 1024;
-        if (sizeMib > 30 * 1024) {
+        if (sizeMib > 60 * 1024) {
+            classes.push('very-big-torrent');
+        } else if (sizeMib > 30 * 1024) {
             classes.push('big-torrent');
         } else if (sizeMib < 100) {
             classes.push('small-torrent');

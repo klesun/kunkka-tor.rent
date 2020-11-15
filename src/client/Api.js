@@ -3,11 +3,71 @@ const parseResponse = rs => rs.status !== 200
     ? Promise.reject(rs.statusText)
     : rs.json();
 
+/** @param {Uint8Array} byteArray */
+const extractFromByteArray = (byteArray) => {
+    const lines = new TextDecoder("utf-8").decode(byteArray).split('\n');
+    const remainderStr = lines.pop(); // incomplete or ending "]"
+    const items = lines.flatMap(line => {
+        // allow rubbish in between the lines, also covers starting "[" and ending "]"
+        // I'd love to make it more strict, but I'm too lazy
+        const match = line.match(/^\s*({.*}),$/);
+        return match ? [match[1]] : [];
+    }).map(entryJson => JSON.parse(entryJson)).flatMap(entry => {
+        // other types are reserved for meta info, like how much more
+        // data left if known, some header information about the list, etc...
+        return entry.type === 'item' ? [entry.item] : [];
+    });
+    const remainder = new TextEncoder("utf-8").encode(remainderStr);
+    return {items, remainder};
+};
+
+/** @param {Uint8Array[]} parts */
+const extractCompleteItems = function*(parts) {
+    let prefix = new Uint8Array(0);
+    let part;
+    while (part = parts.shift()) {
+        const joined = new Uint8Array(prefix.length + part.length);
+        joined.set(prefix);
+        joined.set(part, prefix.length);
+        const {items, remainder} = extractFromByteArray(joined);
+        for (const item of items) {
+            yield item;
+        }
+        prefix = remainder;
+    }
+    if (prefix.length > 0) {
+        parts.unshift(prefix);
+    }
+};
+
+/** @param {Response} rs */
+const parseAsyncIterResponse = async function*(rs) {
+    const reader = rs.body.getReader();
+    /** @type {Uint8Array[]} */
+    const parts = [];
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        parts.push(value);
+        for (const item of extractCompleteItems(parts)) {
+            yield item;
+        }
+    }
+};
+
 const get = (route, params = null) => {
     const queryPart = !params ? '' :
         '?' + new URLSearchParams(params);
     return fetch(route + queryPart)
         .then(parseResponse);
+};
+
+const getAsyncIter = (route, params = null) => {
+    const queryPart = !params ? '' :
+        '?' + new URLSearchParams(params);
+    return fetch(route + queryPart)
+        .then(parseAsyncIterResponse);
 };
 
 const post = (route, params) => {
@@ -45,6 +105,12 @@ const Api = () => {
          * @return {Promise<{infoHash: string}>}
          */
         downloadTorrentFile: params => get('/api/downloadTorrentFile', params),
+
+        /**
+         * @param {{infoHash: string, filePath: string}} params
+         * @return {Promise<AsyncGenerator<{path: string, size: number}>>}
+         */
+        prepareZipReader: params => getAsyncIter('/api/prepareZipReader', params),
 
         /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list */
         qbtv2: {
