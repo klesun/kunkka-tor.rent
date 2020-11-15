@@ -7,6 +7,8 @@ import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
 import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
+import stream from "stream";
+import * as EventEmitter from "events";
 const {spawn} = require('child_process');
 const unzip = require('unzip-stream');
 
@@ -221,6 +223,26 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     spawned.stdout.pipe(rs);
 };
 
+type UnzipEntry = {
+    path: string,
+    size: number,
+    isDirectory: boolean,
+    readable: boolean,
+    writable: boolean,
+    allowHalfOpen: boolean,
+    type: 'File' | 'Directory',
+
+    pipe: (destination: stream.Writable) => EventEmitter.EventEmitter,
+    autodrain: () => void,
+
+    _readableState: unknown,
+    _events: unknown,
+    _writableState: unknown,
+    _transformState: unknown,
+    _maxListeners: unknown,
+    _eventsCount: unknown,
+}
+
 const serveZipReader = async (params: HandleHttpParams) => {
     const {rs} = params;
     const {file} = await getFileInTorrent(params);
@@ -229,14 +251,13 @@ const serveZipReader = async (params: HandleHttpParams) => {
     let started = false;
     const startMs = Date.now();
     rs.setHeader('content-type', 'application/json');
-    readStream.pipe(unzip.Parse()).on('entry', (entry: unknown) => {
+    readStream.pipe(unzip.Parse()).on('entry', (entry: UnzipEntry) => {
         if (!started) {
             rs.statusCode = 200;
             rs.write('[\n');
             started = true;
         }
         const {path, size, isDirectory} = entry;
-        //const {_readableState, _events, _writableState, _transformState, isDirectory, _maxListeners, _eventsCount, readable, writable, allowHalfOpen, type} = entry;
         if (!isDirectory) {
             rs.write(JSON.stringify({type: 'item', item: {path, size}}) + ',\n');
         }
@@ -257,10 +278,9 @@ const serveZipReaderFile = async (params: HandleHttpParams) => {
     const {file, restParams: {zippedFilePath}} = await getFileInTorrent(params);
     const readStream = file.createReadStream();
 
-    readStream.pipe(unzip.Parse()).on('entry', (entry: unknown) => {
-        const {path, size, isDirectory} = entry;
+    readStream.pipe(unzip.Parse()).on('entry', (entry: UnzipEntry) => {
         //const {_readableState, _events, _writableState, _transformState, isDirectory, _maxListeners, _eventsCount, readable, writable, allowHalfOpen, type, ...rest} = entry;
-        if (path === zippedFilePath) {
+        if (entry.path === zippedFilePath) {
             const mime = getMimeByName(zippedFilePath);
             if (mime) rs.setHeader('Content-Type', mime);
 
