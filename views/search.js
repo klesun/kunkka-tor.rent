@@ -8,16 +8,27 @@ const gui = {
     search_results_list: document.getElementById('search_results_list'),
 };
 
+/** I'd question their honesty in the claimed seed numbers */
+const suspiciousSites = ['https://1337x.to', 'https://limetor.com'];
+/** not updating seeders information for years, but at least numbers look realistic, just outdated */
+const stagnantSites = ['https://bakabt.me'];
+/** updating seeders info constantly, I think on every request (you can easily distinguish them: the seed amounts are around 10-20, not 100-500) */
+const credibleSites = ['https://nyaa.si', 'https://rutracker.org', 'https://nnmclub.to/forum/', 'https://torrents-csv.ml'];
+
 const getScore = (item) => {
     if (item.siteUrl === 'https://eztv.io') {
         // returns irrelevant results if nothing matched query
         return 0;
+    } else if (credibleSites.includes(item.siteUrl)) {
+        return item.nbSeeders;
     } else if (item.siteUrl === 'https://bakabt.me') {
         // tried few Kara no Kyoukai torrents, reports 44 and 38 seeds, but both seems to be dead, seems like
         // numbers weren't updated in years - in this regard torrents.csv would be much more credible for example
         return item.nbSeeders / 4;
+    } else if (suspiciousSites.includes(item.siteUrl)) {
+        return item.nbSeeders / 128;
     } else {
-        return item.nbSeeders;
+        return item.nbSeeders / 2;
     }
 };
 
@@ -48,11 +59,15 @@ const makeSizeTd = (fileSize) => {
 };
 
 const makeResultTr = (resultItem) => {
+    const seedsSuspicious =
+        suspiciousSites.includes(resultItem.siteUrl) ||
+        stagnantSites.includes(resultItem.siteUrl);
+
     const tr = Dom('tr', {}, [
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
-        Dom('td', {class: 'seeders-number'}, (resultItem.siteUrl === 'https://bakabt.me' ? '(≖_≖)' : '') + resultItem.nbSeeders),
+        Dom('td', {class: 'seeders-number' + (seedsSuspicious ? ' suspicious-seeds' : '')}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),
         Dom('td', {}, [
             Dom('a', {
                 href: resultItem.fileUrl,

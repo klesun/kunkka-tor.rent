@@ -6,6 +6,9 @@ tbody {
     color: lightgreen;
     text-align: right;
 }
+.seeders-number.suspicious-seeds {
+    color: #485d48;
+}
 .leechers-number {
     color: lightcoral;
     text-align: right;
