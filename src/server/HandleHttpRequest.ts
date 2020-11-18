@@ -231,6 +231,28 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     spawned.stdout.pipe(rs);
 };
 
+const serveTorrentStreamAudio = async (params: HandleHttpParams) => {
+    const {rq, rs, api} = params;
+    const {infoHash, filePath, streamIndex} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+    await api.prepareTorrentStream(infoHash);
+    const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
+        infoHash + '&filePath=' + encodeURIComponent(filePath);
+    const args = [
+        '-i', streamUrl, '-map', '0:' + streamIndex,
+        '-codec:a', 'aac', '-f', 'matroska', '-',
+    ];
+    const spawned = spawn('ffmpeg', args);
+    spawned.stderr.on('data', (buf: Buffer) => {
+        if (rs.headersSent) {
+            console.log('audio stderr', buf.toString('utf8'));
+        } else {
+            rs.setHeader('ffmpeg-stderr', buf.toString('utf8').replace(/[^ -~]/g, '?'));
+        }
+    });
+    rs.on('close', () => spawned.kill());
+    spawned.stdout.pipe(rs);
+};
+
 type UnzipEntry = {
     path: string,
     size: number,
@@ -252,6 +274,9 @@ type UnzipEntry = {
 }
 
 const serveZipReader = async (params: HandleHttpParams) => {
+    // set timeout to 10 minutes instead of 2 minutes, maybe could make
+    // it even more and abort manually if torrent actually hangs...
+    params.rq.setTimeout(10 * 60 * 1000);
     const {rs} = params;
     const {file} = await getFileInTorrent(params);
     const readStream = file.createReadStream();
@@ -337,10 +362,12 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
             });
     } else if (pathname === '/torrent-stream') {
         return serveTorrentStream(params);
-    } else if (pathname === '/torrent-stream-hevc') {
+    } else if (pathname === '/torrent-stream-code-in-h264') {
         return serveTorrentStreamHevc(params);
     } else if (pathname === '/torrent-stream-subs') {
         return serveTorrentStreamSubs(params);
+    } else if (pathname === '/torrent-stream-audio') {
+        return serveTorrentStreamAudio(params);
     } else if (pathname === '/api/prepareZipReader') {
         return serveZipReader(params);
     } else if (pathname === '/ftp/zipReaderFile') {
