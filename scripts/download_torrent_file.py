@@ -20,6 +20,9 @@ elif download_url.startswith("https://1337x.to/"):
 elif download_url.startswith("https://nnmclub.to/"):
     from nnmclub import nnmclub
     tracker_client = nnmclub()
+elif download_url.startswith("https://www.torlock.com/"):
+    from torlock import torlock
+    tracker_client = torlock()
 else:
     print(json.dumps({
         "status": "UNSUPPORTED_TRACKER",
