@@ -9,11 +9,11 @@ const gui = {
 };
 
 /** I'd question their honesty in the claimed seed numbers */
-const suspiciousSites = ['https://1337x.to', 'https://limetor.com'];
+const suspiciousSites = ['https://1337x.to', 'https://limetor.com', 'https://zooqle.com'];
 /** not updating seeders information for years, but at least numbers look realistic, just outdated */
 const stagnantSites = ['https://bakabt.me'];
 /** updating seeders info constantly, I think on every request (you can easily distinguish them: the seed amounts are around 10-20, not 100-500) */
-const credibleSites = ['https://nyaa.si', 'https://rutracker.org', 'https://nnmclub.to/forum/', 'https://torrents-csv.ml'];
+const credibleSites = ['https://nyaa.si', 'https://rutracker.org', 'https://nnmclub.to/forum/', 'https://torrents-csv.ml', 'https://rarbg.to'];
 
 const getScore = (item) => {
     if (item.siteUrl === 'https://eztv.io') {
