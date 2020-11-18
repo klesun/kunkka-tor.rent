@@ -56,17 +56,27 @@ const parseAsyncIterResponse = async function*(rs) {
     }
 };
 
-const get = (route, params = null) => {
+const makeGetUrl = (route, params = null) => {
+    const entries = !params ? [] : Object.entries(params)
+        .flatMap(
+            ([k,v]) => !Array.isArray(v)
+                ? [[k, v]]
+                : v.map(subV => [k, subV])
+        );
     const queryPart = !params ? '' :
-        '?' + new URLSearchParams(params);
-    return fetch(route + queryPart)
+        '?' + new URLSearchParams(entries);
+    return route + queryPart;
+};
+
+const get = (route, params = null) => {
+    const url = makeGetUrl(route, params);
+    return fetch(url)
         .then(parseResponse);
 };
 
 const getAsyncIter = (route, params = null) => {
-    const queryPart = !params ? '' :
-        '?' + new URLSearchParams(params);
-    return fetch(route + queryPart)
+    const url = makeGetUrl(route, params);
+    return fetch(url)
         .then(parseAsyncIterResponse);
 };
 
@@ -95,14 +105,15 @@ const Api = () => {
          */
         getFfmpegInfo: params => get('/api/getFfmpegInfo', params),
         /**
-         * @param {{infoHash: string}} params
+         * tr is list of tracker web addresses
+         * @param {{infoHash: string, tr: string[]}} params
          * @return {IApi_getSwarmInfo_rs}
          */
         getSwarmInfo: params => get('/api/getSwarmInfo', params),
         /**
          * retrieves torrent file by link from a private resource that requires my credentials
          * @param {{fileUrl: string}} params
-         * @return {Promise<{infoHash: string}>}
+         * @return {Promise<{infoHash: string, announce: string[]}>}
          */
         downloadTorrentFile: params => get('/api/downloadTorrentFile', params),
 
