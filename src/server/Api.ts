@@ -96,14 +96,20 @@ const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
 const Api = () => {
     const infoHashToWhenEngine: Record<string, Promise<NowadaysEngine>> = {};
 
-    const prepareTorrentStream = async (infoHash: string): Promise<NowadaysEngine> => {
+    const prepareTorrentStream = async (infoHash: string, trackers: string[] = []): Promise<NowadaysEngine> => {
         if (!infoHash || infoHash.length !== 40) {
             throw new Error('Invalid infoHash, must be a 40 characters long hex string');
         }
         if (!infoHashToWhenEngine[infoHash]) {
             // TODO: clear when no ping for 30 seconds or something
             infoHashToWhenEngine[infoHash] = Promise.resolve().then(async () => {
-                const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
+                const magnetLink = 'magnet:?xt=urn:btih:' + infoHash +
+                    trackers.map(tr => '&tr=' + encodeURIComponent(tr)).join('');
+                const engine = torrentStream(magnetLink, {
+                    verify: false,
+                    tracker: true,
+                    trackers: trackers,
+                });
                 await new Promise(
                     resolve => engine.on('ready', resolve)
                 );
@@ -129,11 +135,15 @@ const Api = () => {
     };
 
     const getSwarmInfo = async (rq: http.IncomingMessage) => {
-        const {infoHash} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+        const query = url.parse(<string>rq.url, true).query;
+
+        let {infoHash, tr = []} = query;
+        tr = typeof tr === 'string' ? [tr] : tr;
+
         if (!infoHash || infoHash.length !== 40) {
             throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         }
-        const engine = await prepareTorrentStream(infoHash);
+        const engine = await prepareTorrentStream(<string>infoHash, tr);
         return {
             ...makeSwarmSummary(engine.swarm),
             files: engine.files.map(shortenFileInfo),
@@ -166,6 +176,8 @@ const Api = () => {
             throw Exc.BadGateway(msg);
         }
         let infoHash;
+        let announce: string[] = [];
+        // TODO: return announce (tr) from magnet link
         const asMagnet = parseMagnetUrl(path);
         if (asMagnet) {
             infoHash = asMagnet.infoHash;
@@ -174,13 +186,14 @@ const Api = () => {
         } else if (path.startsWith('/tmp/')) {
             const torrentFileBuf = await fs.promises.readFile(path);
             let torrentFileData = parseTorrent(torrentFileBuf);
+            announce = torrentFileData.announce || [];
             infoHash = torrentFileData.infoHash;
         } else {
             const msg = 'Unexpected downloaded torrent file path format - ' + path;
             throw Exc.NotImplemented(msg);
         }
 
-        return {infoHash};
+        return {infoHash, announce};
     };
 
     return {
