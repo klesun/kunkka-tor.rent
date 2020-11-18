@@ -56,7 +56,7 @@ video {
 }
 
 .very-big-torrent {
-    color: #8a0000;
+    color: #b93636;
 }
 .big-torrent {
     color: #ff5400;
@@ -109,4 +109,10 @@ tbody.files-in-torrent > tr[data-file-extension="flac"] {
 
 tr.viewed-file {
     background-color: #288e7296;
+}
+
+.ffmpeg-info:not(.can-change-audio-track) [name="selectedAudioTrack"],
+.ffmpeg-info:not(.can-change-audio-track) audio {
+.ffmpeg-info:not(.can-change-audio-track) audio {
+    display: none;
 }
