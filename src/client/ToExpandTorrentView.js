@@ -4,12 +4,17 @@ import Api from "../client/Api.js";
 
 /** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
-    if (resultItem.infoHash) {
-        return resultItem.infoHash;
+    const asMagnet = resultItem.fileUrl.match(/^magnet:\?(\S+)$/);
+    if (asMagnet) {
+        const magnetQueryPart = asMagnet[1];
+        const search = new URLSearchParams(magnetQueryPart);
+        const infoHash = search.get('xt').replace(/^urn:btih:/, '');
+        const tr = search.getAll('tr');
+        return {infoHash, tr};
     } else {
         const torrentFileData = await Api()
             .downloadTorrentFile({fileUrl: resultItem.fileUrl});
-        return torrentFileData.infoHash;
+        return {infoHash: torrentFileData.infoHash, tr: torrentFileData.announce};
     }
 };
 
@@ -55,7 +60,7 @@ const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
 /**
  * @param {FfprobeOutput} ffprobeOutput
  * @param {HTMLVideoElement} video
- * @param {HTMLElement} ffmpegInfoBlock
+ * @param {HTMLFormElement} ffmpegInfoBlock
  */
 const displayFfprobeOutput = ({
     ffprobeOutput, gui: {
@@ -63,36 +68,46 @@ const displayFfprobeOutput = ({
     },
 }) => {
     const streamList = Dom('div', {class: 'stream-list'});
+    /** @type {HTMLAudioElement} */
+    const audioTrackPlayer = Dom('audio', {controls: 'controls'});
 
+    const fileApiParams = {
+        infoHash: video.getAttribute('data-info-hash'),
+        filePath: video.getAttribute('data-file-path'),
+    };
     const {format, streams} = ffprobeOutput;
     const {format_name, format_long_name, probe_score, bit_rate} = format;
+    let hasBadAudioCodec = false;
     let subsIndex = 0;
-    const audioTracks = [];
+    let audioIndex = 0;
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
-        const isBadCodec = ['h265', 'mpeg4', 'ac3', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
+        const isBadCodec = ['h265', 'mpeg4', 'ac3', 'eac3', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
         const isGoodCodec = ['h264', 'vp9', ...subsExtensions, ...goodAudioExtensions].includes(codec_name);
         streamList.appendChild(
             Dom('div', {'data-codec-type': codec_type}, [
                 Dom('span', {}, '#' + index),
-                Dom('span', {
-                    ...(isBadCodec ? {class: 'bad-codec'} : {}),
-                    ...(isGoodCodec ? {class: 'good-codec'} : {}),
-                }, codec_name),
-                Dom('span', {}, codec_type),
-                Dom('span', {}, profile),
-                Dom('span', {}, typeInfo),
+                Dom('label', {}, [
+                    ...(codec_type !== 'audio' ? [] : [
+                        Dom('input', {type: 'radio', name: 'selectedAudioTrack', value: index}),
+                    ]),
+                    Dom('span', {
+                        ...(isBadCodec ? {class: 'bad-codec'} : {}),
+                        ...(isGoodCodec ? {class: 'good-codec'} : {}),
+                    }, codec_name),
+                    Dom('span', {}, codec_type),
+                    Dom('span', {}, profile),
+                    Dom('span', {}, typeInfo),
+                ]),
             ])
         );
 
         if (codec_type === 'subtitle') {
             const srclang = (stream.tags || {}).language;
             const src = '/torrent-stream-subs?' + new URLSearchParams({
-                infoHash: video.getAttribute('data-info-hash'),
-                filePath: video.getAttribute('data-file-path'),
-                subsIndex: subsIndex,
+                ...fileApiParams, subsIndex: subsIndex,
             });
             video.appendChild(
                 Dom('track', {
@@ -105,18 +120,60 @@ const displayFfprobeOutput = ({
             );
             ++subsIndex;
         } else if (codec_type === 'audio') {
-            audioTracks.push(stream);
+            hasBadAudioCodec = hasBadAudioCodec || isBadCodec;
+            ++audioIndex;
         }
-    }
-    if (audioTracks.length > 0 || audioTracks.some(tr => tr.codec_name === 'ac3')) {
-        // TODO: add tracks
     }
 
     ffmpegInfoBlock.innerHTML = '';
+    ffmpegInfoBlock.classList.toggle('can-change-audio-track', audioIndex > 1 || hasBadAudioCodec);
     const containerInfo = Dom('div', {class: 'container-info'}, format_long_name + ' - ' +
         format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate');
     ffmpegInfoBlock.appendChild(containerInfo);
     ffmpegInfoBlock.appendChild(streamList);
+    ffmpegInfoBlock.appendChild(audioTrackPlayer);
+
+    let activeAudioStreamIdx = -1;
+    ffmpegInfoBlock.onchange = () => {
+        const audioIdx = +ffmpegInfoBlock.elements['selectedAudioTrack'].value;
+        if (audioIdx !== activeAudioStreamIdx) {
+            const src = '/torrent-stream-audio?' + new URLSearchParams({
+                ...fileApiParams, streamIndex: audioIdx,
+            });
+            audioTrackPlayer.setAttribute('src', src);
+            video.muted = true;
+            if (!video.paused) {
+                audioTrackPlayer.play().then(() => {
+                    audioTrackPlayer.currentTime = video.currentTime;
+                });
+            }
+            activeAudioStreamIdx = audioIdx;
+        }
+    };
+    const syncAudio = () => {
+        const EPS = 0.1;
+        // TODO: think of a better way, there is a small delay between when you
+        //  set currentTime and when it actually starts playing at this time
+        const diff = video.currentTime - audioTrackPlayer.currentTime;
+        if (Math.abs(diff) > EPS) {
+            audioTrackPlayer.currentTime = video.currentTime;
+        }
+    };
+    // TODO: clear
+    setInterval(syncAudio, 5000);
+    setInterval(() => {
+        if (video.paused) {
+            audioTrackPlayer.pause();
+        } else if (audioTrackPlayer.currentTime > video.currentTime) {
+            // video is buffering
+            audioTrackPlayer.muted = true;
+        } else {
+            audioTrackPlayer.muted = false;
+            if (audioTrackPlayer.paused) {
+                audioTrackPlayer.play();
+            }
+        }
+    }, 100);
 };
 
 const makeFileView = ({src, extension}) => {
@@ -135,7 +192,7 @@ const makeFileView = ({src, extension}) => {
             textarea,
             Dom('div', {}, 'Loading text...'),
         ]);
-    } else if (['exe', 'msi', 'zip', 'rar', 'pdf'].includes(extension)) {
+    } else if (['exe', 'msi', 'pdf', 'cbr', 'rar'].includes(extension)) {
         window.open(src, '_blank');
         return Dom('div', {}, 'Binary file, initiating download...');
     } else {
@@ -145,7 +202,8 @@ const makeFileView = ({src, extension}) => {
 
 /** @param {ShortTorrentFileInfo} file */
 const initPlayer = (infoHash, file, isBadCodec) => {
-    const streamPath = isBadCodec ? '/torrent-stream-hevc' : '/torrent-stream';
+    // TODO: must detect hevc from ffmpeg info, not from name!
+    const streamPath = isBadCodec ? '/torrent-stream-code-in-h264' : '/torrent-stream';
     const fileApiParams = {
         infoHash: infoHash,
         filePath: file.path,
@@ -200,7 +258,7 @@ const initPlayer = (infoHash, file, isBadCodec) => {
         'data-file-path': file.path,
         'src': src,
     });
-    const ffmpegInfoBlock = Dom('div', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
+    const ffmpegInfoBlock = Dom('form', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
 
     Api().getFfmpegInfo(fileApiParams)
         .then((ffprobeOutput) => {
@@ -314,10 +372,10 @@ const ToExpandTorrentView = ({
         const startedMs = Date.now();
         whenInfoHash = whenInfoHash || getInfoHash(resultItem);
         whenMetaInfo = whenMetaInfo || whenInfoHash
-            .then(ih => Api().getSwarmInfo({infoHash: ih}));
+            .then(magnetData => Api().getSwarmInfo(magnetData));
         whenMetaInfo.then(async metaInfo => {
             const seconds = (Date.now() - startedMs) / 1000;
-            const infoHash = await whenInfoHash;
+            const {infoHash} = await whenInfoHash;
             const filesList = makeFilesList({
                 isBadCodec, seconds, files: metaInfo.files,
                 playCallback: (f) => {
