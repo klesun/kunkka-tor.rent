@@ -12,7 +12,7 @@ import * as EventEmitter from "events";
 import {ReadStream} from "fs";
 const {spawn} = require('child_process');
 const unzip = require('unzip-stream');
-
+const srt2vtt = require('srt-to-vtt');
 const fs = fsSync.promises;
 
 const Rej = require('klesun-node-tools/src/Rej.js');
@@ -156,6 +156,7 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
                 console.error('Error while reading torrent stream', err);
                 rs.end(err + '');
             });
+        // mmm, pipeing two times, wth?
         // return;
         return pump(file.createReadStream(), rs);
     }
@@ -178,7 +179,18 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
     pump(file.createReadStream({start, end}), rs)
 };
 
-const serveTorrentStreamHevc = async (params: HandleHttpParams) => {
+const serveTorrentStreamEnsureVtt = async (params: HandleHttpParams) => {
+    const {rs} = params;
+    const {file} = await getFileInTorrent(params);
+
+    rs.setHeader('Content-Length', file.length);
+    rs.setHeader('Content-Type', 'text/vtt');
+    file.createReadStream()
+        .pipe(srt2vtt())
+        .pipe(rs);
+};
+
+const serveTorrentStreamCodeInH264 = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
     const {infoHash, filePath} = <Record<string, string>>url.parse(<string>rq.url, true).query;
     await api.prepareTorrentStream(infoHash);
@@ -209,7 +221,7 @@ const serveTorrentStreamHevc = async (params: HandleHttpParams) => {
     spawned.stdout.pipe(rs);
 };
 
-const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
+const serveTorrentStreamExtractSubs = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
     const {infoHash, filePath, subsIndex} = <Record<string, string>>url.parse(<string>rq.url, true).query;
     await api.prepareTorrentStream(infoHash);
@@ -231,7 +243,7 @@ const serveTorrentStreamSubs = async (params: HandleHttpParams) => {
     spawned.stdout.pipe(rs);
 };
 
-const serveTorrentStreamAudio = async (params: HandleHttpParams) => {
+const serveTorrentStreamExtractAudio = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
     const {infoHash, filePath, streamIndex} = <Record<string, string>>url.parse(<string>rq.url, true).query;
     await api.prepareTorrentStream(infoHash);
@@ -276,7 +288,7 @@ type UnzipEntry = {
 const serveZipReader = async (params: HandleHttpParams) => {
     // set timeout to 10 minutes instead of 2 minutes, maybe could make
     // it even more and abort manually if torrent actually hangs...
-    params.rq.setTimeout(10 * 60 * 1000);
+    params.rq.connection.setTimeout(10 * 60 * 1000);
     const {rs} = params;
     const {file} = await getFileInTorrent(params);
     const readStream = file.createReadStream();
@@ -362,12 +374,14 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
             });
     } else if (pathname === '/torrent-stream') {
         return serveTorrentStream(params);
+    } else if (pathname === '/torrent-stream-subs-ensure-vtt') {
+        return serveTorrentStreamEnsureVtt(params);
     } else if (pathname === '/torrent-stream-code-in-h264') {
-        return serveTorrentStreamHevc(params);
-    } else if (pathname === '/torrent-stream-subs') {
-        return serveTorrentStreamSubs(params);
-    } else if (pathname === '/torrent-stream-audio') {
-        return serveTorrentStreamAudio(params);
+        return serveTorrentStreamCodeInH264(params);
+    } else if (pathname === '/torrent-stream-extract-subs') {
+        return serveTorrentStreamExtractSubs(params);
+    } else if (pathname === '/torrent-stream-extract-audio') {
+        return serveTorrentStreamExtractAudio(params);
     } else if (pathname === '/api/prepareZipReader') {
         return serveZipReader(params);
     } else if (pathname === '/ftp/zipReaderFile') {

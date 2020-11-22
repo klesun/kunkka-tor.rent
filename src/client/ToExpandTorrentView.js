@@ -1,6 +1,7 @@
 
 import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
 import Api from "../client/Api.js";
+import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
 
 /** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
@@ -54,7 +55,7 @@ const typeToStreamInfoMaker = {
     },
 };
 
-const subsExtensions = ['srt', 'vtt', 'subrip', 'ass'];
+const subsExtensions = ['srt', 'vtt', 'subrip', 'ass', 'sub'];
 const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
 
 const isBadAudioCodec = (codec_name) => ['ac3', 'eac3'].includes(codec_name);
@@ -92,7 +93,7 @@ const addSubsTrack = ({video, src, tags = {}}) => {
             src: src,
             ...(hadTracks ? {} : {default: 'default'}),
             kind: 'subtitles',
-            label: srclang + ' ' + ((tags || {}).title || ''),
+            label: ((srclang || '') + ' ' + ((tags || {}).title || '')).trim(),
             srclang: srclang,
         }, [])
     );
@@ -115,7 +116,7 @@ const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}) => {
     ffmpegInfoBlock.onchange = () => {
         const audioIdx = +ffmpegInfoBlock.elements['selectedAudioTrack'].value;
         if (audioIdx !== activeAudioStreamIdx) {
-            const src = '/torrent-stream-audio?' + new URLSearchParams({
+            const src = '/torrent-stream-extract-audio?' + new URLSearchParams({
                 ...fileApiParams, streamIndex: audioIdx,
             });
             audioTrackPlayer.setAttribute('src', src);
@@ -190,7 +191,7 @@ const displayFfprobeOutput = ({
         streamList.appendChild(streamItem);
 
         if (codec_type === 'subtitle') {
-            const src = '/torrent-stream-subs?' + new URLSearchParams({
+            const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
                 ...fileApiParams, subsIndex: subsIndex,
             });
             addSubsTrack({video, src, tags: stream.tags});
@@ -269,8 +270,11 @@ const makeZipFileView = (fileApiParams) => {
     return Dom('div', {}, [zippedFilesList, statusPanel]);
 };
 
-/** @param {ShortTorrentFileInfo} file */
-const initPlayer = (infoHash, file, isBadCodec) => {
+/**
+ * @param {ShortTorrentFileInfo} file
+ * @param {ShortTorrentFileInfo[]} files
+ */
+const initPlayer = (infoHash, file, files, isBadCodec) => {
     // TODO: must detect hevc from ffmpeg info, not from name!
     const streamPath = isBadCodec ? '/torrent-stream-code-in-h264' : '/torrent-stream';
     const fileApiParams = {
@@ -283,17 +287,28 @@ const initPlayer = (infoHash, file, isBadCodec) => {
     const fileView = makeFileView({src, extension});
     if (fileView) {
         return fileView;
+    // would be nice to extract rar as well...
     } else if (['zip', 'cbz'].includes(extension)) {
         return makeZipFileView(fileApiParams);
-    // would be nice to extract rar and allow to explore further
     }
 
+    const {matchedTracks} = ExternalTrackMatcher({
+        videoPath: file.path, files: files,
+        trackExtensions: subsExtensions,
+    });
     const video = Dom('video', {
         controls: 'controls',
         'data-info-hash': infoHash,
         'data-file-path': file.path,
         'src': src,
     });
+    for (const subsTrack of matchedTracks) {
+        const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
+            infoHash: infoHash,
+            filePath: subsTrack.path,
+        });
+        addSubsTrack({video, src: subsSrc, tags: {title: subsTrack.title}});
+    }
     const ffmpegInfoBlock = Dom('form', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
 
     Api().getFfmpegInfo(fileApiParams)
@@ -417,7 +432,7 @@ const ToExpandTorrentView = ({
                 isBadCodec, seconds, files: metaInfo.files,
                 playCallback: (f) => {
                     playerCont.innerHTML = '';
-                    const player = initPlayer(infoHash, f, isBadCodec);
+                    const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);
                     playerCont.appendChild(player);
                     [...player.querySelectorAll('video')].forEach(v => v.play());
                 },
