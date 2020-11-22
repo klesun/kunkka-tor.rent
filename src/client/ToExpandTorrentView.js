@@ -57,6 +57,32 @@ const typeToStreamInfoMaker = {
 const subsExtensions = ['srt', 'vtt', 'subrip', 'ass'];
 const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
 
+const isBadAudioCodec = (codec_name) => ['ac3', 'eac3'].includes(codec_name);
+
+/** @param {FfprobeStream} stream */
+const makeStreamItem = (stream) => {
+    const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+    const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
+    const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
+    const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name) || isBadAudioCodec(codec_name);
+    const isGoodCodec = ['h264', 'vp9', ...subsExtensions, ...goodAudioExtensions].includes(codec_name);
+    return Dom('div', {'data-codec-type': codec_type}, [
+        Dom('span', {}, '#' + index),
+        Dom('label', {}, [
+            ...(codec_type !== 'audio' ? [] : [
+                Dom('input', {type: 'radio', name: 'selectedAudioTrack', value: index}),
+            ]),
+            Dom('span', {
+                ...(isBadCodec ? {class: 'bad-codec'} : {}),
+                ...(isGoodCodec ? {class: 'good-codec'} : {}),
+            }, codec_name),
+            Dom('span', {}, codec_type),
+            Dom('span', {}, profile),
+            Dom('span', {}, typeInfo),
+        ]),
+    ]);
+};
+
 /**
  * @param {FfprobeOutput} ffprobeOutput
  * @param {HTMLVideoElement} video
@@ -69,7 +95,7 @@ const displayFfprobeOutput = ({
 }) => {
     const streamList = Dom('div', {class: 'stream-list'});
     /** @type {HTMLAudioElement} */
-    const audioTrackPlayer = Dom('audio', {controls: 'controls'});
+    const audioTrackPlayer = Dom('audio', {controls: 'controls', buffered: 'buffered', preload: 'auto'});
 
     const fileApiParams = {
         infoHash: video.getAttribute('data-info-hash'),
@@ -77,32 +103,13 @@ const displayFfprobeOutput = ({
     };
     const {format, streams} = ffprobeOutput;
     const {format_name, format_long_name, probe_score, bit_rate} = format;
-    let hasBadAudioCodec = false;
+    const audioTracks = streams.filter(s => s.codec_type === 'audio');
+    const hasBadAudioCodec = audioTracks.some(s => isBadAudioCodec(s.codec_name));
     let subsIndex = 0;
-    let audioIndex = 0;
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
-        const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
-        const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
-        const isBadCodec = ['h265', 'mpeg4', 'ac3', 'eac3', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
-        const isGoodCodec = ['h264', 'vp9', ...subsExtensions, ...goodAudioExtensions].includes(codec_name);
-        streamList.appendChild(
-            Dom('div', {'data-codec-type': codec_type}, [
-                Dom('span', {}, '#' + index),
-                Dom('label', {}, [
-                    ...(codec_type !== 'audio' ? [] : [
-                        Dom('input', {type: 'radio', name: 'selectedAudioTrack', value: index}),
-                    ]),
-                    Dom('span', {
-                        ...(isBadCodec ? {class: 'bad-codec'} : {}),
-                        ...(isGoodCodec ? {class: 'good-codec'} : {}),
-                    }, codec_name),
-                    Dom('span', {}, codec_type),
-                    Dom('span', {}, profile),
-                    Dom('span', {}, typeInfo),
-                ]),
-            ])
-        );
+        const streamItem = makeStreamItem(stream);
+        streamList.appendChild(streamItem);
 
         if (codec_type === 'subtitle') {
             const srclang = (stream.tags || {}).language;
@@ -119,14 +126,11 @@ const displayFfprobeOutput = ({
                 }, [])
             );
             ++subsIndex;
-        } else if (codec_type === 'audio') {
-            hasBadAudioCodec = hasBadAudioCodec || isBadCodec;
-            ++audioIndex;
         }
     }
 
     ffmpegInfoBlock.innerHTML = '';
-    ffmpegInfoBlock.classList.toggle('can-change-audio-track', audioIndex > 1 || hasBadAudioCodec);
+    ffmpegInfoBlock.classList.toggle('can-change-audio-track', audioTracks.length > 1 || hasBadAudioCodec);
     const containerInfo = Dom('div', {class: 'container-info'}, format_long_name + ' - ' +
         format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate');
     ffmpegInfoBlock.appendChild(containerInfo);
@@ -152,10 +156,13 @@ const displayFfprobeOutput = ({
     };
     const syncAudio = () => {
         const EPS = 0.1;
-        // TODO: think of a better way, there is a small delay between when you
-        //  set currentTime and when it actually starts playing at this time
+        // should think of a better way, there is a small delay between when you
+        // set currentTime and when it actually starts playing at this time
         const diff = video.currentTime - audioTrackPlayer.currentTime;
         if (Math.abs(diff) > EPS) {
+            // TODO: when audio is converted from ac3, you can't freely navigate
+            //  through timeline, probably better use speedup rewind like on a VCD =-D
+            //  (as I have no idea how to make it work correctly with encoding on-the-fly)
             audioTrackPlayer.currentTime = video.currentTime;
         }
     };
@@ -163,7 +170,9 @@ const displayFfprobeOutput = ({
     setInterval(syncAudio, 5000);
     setInterval(() => {
         if (video.paused) {
-            audioTrackPlayer.pause();
+            if (!audioTrackPlayer.paused) {
+                audioTrackPlayer.pause();
+            }
         } else if (audioTrackPlayer.currentTime > video.currentTime) {
             // video is buffering
             audioTrackPlayer.muted = true;
@@ -350,6 +359,7 @@ const ToExpandTorrentView = ({
     const isBadCodec =
         resultItem.fileName.match(/265/) ||
         resultItem.fileName.match(/hevc/i) ||
+        resultItem.fileName.match(/XviD/i) ||
         resultItem.fileName.match(/mpeg-?4/i);
 
     return () => {

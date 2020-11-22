@@ -63,7 +63,8 @@ const makeResultTr = (resultItem) => {
         suspiciousSites.includes(resultItem.siteUrl) ||
         stagnantSites.includes(resultItem.siteUrl);
 
-    const tr = Dom('tr', {}, [
+    const tracker = new URL(resultItem.descrLink).hostname;
+    const tr = Dom('tr', {'data-tracker': tracker}, [
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
@@ -76,7 +77,7 @@ const makeResultTr = (resultItem) => {
         Dom('td', {}, [
             Dom('a', {
                 href: resultItem.descrLink,
-            }, new URL(resultItem.descrLink).hostname),
+            }, tracker),
         ]),
         Dom('td', {}, [
             Dom('button', {

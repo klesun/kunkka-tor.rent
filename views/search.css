@@ -104,7 +104,7 @@ tbody.files-in-torrent > tr[data-file-extension="avi"],
 tbody.files-in-torrent > tr[data-file-extension="mov"],
 tbody.files-in-torrent > tr[data-file-extension="flac"] {
     /* actual video files, the main thing that should interest the user */
-    font-weight: bold;
+    color: #b3ffff;
 }
 
 tr.viewed-file {
@@ -113,6 +113,9 @@ tr.viewed-file {
 
 .ffmpeg-info:not(.can-change-audio-track) [name="selectedAudioTrack"],
 .ffmpeg-info:not(.can-change-audio-track) audio {
-.ffmpeg-info:not(.can-change-audio-track) audio {
+    display: none;
+}
+
+#show-rutracker-flag:not(:checked) + * tr[data-tracker="rutracker.org"] {
     display: none;
 }
