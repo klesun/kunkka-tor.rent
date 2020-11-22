@@ -327,18 +327,6 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
                 window.open(src, '_blank');
             }
         });
-    // updateSwarmInfo = async () => {
-    //     if (video.getAttribute('data-info-hash') !== infoHash || video.ended) {
-    //         updateSwarmInfo = () => {};
-    //     } else {
-    //         const url = 'https://kunkka-torrent.online/api/getSwarmInfo?' +
-    //             new URLSearchParams({infoHash});
-    //         fetch(url).then(rs => rs.json()).then(swarmSummary => {
-    //             gui.selected_video_ffmpeg_info.textContent = JSON.stringify(swarmSummary);
-    //         });
-    //     }
-    // };
-
 
     return Dom('div', {}, [
         Dom('div', {}, [video]),
@@ -397,8 +385,9 @@ const ToExpandTorrentView = ({
     resultItem, getTr,
 }) => {
     let expandedView = null;
+    let swarmInfoInterval = null;
     let whenMetaInfo = null;
-    let whenInfoHash = null;
+    let whenMagnetData = null;
     const isBadCodec =
         resultItem.fileName.match(/265/) ||
         resultItem.fileName.match(/hevc/i) ||
@@ -408,14 +397,17 @@ const ToExpandTorrentView = ({
     return () => {
         const tr = getTr();
         if (expandedView) {
+            clearInterval(swarmInfoInterval);
             expandedView.remove();
             expandedView = null;
             return;
         }
+        const swarmInfoPanel = Dom('div');
         const fileListCont = Dom('div', {class: 'file-list-cont'}, 'Loading File List...');
         const playerCont = Dom('div', {class: 'player-cont'}, 'Choose a File from the List...');
         expandedView = Dom('tr', {class: 'expanded-view-row'}, [
             Dom('td', {colspan: 999}, [
+                swarmInfoPanel,
                 Dom('div', {class: 'expanded-torrent-block'}, [
                     fileListCont, playerCont,
                 ]),
@@ -423,12 +415,12 @@ const ToExpandTorrentView = ({
         ]);
         tr.parentNode.insertBefore(expandedView, tr.nextSibling);
         const startedMs = Date.now();
-        whenInfoHash = whenInfoHash || getInfoHash(resultItem);
-        whenMetaInfo = whenMetaInfo || whenInfoHash
-            .then(magnetData => Api().getSwarmInfo(magnetData));
+        whenMagnetData = whenMagnetData || getInfoHash(resultItem);
+        whenMetaInfo = whenMetaInfo || whenMagnetData
+            .then(magnetData => Api().connectToSwarm(magnetData));
         whenMetaInfo.then(async metaInfo => {
             const seconds = (Date.now() - startedMs) / 1000;
-            const {infoHash} = await whenInfoHash;
+            const {infoHash} = await whenMagnetData;
             const filesList = makeFilesList({
                 isBadCodec, seconds, files: metaInfo.files,
                 playCallback: (f) => {
@@ -441,6 +433,23 @@ const ToExpandTorrentView = ({
             fileListCont.innerHTML = '';
             fileListCont.appendChild(filesList);
         });
+
+        const updateSwarmInfo = async () => {
+            const {infoHash} = await whenMagnetData;
+            const swarmSummary = await Api().getSwarmInfo({infoHash});
+            swarmInfoPanel.textContent = JSON.stringify(swarmSummary);
+        };
+        let intervalStartMs = Date.now();
+        swarmInfoInterval = setInterval(() => {
+            if (Date.now() - intervalStartMs > 20 * 1000) {
+                // start with frequent updates to keep user in touch,
+                // then decrease frequency when video supposedly started
+                clearInterval(intervalStartMs);
+                intervalStartMs = setInterval(updateSwarmInfo, 5000);
+            } else {
+                updateSwarmInfo();
+            }
+        }, 500);
     };
 };
 

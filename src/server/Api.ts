@@ -94,29 +94,29 @@ const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
 };
 
 const Api = () => {
-    const infoHashToWhenEngine: Record<string, Promise<NowadaysEngine>> = {};
+    const infoHashToEngine: Record<string, NowadaysEngine> = {};
+    const infoHashToWhenReadyEngine: Record<string, Promise<NowadaysEngine>> = {};
 
     const prepareTorrentStream = async (infoHash: string, trackers: string[] = []): Promise<NowadaysEngine> => {
         if (!infoHash || infoHash.length !== 40) {
             throw new Error('Invalid infoHash, must be a 40 characters long hex string');
         }
-        if (!infoHashToWhenEngine[infoHash]) {
+        if (!infoHashToWhenReadyEngine[infoHash]) {
+            const magnetLink = 'magnet:?xt=urn:btih:' + infoHash +
+                trackers.map(tr => '&tr=' + encodeURIComponent(tr)).join('');
+            const engine = torrentStream(magnetLink, {
+                verify: false,
+                tracker: true,
+                trackers: trackers,
+            });
             // TODO: clear when no ping for 30 seconds or something
-            infoHashToWhenEngine[infoHash] = Promise.resolve().then(async () => {
-                const magnetLink = 'magnet:?xt=urn:btih:' + infoHash +
-                    trackers.map(tr => '&tr=' + encodeURIComponent(tr)).join('');
-                const engine = torrentStream(magnetLink, {
-                    verify: false,
-                    tracker: true,
-                    trackers: trackers,
-                });
-                await new Promise(
-                    resolve => engine.on('ready', resolve)
-                );
+            infoHashToEngine[infoHash] = engine;
+            infoHashToWhenReadyEngine[infoHash] = Promise.resolve().then(async () => {
+                await new Promise(resolve => engine.on('ready', resolve));
                 return engine;
             });
         }
-        return infoHashToWhenEngine[infoHash];
+        return infoHashToWhenReadyEngine[infoHash];
     };
 
     const getFfmpegInfo = async (rq: http.IncomingMessage) => {
@@ -136,6 +136,19 @@ const Api = () => {
 
     const getSwarmInfo = async (rq: http.IncomingMessage) => {
         const query = url.parse(<string>rq.url, true).query;
+        let {infoHash} = <Record<string, string>>query;
+        if (!infoHash || infoHash.length !== 40) {
+            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+        }
+        const engine = infoHashToEngine[infoHash] || null;
+        if (!engine) {
+            throw Exc.TooEarly('Engine must be initialized first');
+        }
+        return makeSwarmSummary(engine.swarm);
+    };
+
+    const connectToSwarm = async (rq: http.IncomingMessage) => {
+        const query = url.parse(<string>rq.url, true).query;
 
         let {infoHash, tr = []} = query;
         tr = typeof tr === 'string' ? [tr] : tr;
@@ -145,7 +158,6 @@ const Api = () => {
         }
         const engine = await prepareTorrentStream(<string>infoHash, tr);
         return {
-            ...makeSwarmSummary(engine.swarm),
             files: engine.files.map(shortenFileInfo),
         };
     };
@@ -200,6 +212,7 @@ const Api = () => {
         checkInfoHashMeta: checkInfoHashMeta,
         checkInfoHashPeers: checkInfoHashPeers,
         getFfmpegInfo: getFfmpegInfo,
+        connectToSwarm: connectToSwarm,
         getSwarmInfo: getSwarmInfo,
         downloadTorrentFile: downloadTorrentFile,
 
@@ -207,7 +220,7 @@ const Api = () => {
 
         // following not serializable - for internal use only
         prepareTorrentStream: prepareTorrentStream,
-        getPreparingStream: (infoHash: string) => infoHashToWhenEngine[infoHash],
+        getPreparingStream: (infoHash: string) => infoHashToWhenReadyEngine[infoHash],
     };
 };
 
@@ -216,3 +229,4 @@ export default Api;
 export type IApi = ReturnType<typeof Api>;
 
 export type IApi_getSwarmInfo_rs = ReturnType<ReturnType<typeof Api>['getSwarmInfo']>;
+export type IApi_connectToSwarm_rs = ReturnType<ReturnType<typeof Api>['connectToSwarm']>;

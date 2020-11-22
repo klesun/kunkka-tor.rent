@@ -107,6 +107,11 @@ const Api = () => {
         /**
          * tr is list of tracker web addresses
          * @param {{infoHash: string, tr: string[]}} params
+         * @return {IApi_connectToSwarm_rs}
+         */
+        connectToSwarm: params => get('/api/connectToSwarm', params),
+        /**
+         * @param {{infoHash: string}} params
          * @return {IApi_getSwarmInfo_rs}
          */
         getSwarmInfo: params => get('/api/getSwarmInfo', params),

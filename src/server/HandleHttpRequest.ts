@@ -346,6 +346,7 @@ const apiController: Record<string, ActionForApi> = {
     '/api/checkInfoHashMeta': api => api.checkInfoHashMeta,
     '/api/checkInfoHashPeers': api => api.checkInfoHashPeers,
     '/api/getFfmpegInfo': api => api.getFfmpegInfo,
+    '/api/connectToSwarm': api => api.connectToSwarm,
     '/api/getSwarmInfo': api => api.getSwarmInfo,
     '/api/downloadTorrentFile': api => api.downloadTorrentFile,
     '/api/qbtv2/search/start': api => api.qbtv2.search.start,
