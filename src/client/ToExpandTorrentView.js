@@ -1,7 +1,7 @@
 
 import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
 import Api from "../client/Api.js";
-import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
+import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 
 /** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
@@ -88,12 +88,13 @@ const makeStreamItem = (stream) => {
 const addSubsTrack = ({video, src, tags = {}}) => {
     const srclang = (tags || {}).language;
     const hadTracks = !!video.querySelector('track');
+    const label = ((srclang || '') + ' ' + ((tags || {}).title || '')).trim();
     video.appendChild(
         Dom('track', {
             src: src,
             ...(hadTracks ? {} : {default: 'default'}),
             kind: 'subtitles',
-            label: ((srclang || '') + ' ' + ((tags || {}).title || '')).trim(),
+            ...(!label ? {} : {label}),
             srclang: srclang,
         }, [])
     );
@@ -319,7 +320,7 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
                 }
             });
         }).catch(exc => {
-            if (['mkv', 'mp4', 'mov', 'mpg', 'm2v', 'mp3', 'flac', 'aac'].includes(extension)) {
+            if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
                 throw exc;
             } else {
                 // not a video file probably

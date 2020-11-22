@@ -1,3 +1,54 @@
+import longestCommonSubstring from "./lib/longest-common-substring/longestCommonSubstring.js";
+
+export const VIDEO_EXTENSIONS = ['mkv', 'mp4', 'avi', 'mov', 'mpg', 'm2v'];
+
+/**
+ * @param superstring = 'ololo hello vasya lololo'
+ * @param substring = 'hello vasya'
+ * @return {string} = 'ololo lololo'
+ */
+const removeOccurrence = (superstring, substring) => {
+    const infixStart = superstring.indexOf(substring);
+    if (infixStart > -1) {
+        return (superstring.slice(0, infixStart) + ' ' + superstring.slice(infixStart + substring.length)).trim()
+    } else {
+        return superstring;
+    }
+};
+
+const getAllUnambiguousMatches = (allFilePaths, allSubsOptions) => {
+    const allVideoOptions = allFilePaths.flatMap(path => {
+        const match = path.match(/(.*\/|)(.+)\.(\S+)/);
+        if (!match) {
+            return [];
+        }
+        let [, dir, name, ext] = match;
+        name = name.replace(/'/g, '');
+        if (!VIDEO_EXTENSIONS.includes(ext.toLowerCase())) {
+            return [];
+        } else {
+            return [{name, path}];
+        }
+    });
+    return allSubsOptions.flatMap(subRec => {
+        const withRelevance = allVideoOptions.map(vidRec => ({...vidRec,
+            commonSubstring: longestCommonSubstring(vidRec.name, subRec.name),
+        })).sort((a,b) => b.commonSubstring.length - a.commonSubstring.length);
+
+        if (withRelevance.length > 1 &&
+            withRelevance[0].commonSubstring.length >
+            withRelevance[1].commonSubstring.length ||
+            withRelevance.length === 1
+        ) {
+            return [{
+                subRec: subRec,
+                vidRec: withRelevance[0],
+            }];
+        } else {
+            return [];
+        }
+    });
+};
 
 /**
  * @param {string} videoPath
@@ -9,33 +60,51 @@ const ExternalTrackMatcher = ({
     videoPath, files, trackExtensions,
 }) => {
     const videoCleanName = videoPath
+        // remove directory
         .replace(/.*\//, '')
-        .replace(/^(.*)\.\S+$/, '$1');
-    const allSubsOptions = files.map(f => f.path).flatMap(path => {
+        // remove extension
+        .replace(/^(.*)\.\S+$/, '$1')
+        // remove special characters
+        .replace(/'/g, '')
+        ;
+    const allFilePaths = files.map(f => f.path);
+    const allSubsOptions = allFilePaths.flatMap(path => {
         const match = path.match(/(.*\/|)(.+)\.(\S+)/);
         if (!match) {
             return [];
         }
-        const [, dir, name, ext] = match;
+        let [, dir, name, ext] = match;
+        name = name.replace(/'/g, '');
         if (!trackExtensions.includes(ext.toLowerCase())) {
             return [];
         } else {
-            return {name, path};
+            return [{name, path}];
         }
     });
     // simplest case
-    const matchedTracks = allSubsOptions
+    let matchedTracks = allSubsOptions
         .flatMap(r => {
-            const infixStart = r.name.indexOf(videoCleanName);
-            if (infixStart > -1) {
+            const reducedName = removeOccurrence(r.name, videoCleanName);
+            if (r.name !== reducedName) {
                 return [{
-                    title: (r.name.slice(0, infixStart) + ' ' + r.name.slice(infixStart + videoCleanName.length)).trim(),
+                    title: reducedName,
                     path: r.path,
                 }];
             } else {
                 return [];
             }
         });
+    if (matchedTracks.length === 0) {
+        // artillery
+        const unambiguousMatches = getAllUnambiguousMatches(allFilePaths, allSubsOptions);
+        matchedTracks = unambiguousMatches
+            .filter(({vidRec}) => vidRec.path === videoPath)
+            .map(({subRec, vidRec}) => ({
+                title: removeOccurrence(subRec.name, vidRec.commonSubstring),
+                path: subRec.path,
+                commonSubstring: vidRec.commonSubstring,
+            }));
+    }
     return {
         matchedTracks: matchedTracks,
     };

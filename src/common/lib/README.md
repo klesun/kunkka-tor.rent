@@ -1,0 +1,1 @@
+I would rather install it with npm, but 3 MiB =/
