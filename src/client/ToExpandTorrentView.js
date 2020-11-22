@@ -83,58 +83,32 @@ const makeStreamItem = (stream) => {
     ]);
 };
 
+/** @param {HTMLVideoElement} video */
+const addSubsTrack = ({video, src, tags = {}}) => {
+    const srclang = (tags || {}).language;
+    const hadTracks = !!video.querySelector('track');
+    video.appendChild(
+        Dom('track', {
+            src: src,
+            ...(hadTracks ? {} : {default: 'default'}),
+            kind: 'subtitles',
+            label: srclang + ' ' + ((tags || {}).title || ''),
+            srclang: srclang,
+        }, [])
+    );
+};
+
 /**
- * @param {FfprobeOutput} ffprobeOutput
  * @param {HTMLVideoElement} video
  * @param {HTMLFormElement} ffmpegInfoBlock
  */
-const displayFfprobeOutput = ({
-    ffprobeOutput, gui: {
-        video, ffmpegInfoBlock,
-    },
-}) => {
-    const streamList = Dom('div', {class: 'stream-list'});
+const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}) => {
     /** @type {HTMLAudioElement} */
-    const audioTrackPlayer = Dom('audio', {controls: 'controls', buffered: 'buffered', preload: 'auto'});
-
-    const fileApiParams = {
-        infoHash: video.getAttribute('data-info-hash'),
-        filePath: video.getAttribute('data-file-path'),
-    };
-    const {format, streams} = ffprobeOutput;
-    const {format_name, format_long_name, probe_score, bit_rate} = format;
-    const audioTracks = streams.filter(s => s.codec_type === 'audio');
-    const hasBadAudioCodec = audioTracks.some(s => isBadAudioCodec(s.codec_name));
-    let subsIndex = 0;
-    for (const stream of streams) {
-        const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
-        const streamItem = makeStreamItem(stream);
-        streamList.appendChild(streamItem);
-
-        if (codec_type === 'subtitle') {
-            const srclang = (stream.tags || {}).language;
-            const src = '/torrent-stream-subs?' + new URLSearchParams({
-                ...fileApiParams, subsIndex: subsIndex,
-            });
-            video.appendChild(
-                Dom('track', {
-                    src: src,
-                    ...(subsIndex === 0 ? {default: 'default'} : {}),
-                    kind: 'subtitles',
-                    label: srclang + ' ' + ((stream.tags || {}).title || ''),
-                    srclang: srclang,
-                }, [])
-            );
-            ++subsIndex;
-        }
-    }
-
-    ffmpegInfoBlock.innerHTML = '';
-    ffmpegInfoBlock.classList.toggle('can-change-audio-track', audioTracks.length > 1 || hasBadAudioCodec);
-    const containerInfo = Dom('div', {class: 'container-info'}, format_long_name + ' - ' +
-        format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate');
-    ffmpegInfoBlock.appendChild(containerInfo);
-    ffmpegInfoBlock.appendChild(streamList);
+    const audioTrackPlayer = Dom('audio', {
+        controls: 'controls',
+        buffered: 'buffered',
+        preload: 'auto',
+    });
     ffmpegInfoBlock.appendChild(audioTrackPlayer);
 
     let activeAudioStreamIdx = -1;
@@ -166,9 +140,8 @@ const displayFfprobeOutput = ({
             audioTrackPlayer.currentTime = video.currentTime;
         }
     };
-    // TODO: clear
-    setInterval(syncAudio, 5000);
-    setInterval(() => {
+    const timingInterval = setInterval(syncAudio, 5000);
+    const stateInterval = setInterval(() => {
         if (video.paused) {
             if (!audioTrackPlayer.paused) {
                 audioTrackPlayer.pause();
@@ -182,7 +155,57 @@ const displayFfprobeOutput = ({
                 audioTrackPlayer.play();
             }
         }
+        if (!document.body.contains(ffmpegInfoBlock)) {
+            // dom was destroyed - clear intervals
+            clearInterval(timingInterval);
+            clearInterval(stateInterval);
+        }
     }, 100);
+};
+
+/**
+ * @param {FfprobeOutput} ffprobeOutput
+ * @param {HTMLVideoElement} video
+ * @param {HTMLFormElement} ffmpegInfoBlock
+ */
+const displayFfprobeOutput = ({
+    ffprobeOutput, gui: {
+        video, ffmpegInfoBlock,
+    },
+}) => {
+    const streamList = Dom('div', {class: 'stream-list'});
+
+    const fileApiParams = {
+        infoHash: video.getAttribute('data-info-hash'),
+        filePath: video.getAttribute('data-file-path'),
+    };
+    const {format, streams} = ffprobeOutput;
+    const {format_name, format_long_name, probe_score, bit_rate} = format;
+    const audioTracks = streams.filter(s => s.codec_type === 'audio');
+    const hasBadAudioCodec = audioTracks.some(s => isBadAudioCodec(s.codec_name));
+    let subsIndex = 0;
+    for (const stream of streams) {
+        const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+        const streamItem = makeStreamItem(stream);
+        streamList.appendChild(streamItem);
+
+        if (codec_type === 'subtitle') {
+            const src = '/torrent-stream-subs?' + new URLSearchParams({
+                ...fileApiParams, subsIndex: subsIndex,
+            });
+            addSubsTrack({video, src, tags: stream.tags});
+            ++subsIndex;
+        }
+    }
+
+    ffmpegInfoBlock.innerHTML = '';
+    ffmpegInfoBlock.classList.toggle('can-change-audio-track', audioTracks.length > 1 || hasBadAudioCodec);
+    const containerInfo = Dom('div', {class: 'container-info'}, format_long_name + ' - ' +
+        format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate');
+    ffmpegInfoBlock.appendChild(containerInfo);
+    ffmpegInfoBlock.appendChild(streamList);
+
+    monitorAudioTracks({video, ffmpegInfoBlock, fileApiParams});
 };
 
 const makeFileView = ({src, extension}) => {
