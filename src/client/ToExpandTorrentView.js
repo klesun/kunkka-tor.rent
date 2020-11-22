@@ -232,6 +232,43 @@ const makeFileView = ({src, extension}) => {
     }
 };
 
+const makeZipFileView = (fileApiParams) => {
+    const zippedFilesList = Dom('div');
+    const statusPanel = Dom('div', {}, 'Loading archive contents...');
+    Api().prepareZipReader(fileApiParams).then(async iter => {
+        for await (const entry of iter) {
+            const openFileCont = Dom('div', {});
+            const extension = entry.path.toLowerCase().replace(/^.*\./, '');
+            const src = '/ftp/zipReaderFile?' + new URLSearchParams({
+                ...fileApiParams, zippedFilePath: entry.path,
+            });
+            const dom = Dom('div', {style: 'text-align: right'}, [
+                Dom('div', {}, [
+                    Dom('span', {}, entry.path),
+                    Dom('span', {}, ' '),
+                    Dom('span', {}, (entry.size / 1024 / 1024).toFixed(2) + ' MiB'),
+                    Dom('span', {}, ' '),
+                    Dom('button', {
+                        onclick: () => {
+                            openFileCont.innerHTML = '';
+                            let fileView = makeFileView({src, extension});
+                            if (!fileView) {
+                                window.open(src, '_blank');
+                                fileView = Dom('div', {}, 'Binary file, initiating download...');
+                            }
+                            openFileCont.appendChild(fileView);
+                        },
+                    }, 'View'),
+                ]),
+                openFileCont,
+            ]);
+            zippedFilesList.appendChild(dom);
+        }
+        statusPanel.textContent = 'Extracted ' + zippedFilesList.children.length + ' files';
+    });
+    return Dom('div', {}, [zippedFilesList, statusPanel]);
+};
+
 /** @param {ShortTorrentFileInfo} file */
 const initPlayer = (infoHash, file, isBadCodec) => {
     // TODO: must detect hevc from ffmpeg info, not from name!
@@ -247,40 +284,7 @@ const initPlayer = (infoHash, file, isBadCodec) => {
     if (fileView) {
         return fileView;
     } else if (['zip', 'cbz'].includes(extension)) {
-        const zippedFilesList = Dom('div');
-        const statusPanel = Dom('div', {}, 'Loading archive contents...');
-        Api().prepareZipReader(fileApiParams).then(async iter => {
-            for await (const entry of iter) {
-                const openFileCont = Dom('div', {});
-                const extension = entry.path.toLowerCase().replace(/^.*\./, '');
-                const src = '/ftp/zipReaderFile?' + new URLSearchParams({
-                    ...fileApiParams, zippedFilePath: entry.path,
-                });
-                const dom = Dom('div', {style: 'text-align: right'}, [
-                    Dom('div', {}, [
-                        Dom('span', {}, entry.path),
-                        Dom('span', {}, ' '),
-                        Dom('span', {}, (entry.size / 1024 / 1024).toFixed(2) + ' MiB'),
-                        Dom('span', {}, ' '),
-                        Dom('button', {
-                            onclick: () => {
-                                openFileCont.innerHTML = '';
-                                let fileView = makeFileView({src, extension});
-                                if (!fileView) {
-                                    window.open(src, '_blank');
-                                    fileView = Dom('div', {}, 'Binary file, initiating download...');
-                                }
-                                openFileCont.appendChild(fileView);
-                            },
-                        }, 'View'),
-                    ]),
-                    openFileCont,
-                ]);
-                zippedFilesList.appendChild(dom);
-            }
-            statusPanel.textContent = 'Extracted ' + zippedFilesList.children.length + ' files';
-        });
-        return Dom('div', {}, [zippedFilesList, statusPanel]);
+        return makeZipFileView(fileApiParams);
     // would be nice to extract rar and allow to explore further
     }
 
