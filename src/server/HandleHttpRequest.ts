@@ -305,6 +305,7 @@ const serveZipReader = async (params: HandleHttpParams) => {
         const {path, size, isDirectory} = entry;
         if (!isDirectory) {
             rs.write(JSON.stringify({type: 'item', item: {path, size}}) + ',\n');
+            entry.autodrain();
         }
     }).on('close', () => {
         if (started) {
@@ -348,6 +349,7 @@ const apiController: Record<string, ActionForApi> = {
     '/api/getFfmpegInfo': api => api.getFfmpegInfo,
     '/api/connectToSwarm': api => api.connectToSwarm,
     '/api/getSwarmInfo': api => api.getSwarmInfo,
+    '/api/printDetailedSwarmInfo': api => api.printDetailedSwarmInfo,
     '/api/downloadTorrentFile': api => api.downloadTorrentFile,
     '/api/qbtv2/search/start': api => api.qbtv2.search.start,
     '/api/qbtv2/search/results': api => api.qbtv2.search.results,

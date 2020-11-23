@@ -268,7 +268,14 @@ const makeZipFileView = (fileApiParams) => {
         }
         statusPanel.textContent = 'Extracted ' + zippedFilesList.children.length + ' files';
     });
-    return Dom('div', {}, [zippedFilesList, statusPanel]);
+    const downloadSrc = '/torrent-stream?' + new URLSearchParams(fileApiParams);
+    return Dom('div', {}, [
+        zippedFilesList,
+        Dom('div', {}, [
+            Dom('button', {onclick: () => window.open(downloadSrc, '_blank')}, 'Download'),
+        ]),
+        statusPanel,
+    ]);
 };
 
 /**
@@ -402,14 +409,18 @@ const ToExpandTorrentView = ({
             expandedView = null;
             return;
         }
-        const swarmInfoPanel = Dom('div');
+        const swarmInfoPanel = Dom('div', {style: 'white-space: pre-wrap; font-family: monospace;'});
         const fileListCont = Dom('div', {class: 'file-list-cont'}, 'Loading File List...');
+        const leftSection = Dom('div', {
+            class: 'expanded-view-left-section'
+        }, [
+            fileListCont, swarmInfoPanel,
+        ]);
         const playerCont = Dom('div', {class: 'player-cont'}, 'Choose a File from the List...');
         expandedView = Dom('tr', {class: 'expanded-view-row'}, [
             Dom('td', {colspan: 999}, [
-                swarmInfoPanel,
                 Dom('div', {class: 'expanded-torrent-block'}, [
-                    fileListCont, playerCont,
+                    leftSection, playerCont,
                 ]),
             ]),
         ]);
@@ -437,15 +448,15 @@ const ToExpandTorrentView = ({
         const updateSwarmInfo = async () => {
             const {infoHash} = await whenMagnetData;
             const swarmSummary = await Api().getSwarmInfo({infoHash});
-            swarmInfoPanel.textContent = JSON.stringify(swarmSummary);
+            swarmInfoPanel.textContent = window.Tls.jsExport(swarmSummary, null, 90);
         };
         let intervalStartMs = Date.now();
         swarmInfoInterval = setInterval(() => {
             if (Date.now() - intervalStartMs > 20 * 1000) {
                 // start with frequent updates to keep user in touch,
                 // then decrease frequency when video supposedly started
-                clearInterval(intervalStartMs);
-                intervalStartMs = setInterval(updateSwarmInfo, 5000);
+                clearInterval(swarmInfoInterval);
+                swarmInfoInterval = setInterval(updateSwarmInfo, 5000);
             } else {
                 updateSwarmInfo();
             }

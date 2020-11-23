@@ -14,30 +14,64 @@ const execFile = util.promisify(require('child_process').execFile);
 import * as fs from 'fs';
 import * as parseTorrent from 'parse-torrent';
 
+type SwarmWire = {
+    downloaded: number,
+    /** I take it false means it's an actual seed that seeds, while true means that he is too busy or a douchebag */
+    peerChoking: boolean,
+    /**
+     * I would consider that true means he is a leach and otherwise a seed... at least if it's true, he is
+     * definitely a leach, though not sure it will ever be so, considering that we always start with 0 data
+     */
+    peerInterested: false,
+
+};
+
 interface NowadaysSwarm extends Swarm {
-    wires: {
-        isSeeder: boolean,
-    }[],
-    _peers: unknown[],
+    /** I take it, this list holds wires of peers that we managed to start exchanging data with */
+    wires: SwarmWire[],
+    /** Includes everything from wires + "choking" peers, that refuse to send us data */
+    _peers: Record<string, {wire: SwarmWire}>,
 }
 
 interface NowadaysEngine extends TorrentEngine {
     swarm: NowadaysSwarm;
 }
 
+const getCircularReplacer = () => {
+    const seen = new WeakSet();
+    return (key: string, value: unknown) => {
+        if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+                return;
+            }
+            seen.add(value);
+        }
+        return value;
+    };
+};
+
 const makeSwarmSummary = (swarm: NowadaysSwarm) => {
-    let seederWires = 0;
-    let otherWires = 0;
-    for (const wire of swarm.wires) {
-        if (wire.isSeeder) {
-            ++seederWires;
+    const seeders = [];
+    const chokers = [];
+    for (const [address, peer] of Object.entries(swarm._peers)) {
+        const {wire} = peer;
+        if (!wire) {
+            chokers.push({address});
+            continue;
+        }
+        const {downloaded, peerChoking, peerInterested} = wire;
+        const record = {downloaded, address, peerInterested: peerInterested || undefined};
+        if (peerChoking) {
+            chokers.push(record);
         } else {
-            ++otherWires;
+            seeders.push(record);
         }
     }
     return {
-        seederWires: seederWires,
-        otherWires: otherWires,
+        downloaded: swarm.downloaded,
+        downloadSpeed: swarm.downloadSpeed(),
+        seeders: seeders.sort((a,b) => b.downloaded - a.downloaded),
+        chokers: chokers.sort((a,b) => b.downloaded - a.downloaded),
         peers: Object.keys(swarm._peers).length,
     };
 };
@@ -134,19 +168,6 @@ const Api = () => {
         return JSON.parse(stdout);
     };
 
-    const getSwarmInfo = async (rq: http.IncomingMessage) => {
-        const query = url.parse(<string>rq.url, true).query;
-        let {infoHash} = <Record<string, string>>query;
-        if (!infoHash || infoHash.length !== 40) {
-            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
-        }
-        const engine = infoHashToEngine[infoHash] || null;
-        if (!engine) {
-            throw Exc.TooEarly('Engine must be initialized first');
-        }
-        return makeSwarmSummary(engine.swarm);
-    };
-
     const connectToSwarm = async (rq: http.IncomingMessage) => {
         const query = url.parse(<string>rq.url, true).query;
 
@@ -160,6 +181,32 @@ const Api = () => {
         return {
             files: engine.files.map(shortenFileInfo),
         };
+    };
+
+    const getExistingEngine = (rq: http.IncomingMessage) => {
+        const query = url.parse(<string>rq.url, true).query;
+        let {infoHash} = <Record<string, string>>query;
+        if (!infoHash || infoHash.length !== 40) {
+            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+        }
+        const engine = infoHashToEngine[infoHash] || null;
+        if (!engine) {
+            throw Exc.TooEarly('Engine must be initialized first');
+        }
+        return engine;
+    };
+
+    const getSwarmInfo = async (rq: http.IncomingMessage) => {
+        const engine = getExistingEngine(rq);
+        return makeSwarmSummary(engine.swarm);
+    };
+
+    const printDetailedSwarmInfo = async (rq: http.IncomingMessage) => {
+        const engine = getExistingEngine(rq);
+        const {connections, wires, _peers, ...rest} = engine.swarm;
+        // change order, as circular replacer makes wires null on first level because they were referenced in connections
+        const normalized = {...rest, wires, _peers, connections};
+        return JSON.parse(JSON.stringify(normalized, getCircularReplacer()));
     };
 
     /**
@@ -214,6 +261,7 @@ const Api = () => {
         getFfmpegInfo: getFfmpegInfo,
         connectToSwarm: connectToSwarm,
         getSwarmInfo: getSwarmInfo,
+        printDetailedSwarmInfo: printDetailedSwarmInfo,
         downloadTorrentFile: downloadTorrentFile,
 
         qbtv2: Qbtv2(),
