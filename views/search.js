@@ -2,6 +2,7 @@ import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
 import ToExpandTorrentView from "../src/client/ToExpandTorrentView.js";
 import Api from "../src/client/Api.js";
 import {parseMagnetUrl} from "../src/common/Utils.js";
+import TorrentNameParser from "../src/common/TorrentNameParser.js";
 
 const gui = {
     status_text: document.getElementById('status_text'),
@@ -66,6 +67,7 @@ const makeResultTr = (resultItem) => {
     const tracker = new URL(resultItem.descrLink).hostname;
     const tr = Dom('tr', {'data-tracker': tracker}, [
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
+        Dom('td', {}, TorrentNameParser({name: resultItem.fileName, tracker}).parts[0].mediaType),
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
         Dom('td', {class: 'seeders-number' + (seedsSuspicious ? ' suspicious-seeds' : '')}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),

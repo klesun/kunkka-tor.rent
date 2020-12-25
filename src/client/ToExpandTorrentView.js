@@ -226,7 +226,7 @@ const makeFileView = ({src, extension}) => {
             textarea,
             Dom('div', {}, 'Loading text...'),
         ]);
-    } else if (['exe', 'msi', 'pdf', 'cbr', 'rar'].includes(extension)) {
+    } else if (['exe', 'msi', 'pdf', 'djvu', 'cbr', 'rar'].includes(extension)) {
         window.open(src, '_blank');
         return Dom('div', {}, 'Binary file, initiating download...');
     } else {
@@ -460,7 +460,7 @@ const ToExpandTorrentView = ({
             } else {
                 updateSwarmInfo();
             }
-        }, 500);
+        }, 1000);
     };
 };
 

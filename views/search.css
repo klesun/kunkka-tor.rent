@@ -76,8 +76,8 @@ video {
 .expanded-torrent-block * {
     font-size: 12px;
 }
-.expanded-view-left-section {
-    max-height: 800px;
+.file-list-cont {
+    max-height: 600px;
     overflow-y: auto;
 }
 .player-cont {
