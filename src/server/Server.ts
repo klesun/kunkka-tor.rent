@@ -2,7 +2,7 @@ import * as http from 'http';
 import HandleHttpRequest, {HandleHttpParams} from './HandleHttpRequest';
 import Api from "./Api";
 import * as SocketIo from 'socket.io';
-import ScanInfoHashStatus from "./actions/ScanInfoHashStatus";
+import ScanInfoHashStatus, {ItemStatus} from "./actions/ScanInfoHashStatus";
 import {HTTP_PORT} from "./Constants";
 const fetch = require('node-fetch');
 
@@ -29,7 +29,7 @@ const Server = async (rootPath: string) => {
             if (data.messageType === 'SCAN_INFO_HASH_STATUS') {
                 try {
                     const {infoHashes} = data;
-                    const itemCallback = itemStatus => socket.send({
+                    const itemCallback = (itemStatus: ItemStatus) => socket.send({
                         messageType: 'INFO_HASH_STATUS',
                         messageData: itemStatus,
                     });
