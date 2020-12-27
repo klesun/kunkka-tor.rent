@@ -10,7 +10,7 @@ type BaseItemStatus = {
     msWaited: number,
 };
 
-type ItemStatus = BaseItemStatus & ({
+export type ItemStatus = BaseItemStatus & ({
     status: 'ERROR',
     message: string,
 } | {
@@ -86,12 +86,12 @@ const ScanInfoHashStatus = ({infoHashes, itemCallback, api}: {
 
         const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
         const whenMeta = new Promise<TorrentInfo>(resolve => {
-            engine.on('torrent', async (torrent) => {
+            engine.on('torrent', async (torrent: TorrentMainInfo) => {
                 resolve(shortenTorrentInfo(torrent));
             });
         });
         timeout(MAX_META_WAIT_SECONDS, whenMeta)
-            .then(metaInfo => {
+            .then((metaInfo: TorrentInfo) => {
                 itemCallback({
                     infoHash: infoHash,
                     status: 'META_AVAILABLE',
@@ -99,8 +99,8 @@ const ScanInfoHashStatus = ({infoHashes, itemCallback, api}: {
                     metaInfo: metaInfo,
                 });
             })
-            .catch(exc => {
-                if (exc.httpStatusCode === 408) {
+            .catch((exc: {httpStatusCode: number}|object|string|number|undefined|boolean|null) => {
+                if (exc && typeof exc === 'object' && 'httpStatusCode' in exc && exc.httpStatusCode === 408) {
                     itemCallback({
                         infoHash: infoHash,
                         status: 'TIMEOUT',
