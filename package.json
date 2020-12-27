@@ -15,6 +15,7 @@
     "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/3e44f2bb4ad8ee34a3eb78dbae9b7b7295965c8c",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
+    "node-unrar-js": "https://github.com/klesun-misc/node-unrar.js-issue3/tarball/72ce2499db0f9c1f59049871bd3176c6975a9bdc",
     "parse-torrent": "9.1.0",
     "pump": "^3.0.0",
     "socket.io": "2.3.0",
@@ -32,6 +33,12 @@
     "@types/parse-torrent": "^5.8.3",
     "@types/pump": "^1.1.0",
     "@types/socket.io": "latest",
-    "@types/torrent-stream": "0.0.5"
+    "@types/torrent-stream": "0.0.5",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "path-browserify": "^1.0.1",
+    "stream-browserify": "^3.0.0",
+    "webpack": "^5.11.0",
+    "webpack-cli": "^4.2.0"
   }
 }
