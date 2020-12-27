@@ -2,6 +2,7 @@
 import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
 import Api from "../client/Api.js";
 import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
+import RarStreamer from "./RarStreamer.js";
 
 /** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
@@ -226,7 +227,7 @@ const makeFileView = ({src, extension}) => {
             textarea,
             Dom('div', {}, 'Loading text...'),
         ]);
-    } else if (['exe', 'msi', 'pdf', 'djvu', 'cbr', 'rar'].includes(extension)) {
+    } else if (['exe', 'msi', 'pdf', 'djvu'].includes(extension)) {
         window.open(src, '_blank');
         return Dom('div', {}, 'Binary file, initiating download...');
     } else {
@@ -278,6 +279,54 @@ const makeZipFileView = (fileApiParams) => {
     ]);
 };
 
+const makeRarFileView = (src) => {
+    const raredFilesList = Dom('div');
+    const statusPanel = Dom('div', {}, 'Loading archive contents...');
+    fetch(src).then(async rs => {
+        const reader = rs.body.getReader();
+        const iterating = RarStreamer({reader});
+        for await (const file of iterating.iter) {
+            const openFileCont = Dom('div', {});
+            const extension = file.name.toLowerCase().replace(/^.*\./, '');
+            const dom = Dom('div', {style: 'text-align: right'}, [
+                Dom('div', {}, [
+                    Dom('span', {}, file.name),
+                    Dom('span', {}, ' '),
+                    Dom('span', {}, (file.unpSize / 1024 / 1024).toFixed(2) + ' MiB'),
+                    Dom('span', {}, ' '),
+                    Dom('button', {
+                        onclick: () => {
+                            const [stateRec, resultRec] = iterating.extractFile(file);
+                            if (stateRec.state !== 'SUCCESS') {
+                                console.log('ololo stateRec', stateRec);
+                                alert('No success in extracting file');
+                            } else {
+                                const blob = new Blob([resultRec.files[0].extract[1]], {type: 'image/jpeg'});
+                                const src = URL.createObjectURL(blob);
+                                let fileView = makeFileView({src, extension});
+                                if (!fileView) {
+                                    window.open(src, '_blank');
+                                    fileView = Dom('div', {}, 'Binary file, initiating download...');
+                                }
+                                openFileCont.appendChild(fileView);
+                            }
+                        },
+                    }, 'View'),
+                ]),
+                openFileCont,
+            ]);
+            raredFilesList.appendChild(dom);
+        }
+    });
+    return Dom('div', {}, [
+        raredFilesList,
+        Dom('div', {}, [
+            Dom('button', {onclick: () => window.open(src, '_blank')}, 'Download'),
+        ]),
+        statusPanel,
+    ]);
+};
+
 /**
  * @param {ShortTorrentFileInfo} file
  * @param {ShortTorrentFileInfo[]} files
@@ -295,9 +344,10 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
     const fileView = makeFileView({src, extension});
     if (fileView) {
         return fileView;
-    // would be nice to extract rar as well...
     } else if (['zip', 'cbz'].includes(extension)) {
         return makeZipFileView(fileApiParams);
+    } else if (['rar', 'cbr'].includes(extension)) {
+        return makeRarFileView(src);
     }
 
     const {matchedTracks} = ExternalTrackMatcher({
