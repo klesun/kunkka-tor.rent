@@ -1,3 +1,7 @@
 /.idea
 /node_modules
+/kunkka_hos
+.DS_Store
 /kunkka_host
+/unv
+/src/common/lib/VendorsWrapper.bundle.js
