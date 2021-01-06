@@ -63,8 +63,9 @@
     <label for="show-rutracker-flag" title="Rutracker is great, but it mostly only has russian-translated stuff, so you may find it's results irrelevant">Show Rutracker</label>
     <input id="show-rutracker-flag" type="checkbox" checked="checked"/>
 
-    <table class="resulting-list-of-torrents">
-        <thead>
+    <div class="search-results-table-container">
+        <table class="resulting-list-of-torrents">
+            <thead>
             <tr>
                 <th>Name</th>
                 <th>Media</th>
@@ -74,9 +75,10 @@
                 <th>Magnet (Download) Link</th>
                 <th>View in Tracker</th>
             </tr>
-        </thead>
-        <tbody id="search_results_list"></tbody>
-    </table>
+            </thead>
+            <tbody id="search_results_list"></tbody>
+        </table>
+    </div>
 
 <script type="module" src="./search.js"></script>
 
