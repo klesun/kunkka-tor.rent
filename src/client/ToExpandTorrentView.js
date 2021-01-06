@@ -3,6 +3,7 @@ import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
 import Api from "../client/Api.js";
 import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import RarStreamer from "./RarStreamer.js";
+import FixNaturalOrder from "../common/FixNaturalOrder.js";
 
 /** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
@@ -344,6 +345,7 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
     const fileView = makeFileView({src, extension});
     if (fileView) {
         return fileView;
+    // TODO: use FixNaturalOrder.js
     } else if (['zip', 'cbz'].includes(extension)) {
         return makeZipFileView(fileApiParams);
     } else if (['rar', 'cbr'].includes(extension)) {
@@ -402,6 +404,7 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
  * @param {function(f: ShortTorrentFileInfo): void} playCallback
  */
 const makeFilesList = ({isBadCodec, seconds, files, playCallback}) => {
+    files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
     let activeTr = null;
     return Dom('div', {}, [
         Dom('span', {}, seconds + ' seconds'),

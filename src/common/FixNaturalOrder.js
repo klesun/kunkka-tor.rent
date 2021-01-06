@@ -52,6 +52,7 @@ const sortMates = (mates) => {
  * @template T
  * @param {T[]} items
  * @param {function(T): string} getName
+ * @return {{sortedItems: T[]}}
  */
 const FixNaturalOrder = ({items, getName}) => {
     const prefixToDigital = new Map();
