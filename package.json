@@ -12,10 +12,12 @@
   "author": "klesun",
   "license": "ISC",
   "dependencies": {
+    "papaparse": "^5.3.0",
     "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/3e44f2bb4ad8ee34a3eb78dbae9b7b7295965c8c",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
     "node-unrar-js": "https://github.com/klesun-misc/node-unrar.js-issue3/tarball/6bd09d67d7ee1a94b4191912b2c4be8686bf76c2",
+    "torrents-csv-data": "git+https://codeberg.org/klesun/torrents-csv-data.git#d83049211407dddabb9c86be80617184b8266eeb",
     "parse-torrent": "9.1.0",
     "pump": "^3.0.0",
     "socket.io": "2.3.0",
@@ -27,6 +29,7 @@
     "unzip-stream": "^0.3.1"
   },
   "devDependencies": {
+    "@types/papaparse": "^5.2.4",
     "@types/mime-types": "^2.1.0",
     "@types/node": "^14.0.27",
     "@types/node-fetch": "^2.5.7",
