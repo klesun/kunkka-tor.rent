@@ -317,6 +317,7 @@ const makeRarFileView = (src) => {
                 openFileCont,
             ]);
             raredFilesList.appendChild(dom);
+            await new Promise(_ => setTimeout(_, 100));
         }
     });
     return Dom('div', {}, [

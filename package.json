@@ -15,7 +15,7 @@
     "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/3e44f2bb4ad8ee34a3eb78dbae9b7b7295965c8c",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
-    "node-unrar-js": "https://github.com/klesun-misc/node-unrar.js-issue3/tarball/72ce2499db0f9c1f59049871bd3176c6975a9bdc",
+    "node-unrar-js": "https://github.com/klesun-misc/node-unrar.js-issue3/tarball/6bd09d67d7ee1a94b4191912b2c4be8686bf76c2",
     "parse-torrent": "9.1.0",
     "pump": "^3.0.0",
     "socket.io": "2.3.0",
