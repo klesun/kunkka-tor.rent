@@ -286,6 +286,7 @@ const makeRarFileView = (src) => {
     fetch(src).then(async rs => {
         const reader = rs.body.getReader();
         const iterating = RarStreamer({reader});
+        let filesLoaded = 0;
         for await (const file of iterating.iter) {
             const openFileCont = Dom('div', {});
             const extension = file.name.toLowerCase().replace(/^.*\./, '');
@@ -317,7 +318,9 @@ const makeRarFileView = (src) => {
                 openFileCont,
             ]);
             raredFilesList.appendChild(dom);
-            await new Promise(_ => setTimeout(_, 100));
+            // for a big 1+ GiB archive we'd like to gradually slow down to not clog
+            // user's CPU as re-parsing the archive becomes more and more demanding
+            await new Promise(_ => setTimeout(_, filesLoaded++ * 10));
         }
     });
     return Dom('div', {}, [
