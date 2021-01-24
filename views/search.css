@@ -19,6 +19,13 @@ tbody {
 .torrent-file-name {
     font-size: 12px;
 }
+td.infohash {
+    width: 260px;
+    overflow-wrap: anywhere;
+    font-size: 10px;
+    text-transform: lowercase;
+    font-family: monospace;
+}
 table.resulting-list-of-torrents {
     width: 100%;
 }

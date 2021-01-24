@@ -71,10 +71,10 @@ const makeResultTr = (resultItem) => {
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
         Dom('td', {class: 'seeders-number' + (seedsSuspicious ? ' suspicious-seeds' : '')}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),
-        Dom('td', {}, [
+        Dom('td', {class: 'infohash'}, [
             Dom('a', {
                 href: resultItem.fileUrl,
-            }, resultItem.infoHash || resultItem.fileUrl),
+            }, resultItem.infoHash || resultItem.fileUrl.replace(/^https?:\/\/[^\/?]*/, '')),
         ]),
         Dom('td', {}, [
             Dom('a', {
@@ -82,9 +82,24 @@ const makeResultTr = (resultItem) => {
             }, tracker),
         ]),
         Dom('td', {}, [
+            Dom('a', {
+                ...resultItem.infoHash ? {
+                    target: '_blank',
+                    href: './infoPage/' + resultItem.infoHash.toLowerCase(),
+                    style: 'white-space: nowrap',
+                } : {
+                    onclick: () => {
+                        alert('TODO: implement magnet-less!');
+                    },
+                },
+            }, [
+                Dom('button', {}, 'Full Page'),
+            ]),
+        ]),
+        Dom('td', {}, [
             Dom('button', {
                 onclick: ToExpandTorrentView({resultItem, getTr: () => tr}),
-            }, 'Open'),
+            }, 'Expand'),
         ]),
     ]);
     return tr;

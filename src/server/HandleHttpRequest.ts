@@ -1,5 +1,5 @@
 import * as url from 'url';
-import * as pump from 'pump'
+import * as pump from 'pump';
 import * as fsSync from 'fs';
 import * as http from "http";
 import {IApi} from "./Api";
@@ -10,6 +10,7 @@ import {HTTP_PORT} from "./Constants";
 import { Writable } from "stream";
 import * as EventEmitter from "events";
 import {ReadStream} from "fs";
+import ServeInfoPage from "./actions/ServeInfoPage";
 const {spawn} = require('child_process');
 const unzip = require('unzip-stream');
 const srt2vtt = require('srt-to-vtt');
@@ -343,7 +344,7 @@ const serveZipReaderFile = async (params: HandleHttpParams) => {
 type Action = (rq: http.IncomingMessage, rs: http.ServerResponse) => Promise<SerialData> | SerialData;
 type ActionForApi = (api: IApi) => Action;
 
-const apiController: Record<string, ActionForApi> = {
+const apiRouter: Record<string, ActionForApi> = {
     '/api/checkInfoHashMeta': api => api.checkInfoHashMeta,
     '/api/checkInfoHashPeers': api => api.checkInfoHashPeers,
     '/api/getFfmpegInfo': api => api.getFfmpegInfo,
@@ -360,7 +361,7 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
     const parsedUrl = url.parse(<string>rq.url);
     const pathname: string = <string>removeDots(parsedUrl.pathname);
 
-    const actionForApi = apiController[pathname];
+    const actionForApi = apiRouter[pathname];
 
     setCorsHeaders(rs);
 
@@ -389,6 +390,9 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         return serveZipReader(params);
     } else if (pathname === '/ftp/zipReaderFile') {
         return serveZipReaderFile(params);
+    } else if (pathname.startsWith('/views/infoPage/')) {
+        const infoHash = pathname.slice('/views/infoPage/'.length);
+        return ServeInfoPage(params, infoHash);
     } else if (pathname.startsWith('/')) {
         return serveStaticFile(pathname, params);
     } else {
