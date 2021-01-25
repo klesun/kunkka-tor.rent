@@ -50,16 +50,29 @@ const getInfohashRecord = (infoHash: string) => whenInfoHashToRecord.then(infoHa
     }
 });
 
+const formatSize = (bytes: number) => {
+    const sizeMib = bytes / 1024 / 1024;
+    if (sizeMib >= 1024) {
+        return (sizeMib / 1024).toFixed(1) + 'GiB';
+    } else {
+        return sizeMib.toFixed(1) + 'MiB';
+    }
+};
+
 const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
     const csvRecord = await getInfohashRecord(infoHash);
-    const pageTitle = csvRecord ? csvRecord.name + ' - torrent download' : '🧲 ' + infoHash;
+    const description = !csvRecord ? null : `${formatSize(+csvRecord.size_bytes)} | ${csvRecord.seeders} seeds | ${csvRecord.leechers} leechers`;
     const htmlRoot = Xml('html', {}, [
         Xml('head', {}, [
-            Xml('title', {}, pageTitle),
+            Xml('title', {}, csvRecord ? csvRecord.name + ' - torrent download' : '🧲 ' + infoHash),
             Xml('meta', {'charset': 'utf-8'}),
+            ...!description ? [] : [
+                Xml('meta', {name: 'description', content: description}),
+                Xml('meta', {property: 'og:description', content: description}),
+            ],
         ]),
         Xml('body', {}, [
-            Xml('h2', {}, pageTitle),
+            Xml('h2', {}, csvRecord ? csvRecord.name : '🧲 ' + infoHash),
             ...!csvRecord ? [] : [
                 Xml('div', {}, 'Created At: ' + new Date(+csvRecord.created_unix * 1000).toISOString()),
                 Xml('div', {}, 'Scraped At: ' + new Date(+csvRecord.scraped_date * 1000).toISOString()),
