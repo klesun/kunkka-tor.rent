@@ -410,35 +410,48 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
 const makeFilesList = ({isBadCodec, seconds, files, playCallback}) => {
     files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
     let activeTr = null;
-    return Dom('div', {}, [
+    let lastPlayIndex = -1;
+    const trs = files.map((f, i) => {
+        const tr = Dom('tr', {
+            'data-file-extension': f.path.replace(/^.*\./, ''),
+        }, [
+            Dom('td', {}, f.path),
+            Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
+            Dom('td', {}, [
+                Dom('button', {
+                    onclick: () => playFileAt(i),
+                    ...(!isBadCodec ? {} : {
+                        title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
+                    }),
+                }, 'Watch'),
+            ]),
+        ]);
+        return tr;
+    });
+    const playFileAt = (i) => {
+        const tr = trs[i];
+        const f = files[i];
+        if (activeTr) {
+            activeTr.classList.toggle('viewed-file', false);
+        }
+        activeTr = tr;
+        activeTr.classList.toggle('viewed-file', true);
+        playCallback(f);
+        lastPlayIndex = i;
+    };
+    const dom = Dom('div', {}, [
         Dom('span', {}, seconds + ' seconds'),
         Dom('table', {}, [
-            Dom('tbody', {class: 'files-in-torrent'}, files.map(f => {
-                const tr = Dom('tr', {
-                    'data-file-extension': f.path.replace(/^.*\./, ''),
-                }, [
-                    Dom('td', {}, f.path),
-                    Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
-                    Dom('td', {}, [
-                        Dom('button', {
-                            onclick: () => {
-                                if (activeTr) {
-                                    activeTr.classList.toggle('viewed-file', false);
-                                }
-                                activeTr = tr;
-                                activeTr.classList.toggle('viewed-file', true);
-                                playCallback(f);
-                            },
-                            ...(!isBadCodec ? {} : {
-                                title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
-                            }),
-                        }, 'Watch'),
-                    ]),
-                ]);
-                return tr;
-            })),
+            Dom('tbody', {class: 'files-in-torrent'}, trs),
         ]),
     ]);
+    const tryPlayNext = () => {
+        const index = lastPlayIndex + 1;
+        if (index < trs.length) {
+            playFileAt(index);
+        }
+    };
+    return {dom, tryPlayNext};
 };
 
 /**
@@ -489,17 +502,20 @@ const ToExpandTorrentView = ({
         whenMetaInfo.then(async metaInfo => {
             const seconds = (Date.now() - startedMs) / 1000;
             const {infoHash} = await whenMagnetData;
-            const filesList = makeFilesList({
+            const {dom, tryPlayNext} = makeFilesList({
                 isBadCodec, seconds, files: metaInfo.files,
                 playCallback: (f) => {
                     playerCont.innerHTML = '';
                     const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);
                     playerCont.appendChild(player);
-                    [...player.querySelectorAll('video')].forEach(v => v.play());
+                    [...player.querySelectorAll('video')].forEach(v => {
+                        v.play();
+                        v.addEventListener('ended', tryPlayNext);
+                    });
                 },
             });
             fileListCont.innerHTML = '';
-            fileListCont.appendChild(filesList);
+            fileListCont.appendChild(dom);
         });
 
         const updateSwarmInfo = async () => {
