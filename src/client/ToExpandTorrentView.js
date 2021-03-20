@@ -409,8 +409,8 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
  * @param {ShortTorrentFileInfo[]} files
  * @param {function(f: ShortTorrentFileInfo): void} playCallback
  */
-const makeFilesList = ({isBadCodec, infoHash, seconds, files, playCallback}) => {
-    const makeStorageKey = f => WATCHED_STORAGE_PREFIX + ':' + infoHash + ':' + f.path;
+const makeFilesList = ({isBadCodec, resultItem, seconds, files, playCallback}) => {
+    const makeStorageKey = f => WATCHED_STORAGE_PREFIX + '&' + encodeURIComponent(resultItem.fileUrl) + '&' + encodeURIComponent(f.path);
     files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
     let activeTr = null;
     let lastPlayIndex = -1;
@@ -515,7 +515,7 @@ const ToExpandTorrentView = ({
             const seconds = (Date.now() - startedMs) / 1000;
             const {infoHash} = await whenMagnetData;
             const {dom, tryPlayNext} = makeFilesList({
-                isBadCodec, seconds, infoHash, files: metaInfo.files,
+                isBadCodec, seconds, resultItem, files: metaInfo.files,
                 playCallback: (f) => {
                     playerCont.innerHTML = '';
                     const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);

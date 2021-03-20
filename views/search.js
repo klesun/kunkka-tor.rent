@@ -33,6 +33,21 @@ const getScore = (item) => {
     }
 };
 
+const makeComparator = (watchIndex) => {
+    return (a,b) => {
+        const aFilesWatched = watchIndex.get(a.fileUrl) || [];
+        const bFilesWatched = watchIndex.get(b.fileUrl) || [];
+
+        if (bFilesWatched.length === aFilesWatched.length ||
+            aFilesWatched.length < 2 && bFilesWatched.length < 2
+        ) {
+            return getScore(b) - getScore(a);
+        } else {
+            return bFilesWatched.length - aFilesWatched.length;
+        }
+    }
+};
+
 const makeSizeTd = (fileSize) => {
     const classes = ['torrent-size'];
     let content;
@@ -108,8 +123,9 @@ const makeResultTr = (resultItem) => {
     return tr;
 };
 
-const makeListUpdater = (listDom) => {
+const makeListUpdater = (listDom, watchIndex) => {
     const allResults = [];
+    const comparator = makeComparator(watchIndex);
     const update = (resultsChunk) => {
         resultsChunk = resultsChunk.filter(resultItem => {
             // forged seed numbers, no way to exclude on API level apparently
@@ -117,15 +133,20 @@ const makeListUpdater = (listDom) => {
         });
         let trIndex = allResults.length - 1;
         allResults.push(...resultsChunk);
-        allResults.sort((a,b) => getScore(b) - getScore(a));
+        allResults.sort(comparator);
 
         for (let i = allResults.length - 1; i >= 0; --i) {
             const resultItem = allResults[i];
             const tr = listDom.children[trIndex];
+            const newTr = makeResultTr(resultItem);
+            const filesWatched = watchIndex.get(resultItem.fileUrl) || [];
+            if (filesWatched.length > 1) {
+                newTr.classList.toggle('was-watching', true);
+            }
             if (trIndex < 0) {
-                listDom.insertBefore(makeResultTr(resultItem), listDom.children[0]);
+                listDom.insertBefore(newTr, listDom.children[0]);
             } else if (tr.getAttribute('data-file-url') !== resultItem.fileUrl) {
-                listDom.insertBefore(makeResultTr(resultItem), tr.nextSibling);
+                listDom.insertBefore(newTr, tr.nextSibling);
             } else {
                 --trIndex;
             }
@@ -134,17 +155,37 @@ const makeListUpdater = (listDom) => {
     return { update };
 };
 
+const collectWatchIndex = (localStorage) => {
+    const fileUrlToPaths = new Map();
+    for (let i = 0; i < localStorage.length; ++i) {
+        const key = localStorage.key(i);
+        const parts = key.split('&');
+        if (parts[0] === 'WATCHED_STORAGE_PREFIX') {
+            const [, fileUrlEnc, pathEnc] = parts;
+            const fileUrl = decodeURIComponent(fileUrlEnc);
+            const path = decodeURIComponent(pathEnc);
+            if (!fileUrlToPaths.has(fileUrl)) {
+                fileUrlToPaths.set(fileUrl, []);
+            }
+            fileUrlToPaths.get(fileUrl).push(path);
+        }
+    }
+    return fileUrlToPaths;
+};
+
 const main = async () => {
     const api = Api();
     const searchParams = new URLSearchParams(window.location.search);
-    const {id} = await api.qbtv2.search.start({
+    const started = api.qbtv2.search.start({
         pattern: searchParams.get('pattern'),
         category: searchParams.get('category') || 'all',
         plugins: searchParams.get('plugins') || 'all',
     });
+    const watchIndex = collectWatchIndex(window.localStorage);
+    const {id} = await started;
 
     let offset = 0;
-    const listUpdater = makeListUpdater(gui.search_results_list);
+    const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
     for (let i = 0; i < 60; ++i) {
         const resultsRs = await api.qbtv2.search.results({
             id: id, limit: 500, offset: offset,
