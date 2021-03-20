@@ -487,6 +487,12 @@ const ToExpandTorrentView = ({
         const tr = getTr();
         if (expandedView) {
             clearInterval(swarmInfoInterval);
+            // see https://stackoverflow.com/a/28060352/2750743
+            [...expandedView.querySelectorAll('video')].forEach(v => {
+                v.pause();
+                v.removeAttribute('src');
+                v.load();
+            });
             expandedView.remove();
             expandedView = null;
             return;
@@ -517,6 +523,11 @@ const ToExpandTorrentView = ({
             const {dom, tryPlayNext} = makeFilesList({
                 isBadCodec, seconds, resultItem, files: metaInfo.files,
                 playCallback: (f) => {
+                    [...playerCont.querySelectorAll('video')].forEach(v => {
+                        v.pause();
+                        v.removeAttribute('src');
+                        v.load();
+                    });
                     playerCont.innerHTML = '';
                     const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);
                     playerCont.appendChild(player);
@@ -537,7 +548,7 @@ const ToExpandTorrentView = ({
         };
         let intervalStartMs = Date.now();
         swarmInfoInterval = setInterval(() => {
-            if (Date.now() - intervalStartMs > 20 * 1000) {
+            if (Date.now() - intervalStartMs > 120 * 1000) {
                 // start with frequent updates to keep user in touch,
                 // then decrease frequency when video supposedly started
                 clearInterval(swarmInfoInterval);
@@ -545,7 +556,7 @@ const ToExpandTorrentView = ({
             } else {
                 updateSwarmInfo();
             }
-        }, 1000);
+        }, 500);
     };
 };
 

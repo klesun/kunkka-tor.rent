@@ -227,6 +227,10 @@ const serveTorrentStreamCodeInH264 = async (params: HandleHttpParams) => {
         console.log('ololo hevc conversion exited with ' + code);
         rs.end();
     });
+    rq.on('close', () => {
+        spawned.kill();
+        console.log('ololo hevc convert request closed');
+    });
 };
 
 const serveTorrentStreamExtractSubs = async (params: HandleHttpParams) => {
