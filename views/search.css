@@ -120,6 +120,9 @@ tbody.files-in-torrent > tr[data-file-extension="flac"] {
     color: #b3ffff;
 }
 
+tr.watched-in-past {
+    color: #9064e8;
+}
 tr.viewed-file {
     background-color: #288e7296;
 }

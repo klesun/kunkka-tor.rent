@@ -5,6 +5,8 @@ import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMat
 import RarStreamer from "./RarStreamer.js";
 import FixNaturalOrder from "../common/FixNaturalOrder.js";
 
+const WATCHED_STORAGE_PREFIX = 'WATCHED_STORAGE_PREFIX';
+
 /** @param {QbtSearchResultItem} resultItem */
 const getInfoHash = async resultItem => {
     const asMagnet = resultItem.fileUrl.match(/^magnet:\?(\S+)$/);
@@ -407,12 +409,18 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
  * @param {ShortTorrentFileInfo[]} files
  * @param {function(f: ShortTorrentFileInfo): void} playCallback
  */
-const makeFilesList = ({isBadCodec, seconds, files, playCallback}) => {
+const makeFilesList = ({isBadCodec, infoHash, seconds, files, playCallback}) => {
+    const makeStorageKey = f => WATCHED_STORAGE_PREFIX + ':' + infoHash + ':' + f.path;
     files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
     let activeTr = null;
     let lastPlayIndex = -1;
     const trs = files.map((f, i) => {
-        const tr = Dom('tr', {
+        const key = makeStorageKey(f);
+        const watched = !!window.localStorage.getItem(key);
+        return Dom('tr', {
+            ...!watched ? {} : {
+                class: 'watched-in-past',
+            },
             'data-file-extension': f.path.replace(/^.*\./, ''),
         }, [
             Dom('td', {}, f.path),
@@ -426,7 +434,6 @@ const makeFilesList = ({isBadCodec, seconds, files, playCallback}) => {
                 }, 'Watch'),
             ]),
         ]);
-        return tr;
     });
     const playFileAt = (i) => {
         const tr = trs[i];
@@ -438,6 +445,11 @@ const makeFilesList = ({isBadCodec, seconds, files, playCallback}) => {
         activeTr.classList.toggle('viewed-file', true);
         playCallback(f);
         lastPlayIndex = i;
+        const key = makeStorageKey(f);
+        window.localStorage.setItem(key, JSON.stringify({
+            ...JSON.parse(window.localStorage.getItem(key) || '{}'),
+            lastPlayedAt: new Date().toISOString(),
+        }));
     };
     const dom = Dom('div', {}, [
         Dom('span', {}, seconds + ' seconds'),
@@ -503,7 +515,7 @@ const ToExpandTorrentView = ({
             const seconds = (Date.now() - startedMs) / 1000;
             const {infoHash} = await whenMagnetData;
             const {dom, tryPlayNext} = makeFilesList({
-                isBadCodec, seconds, files: metaInfo.files,
+                isBadCodec, seconds, infoHash, files: metaInfo.files,
                 playCallback: (f) => {
                     playerCont.innerHTML = '';
                     const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);
