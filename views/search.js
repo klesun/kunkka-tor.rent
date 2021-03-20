@@ -26,6 +26,9 @@ const getScore = (item) => {
         // tried few Kara no Kyoukai torrents, reports 44 and 38 seeds, but both seems to be dead, seems like
         // numbers weren't updated in years - in this regard torrents.csv would be much more credible for example
         return item.nbSeeders / 4;
+    } else if (item.siteUrl === 'https://thepiratebay.org') {
+        // don't know the reason, but recently popular piratebay torrents are showing as 1 seed, probably script broken
+        return item.nbSeeders * 20;
     } else if (suspiciousSites.includes(item.siteUrl)) {
         return item.nbSeeders / 128;
     } else {

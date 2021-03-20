@@ -198,28 +198,35 @@ const serveTorrentStreamCodeInH264 = async (params: HandleHttpParams) => {
     const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
         infoHash + '&filePath=' + encodeURIComponent(filePath);
     const args = [
-        '-i', streamUrl, '-c:v', 'libx264',
-        // it's really a big waste to watch high quality videos this way, as both ultrafast and scale
-        // affect image quality badly, but rendering in initial quality even for just single user
-        // has speed of 0.6 on my pc, and with ffmpeg.js on client side it's 10 times slower
-        // maybe should consider integrating with vlc browser extension
-         '-preset', 'ultrafast',
-        '-vf', 'scale=960:-2,setsar=1:1',
+        '-c:v', 'hevc_cuvid',
+        '-i', streamUrl,
+        '-c:v', 'h264_nvenc',
+        '-pix_fmt', 'yuv420p', // "10 bit encode not supported"
+        '-loglevel', 'verbose',
         '-f', 'matroska', '-',
     ];
     console.log('ffmpeg', args.map(a => '"' + a + '"').join(' '));
     const spawned = spawn('ffmpeg', args);
     rs.setHeader('content-type', 'video/x-matroska');
     rs.setHeader('connection', 'keep-alive');
+    let errHeaderIndex = 0;
     spawned.stderr.on('data', (buf: Buffer) => {
         if (rs.headersSent) {
             console.log('hevc stderr', buf.toString('utf8'));
         } else {
-            rs.setHeader('ffmpeg-stderr', buf.toString('utf8').replace(/[^ -~]/g, '?'));
+            const message = buf.toString('utf8');
+            if (!message.startsWith('configuration: ') && !message.startsWith('ffmpeg version ')) {
+                const headerName = 'ffmpeg-stderr' + String(errHeaderIndex++).padStart(4, '0');
+                rs.setHeader(headerName, message.replace(/[^ -~]/g, '?'));
+            }
         }
     });
     rs.on('close', () => spawned.kill());
     spawned.stdout.pipe(rs);
+    spawned.on('exit', (code: number) => {
+        console.log('ololo hevc conversion exited with ' + code);
+        rs.end();
+    });
 };
 
 const serveTorrentStreamExtractSubs = async (params: HandleHttpParams) => {
@@ -235,7 +242,7 @@ const serveTorrentStreamExtractSubs = async (params: HandleHttpParams) => {
     const spawned = spawn('ffmpeg', args);
     spawned.stderr.on('data', (buf: Buffer) => {
         if (rs.headersSent) {
-            console.log('subs stderr', buf.toString('utf8'));
+            console.log('subs stderr', buf.toString('utf8').replace(/\n.*/s, '...'));
         } else {
             rs.setHeader('ffmpeg-stderr', buf.toString('utf8').replace(/[^ -~]/g, '?'));
         }
