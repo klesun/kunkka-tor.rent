@@ -65,7 +65,10 @@ const makeResultTr = (resultItem) => {
         stagnantSites.includes(resultItem.siteUrl);
 
     const tracker = new URL(resultItem.descrLink).hostname;
-    const tr = Dom('tr', {'data-tracker': tracker}, [
+    const tr = Dom('tr', {
+        'data-tracker': tracker,
+        'data-file-url': resultItem.fileUrl,
+    }, [
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
         Dom('td', {}, TorrentNameParser({name: resultItem.fileName, tracker}).parts[0].mediaType),
         makeSizeTd(resultItem.fileSize),
@@ -105,6 +108,32 @@ const makeResultTr = (resultItem) => {
     return tr;
 };
 
+const makeListUpdater = (listDom) => {
+    const allResults = [];
+    const update = (resultsChunk) => {
+        resultsChunk = resultsChunk.filter(resultItem => {
+            // forged seed numbers, no way to exclude on API level apparently
+            return resultItem.siteUrl !== 'https://limetor.com';
+        });
+        let trIndex = allResults.length - 1;
+        allResults.push(...resultsChunk);
+        allResults.sort((a,b) => getScore(b) - getScore(a));
+
+        for (let i = allResults.length - 1; i >= 0; --i) {
+            const resultItem = allResults[i];
+            const tr = listDom.children[trIndex];
+            if (trIndex < 0) {
+                listDom.insertBefore(makeResultTr(resultItem), listDom.children[0]);
+            } else if (tr.getAttribute('data-file-url') !== resultItem.fileUrl) {
+                listDom.insertBefore(makeResultTr(resultItem), tr.nextSibling);
+            } else {
+                --trIndex;
+            }
+        }
+    };
+    return { update };
+};
+
 const main = async () => {
     const api = Api();
     const searchParams = new URLSearchParams(window.location.search);
@@ -114,10 +143,11 @@ const main = async () => {
         plugins: searchParams.get('plugins') || 'all',
     });
 
-    const allResults = [];
+    let offset = 0;
+    const listUpdater = makeListUpdater(gui.search_results_list);
     for (let i = 0; i < 60; ++i) {
         const resultsRs = await api.qbtv2.search.results({
-            id: id, limit: 500, offset: allResults.length,
+            id: id, limit: 500, offset: offset,
         });
 
         gui.status_text.textContent = resultsRs.status;
@@ -127,21 +157,12 @@ const main = async () => {
                 return r;
             });
         if (resultsChunk.length > 0) {
-            allResults.push(...resultsChunk);
-            allResults.sort((a,b) => getScore(b) - getScore(a));
-
-            gui.search_results_list.textContent = '';
-            for (const resultItem of allResults) {
-                // forged seed numbers, no way to exclude on API level apparently
-                if (resultItem.siteUrl === 'https://limetor.com') continue;
-
-                const tr = makeResultTr(resultItem);
-                gui.search_results_list.appendChild(tr);
-            }
+            offset += resultsChunk.length;
+            listUpdater.update(resultsChunk);
         }
 
         if (resultsRs.status !== 'Running' &&
-            allResults.length >= resultsRs.total
+          offset >= resultsRs.total
         ) {
             break;
         }
@@ -149,4 +170,7 @@ const main = async () => {
     }
 };
 
-main();
+main().catch(exc => {
+    console.error(exc);
+    alert('Main script execution failed - ' + exc);
+});
