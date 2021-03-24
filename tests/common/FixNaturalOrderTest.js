@@ -1,4 +1,50 @@
-import FixNaturalOrder from "../../src/common/FixNaturalOrder.js";
+import FixNaturalOrder, {splitTillFirstNumber} from "../../src/common/FixNaturalOrder.js";
+
+const provide_splitTillFirstNumber = () => {
+    const testCases = [];
+
+    testCases.push({
+        title: 'example #1.1',
+        input: "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv",
+        output: {
+            prefix: 'Avatar - The Last Airbender (',
+            digit: '2005',
+            postfix: ' - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv',
+        },
+    });
+
+    testCases.push({
+        title: 'example #1.2',
+        input: " - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv",
+        output: {
+            prefix: ' - ',
+            digit: '2008',
+            postfix: ') [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv',
+        },
+    });
+
+    testCases.push({
+        title: 'example #1.3',
+        input: ") [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv",
+        output: {
+            prefix: ') [',
+            digit: '1080',
+            postfix: 'p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv',
+        },
+    });
+
+    testCases.push({
+        title: 'example #1.4 FINAL',
+        input: "p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv",
+        output: {
+            prefix: 'p]/Book ',
+            digit: '2',
+            postfix: ' - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv',
+        },
+    });
+
+    return testCases.map(c => [c]);
+};
 
 const provide_call = () => {
     const testCases = [];
@@ -300,6 +346,37 @@ const provide_call = () => {
         },
     });
 
+    testCases.push({
+        title: 'Word numbers should be considered as well',
+        input: {
+            items: [
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book One - Water/Avatar - The Last Airbender - S01E01 - The Boy in the Iceberg.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book One - Water/Avatar - The Last Airbender - S01E02 - The Avatar Returns.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book One - Water/Avatar - The Last Airbender - S01E03 - The Southern Air Temple.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Three - Fire/Avatar - The Last Airbender - S03E01 - The Awakening.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Three - Fire/Avatar - The Last Airbender - S03E02 - The Headband.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Three - Fire/Avatar - The Last Airbender - S03E03 - The Painted Lady.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E02 - The Cave of Two Lovers.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E03 - Return to Omashu.mkv",
+            ],
+            getName: a => a,
+        },
+        output: {
+            sortedItems: [
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book One - Water/Avatar - The Last Airbender - S01E01 - The Boy in the Iceberg.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book One - Water/Avatar - The Last Airbender - S01E02 - The Avatar Returns.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book One - Water/Avatar - The Last Airbender - S01E03 - The Southern Air Temple.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E01 - The Avatar State.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E02 - The Cave of Two Lovers.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Two - Earth/Avatar - The Last Airbender - S02E03 - Return to Omashu.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Three - Fire/Avatar - The Last Airbender - S03E01 - The Awakening.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Three - Fire/Avatar - The Last Airbender - S03E02 - The Headband.mkv",
+                "Avatar - The Last Airbender (2005 - 2008) [1080p]/Book Three - Fire/Avatar - The Last Airbender - S03E03 - The Painted Lady.mkv",
+            ],
+        },
+    });
+
     return testCases.map(c => [c]);
 };
 
@@ -309,8 +386,14 @@ class ExternalTrackMatcherTest extends require('klesun-node-tools/src/Transpiled
         this.assertSubTree(output, actual);
     }
 
+    test_splitTillFirstNumber({input, output}) {
+        const actual = splitTillFirstNumber(input);
+        this.assertSubTree(output, actual);
+    }
+
     getTestMapping() {
         return [
+            [provide_splitTillFirstNumber, this.test_splitTillFirstNumber],
             [provide_call, this.test_call],
         ];
     }

@@ -42,6 +42,58 @@ const sortMates = (mates) => {
     }).map(mate => mate.item);
 };
 
+const WORDED_DIGITS = {
+    'ZERO': 0,
+    'ONE': 1,
+    'TWO': 2,
+    'THREE': 3,
+    'FOUR': 4,
+    'FIVE': 5,
+    'SIX': 6,
+    'SEVEN': 7,
+    'EIGHT': 8,
+    'NINE': 9,
+    'TEN': 10,
+    'ELEVEN': 11,
+    'TWELVE': 12,
+    'THIRTEEN': 13,
+    'FOURTEEN': 14,
+    'FIFTEEN': 15,
+    'SIXTEEN': 16,
+    'SEVENTEEN': 17,
+    'EIGHTEEN': 18,
+    'NINETEEN': 19,
+    'TWENTY': 20,
+};
+
+/**
+ * exported for tests
+ * @param {string} fileName
+ */
+export const splitTillFirstNumber = (fileName) => {
+    let [, shortestPrefix, digit, longestPostfix] = fileName.match(/^([^\d]*)(\d*)(.*)$/);
+    const wordDigitRegexSource =
+        /^(.*?(?:[^a-zA-Z]|^))/.source +
+        '(' + Object.keys(WORDED_DIGITS).join('|') + ')' +
+        /((?:[^a-zA-Z]|$).*)$/.source;
+
+    const wordDigitRegex = new RegExp(wordDigitRegexSource, 'i');
+    const wordDigitMatch = fileName.match(wordDigitRegex);
+    if (wordDigitMatch) {
+        const [, wordPrefix, wordDigit, wordPostfix] = wordDigitMatch;
+        if (wordPrefix.length < shortestPrefix.length) {
+            shortestPrefix = wordPrefix;
+            digit = WORDED_DIGITS[wordDigit.toUpperCase()] + '';
+            longestPostfix = wordPostfix;
+        }
+    }
+    return {
+        prefix: shortestPrefix,
+        digit: digit,
+        postfix: longestPostfix,
+    };
+};
+
 /**
  * mostly preserves the natural order and only changes item places if they
  * have a common prefix followed by a number and this number degrades
@@ -57,7 +109,8 @@ const sortMates = (mates) => {
 const FixNaturalOrder = ({items, getName}) => {
     const prefixToDigital = new Map();
     for (const item of items) {
-        const [, prefix, digit, postfix] = getName(item).match(/^([^\d]*)(\d*)(.*)$/);
+        const fileName = getName(item);
+        const {prefix, digit, postfix} = splitTillFirstNumber(fileName);
         if (!prefixToDigital.has(prefix)) {
             prefixToDigital.set(prefix, []);
         }
