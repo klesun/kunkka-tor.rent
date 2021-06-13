@@ -58,11 +58,43 @@
         <div class="header-image-remainder-space"></div>
     </header>
 
-    <div class="filters-panel">
-        <div id="status_text">Loading...</div>
+    <form id="filters_form">
+        <div class="filters-panel">
+            <div id="status_text">Loading...</div>
 
-        <div id="media_types_whitelist"></div>
-    </div>
+            <div id="size_decimal_category_whitelist">
+                <label data-size-decimal-category="less-than-1mb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="less-than-1mb"/>
+                    <span>less-than-1mb</span>
+                </label>
+                <label data-size-decimal-category="1mb-10mb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="1mb-10mb"/>
+                    <span>1mb-10mb</span>
+                </label>
+                <label data-size-decimal-category="10mb-100mb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="10mb-100mb"/>
+                    <span>10mb-100mb</span>
+                </label>
+                <label data-size-decimal-category="100mb-1gb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="100mb-1gb"/>
+                    <span>100mb-1gb</span>
+                </label>
+                <label data-size-decimal-category="1gb-10gb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="1gb-10gb"/>
+                    <span>1gb-10gb</span>
+                </label>
+                <label data-size-decimal-category="10gb-100gb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="10gb-100gb"/>
+                    <span>10gb-100gb</span>
+                </label>
+                <label data-size-decimal-category="more-than-100gb">
+                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="more-than-100gb"/>
+                    <span>more-than-100gb</span>
+                </label>
+            </div>
+            <div id="media_types_whitelist"></div>
+        </div>
+    </form>
 
     <div class="search-results-table-container">
         <table class="resulting-list-of-torrents">

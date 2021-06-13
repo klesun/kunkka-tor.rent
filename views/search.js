@@ -8,6 +8,7 @@ const gui = {
     status_text: document.getElementById('status_text'),
     search_results_list: document.getElementById('search_results_list'),
     media_types_whitelist: document.getElementById('media_types_whitelist'),
+    filters_form: document.getElementById('filters_form'),
 };
 
 /** I'd question their honesty in the claimed seed numbers */
@@ -52,6 +53,7 @@ const makeComparator = (watchIndex) => {
     }
 };
 
+/** @deprecated I guess, better use more consistent decimal grouping */
 const makeSizeTd = (fileSize) => {
     const classes = ['torrent-size'];
     let content;
@@ -59,23 +61,32 @@ const makeSizeTd = (fileSize) => {
         content = fileSize;
         classes.push('invalid-size');
     } else {
-        const sizeMib = fileSize / 1024 / 1024;
-        if (sizeMib > 60 * 1024) {
-            classes.push('very-big-torrent');
-        } else if (sizeMib > 30 * 1024) {
-            classes.push('big-torrent');
-        } else if (sizeMib < 100) {
-            classes.push('small-torrent');
-        } else if (sizeMib < 500) {
-            classes.push('single-episode-torrent');
-        }
-        if (sizeMib >= 1024) {
-            content = (sizeMib / 1024).toFixed(1) + 'GiB';
+        const sizeMb = fileSize / 1000 / 1000;
+        if (sizeMb >= 1000) {
+            content = (sizeMb / 1000).toFixed(1) + 'GiB';
         } else {
-            content = sizeMib.toFixed(1) + 'MiB';
+            content = sizeMb.toFixed(1) + 'MiB';
         }
     }
     return Dom('td', {class: classes.join(' ')}, content);
+};
+
+const getSizeDecimalCategory = (bytes) => {
+    if (bytes < Math.pow(10, 6)) {
+        return 'less-than-1mb'; // a text-only book
+    } else if (bytes < Math.pow(10, 7)) {
+        return '1mb-10mb'; // a set of books or a single mp3 song
+    } else if (bytes < Math.pow(10, 8)) {
+        return '10mb-100mb'; // a flac song
+    } else if (bytes < Math.pow(10, 9)) {
+        return '100mb-1gb'; // a soundtrack or all volumes of a medium length manga
+    } else if (bytes < Math.pow(10, 10)) {
+        return '1gb-10gb'; // a season of an anime
+    } else if (bytes < Math.pow(10, 11)) {
+        return '10gb-100gb'; // an ak movie or all seasons of a long-running anime
+    } else {
+        return 'more-than-100gb';
+    }
 };
 
 const makeResultTr = (resultItem) => {
@@ -87,6 +98,7 @@ const makeResultTr = (resultItem) => {
         'data-tracker': resultItem.tracker,
         'data-file-url': resultItem.fileUrl,
         'data-media-type': resultItem.mediaType,
+        'data-size-decimal-category': getSizeDecimalCategory(resultItem.fileSize),
     }, [
         Dom('td', {}, [
             Dom('button', {
@@ -188,6 +200,11 @@ const main = async () => {
     const watchIndex = collectWatchIndex(window.localStorage);
     const {id} = await started;
 
+    gui.filters_form.onchange = (event) => {
+        if (event.target.name === 'includedDecimalCategory') {
+            document.body.classList.toggle('size-decimal-category-excluded--' + event.target.value, !event.target.checked);
+        }
+    };
     let offset = 0;
     const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
     for (let i = 0; i < 60; ++i) {

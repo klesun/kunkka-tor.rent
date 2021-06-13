@@ -68,19 +68,6 @@ video {
     opacity: 0.7;
 }
 
-.very-big-torrent {
-    color: #b93636;
-}
-.big-torrent {
-    color: #ff5400;
-}
-.single-episode-torrent {
-    color: #987c2a;
-}
-.small-torrent {
-    color: grey;
-}
-
 .expanded-torrent-block {
     justify-content: space-between;
     display: flex;
@@ -136,7 +123,7 @@ tr.viewed-file {
     display: flex;
 }
 .filters-panel > * {
-    margin: 0 4px;
+    margin: 0 14px;
 }
 #media_types_whitelist {
     display: flex;
@@ -147,9 +134,31 @@ tr.viewed-file {
 #media_types_whitelist [data-media-type] > * {
     margin: 0 4px;
 }
-body.media-type-excluded--unknown  tr[data-media-type="unknown"],
-body.media-type-excluded--music  tr[data-media-type="music"],
-body.media-type-excluded--book  tr[data-media-type="book"],
-body.media-type-excluded--video  tr[data-media-type="video"] {
+body.media-type-excluded--unknown tr[data-media-type="unknown"],
+body.media-type-excluded--music tr[data-media-type="music"],
+body.media-type-excluded--book tr[data-media-type="book"],
+body.media-type-excluded--video tr[data-media-type="video"] {
     display: none;
+}
+
+label[data-size-decimal-category="less-than-1mb"], tr[data-size-decimal-category="less-than-1mb"] .torrent-size { color: #90b16f; }
+label[data-size-decimal-category="1mb-10mb"], tr[data-size-decimal-category="1mb-10mb"] .torrent-size { color: #78b83d; }
+label[data-size-decimal-category="10mb-100mb"], tr[data-size-decimal-category="10mb-100mb"] .torrent-size { color: #589929; }
+label[data-size-decimal-category="100mb-1gb"], tr[data-size-decimal-category="100mb-1gb"] .torrent-size { color: #a4b66c; }
+label[data-size-decimal-category="1gb-10gb"], tr[data-size-decimal-category="1gb-10gb"] .torrent-size { color: #ded52c; }
+label[data-size-decimal-category="10gb-100gb"], tr[data-size-decimal-category="10gb-100gb"] .torrent-size { color: #ba5b1e; }
+label[data-size-decimal-category="more-than-100gb"], tr[data-size-decimal-category="more-than-100gb"] .torrent-size { color: #950505; }
+
+body.size-decimal-category-excluded--less-than-1mb tr[data-size-decimal-category="less-than-1mb"],
+body.size-decimal-category-excluded--1mb-10mb tr[data-size-decimal-category="1mb-10mb"],
+body.size-decimal-category-excluded--10mb-100mb tr[data-size-decimal-category="10mb-100mb"],
+body.size-decimal-category-excluded--100mb-1gb tr[data-size-decimal-category="100mb-1gb"],
+body.size-decimal-category-excluded--1gb-10gb tr[data-size-decimal-category="1gb-10gb"],
+body.size-decimal-category-excluded--10gb-100gb tr[data-size-decimal-category="10gb-100gb"],
+body.size-decimal-category-excluded--more-than-100gb tr[data-size-decimal-category="more-than-100gb"] {
+    display: none;
+}
+
+label, input[type="checkbox"] {
+    cursor: pointer;
 }
