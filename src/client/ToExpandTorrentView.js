@@ -305,7 +305,14 @@ const makeRarFileView = (src) => {
                                 console.log('ololo stateRec', stateRec);
                                 alert('No success in extracting file');
                             } else {
-                                const blob = new Blob([resultRec.files[0].extract[1]], {type: 'image/jpeg'});
+                                const mimeType = {
+                                    'png': 'image/png',
+                                    'jpg': 'image/jpeg',
+                                    'jpeg': 'image/jpeg',
+                                    'ogg': 'audio/ogg',
+                                    'mp3': 'audio/mp3',
+                                }[file.name.replace(/.*\./, '').toLowerCase()];
+                                const blob = new Blob([resultRec.files[0].extract[1]], {type: mimeType});
                                 const src = URL.createObjectURL(blob);
                                 let fileView = makeFileView({src, extension});
                                 if (!fileView) {
@@ -352,7 +359,7 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
     if (fileView) {
         return fileView;
     // TODO: use FixNaturalOrder.js
-    } else if (['zip', 'cbz'].includes(extension)) {
+    } else if (['zip', 'cbz', 'epub'].includes(extension)) {
         return makeZipFileView(fileApiParams);
     } else if (['rar', 'cbr'].includes(extension)) {
         return makeRarFileView(src);

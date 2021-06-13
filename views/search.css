@@ -132,7 +132,24 @@ tr.viewed-file {
 .ffmpeg-info:not(.can-change-audio-track) audio {
     display: none;
 }
-
-#show-rutracker-flag:not(:checked) + * tr[data-tracker="rutracker.org"] {
+.filters-panel {
+    display: flex;
+}
+.filters-panel > * {
+    margin: 0 4px;
+}
+#media_types_whitelist {
+    display: flex;
+}
+#media_types_whitelist [data-media-type] {
+    display: flex;
+}
+#media_types_whitelist [data-media-type] > * {
+    margin: 0 4px;
+}
+body.media-type-excluded--unknown  tr[data-media-type="unknown"],
+body.media-type-excluded--music  tr[data-media-type="music"],
+body.media-type-excluded--book  tr[data-media-type="book"],
+body.media-type-excluded--video  tr[data-media-type="video"] {
     display: none;
 }

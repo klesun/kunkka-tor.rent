@@ -58,15 +58,17 @@
         <div class="header-image-remainder-space"></div>
     </header>
 
-    <div id="status_text">Loading...</div>
+    <div class="filters-panel">
+        <div id="status_text">Loading...</div>
 
-    <label for="show-rutracker-flag" title="Rutracker is great, but it mostly only has russian-translated stuff, so you may find it's results irrelevant">Show Rutracker</label>
-    <input id="show-rutracker-flag" type="checkbox" checked="checked"/>
+        <div id="media_types_whitelist"></div>
+    </div>
 
     <div class="search-results-table-container">
         <table class="resulting-list-of-torrents">
             <thead>
             <tr>
+                <th>Open</th>
                 <th>Name</th>
                 <th>Media</th>
                 <th>Size</th>

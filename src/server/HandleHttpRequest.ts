@@ -404,10 +404,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
     } else if (pathname.startsWith('/views/infoPage/')) {
         const infoHash = pathname.slice('/views/infoPage/'.length);
         return ServeInfoPage(params, infoHash);
-    } else if (pathname.startsWith('/')) {
-        return serveStaticFile(pathname, params);
     } else {
-        return Rej.BadRequest('Invalid path: ' + pathname);
+        return serveStaticFile(pathname, params);
     }
 };
 

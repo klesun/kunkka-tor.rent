@@ -7,6 +7,7 @@ import TorrentNameParser from "../src/common/TorrentNameParser.js";
 const gui = {
     status_text: document.getElementById('status_text'),
     search_results_list: document.getElementById('search_results_list'),
+    media_types_whitelist: document.getElementById('media_types_whitelist'),
 };
 
 /** I'd question their honesty in the claimed seed numbers */
@@ -82,13 +83,18 @@ const makeResultTr = (resultItem) => {
         suspiciousSites.includes(resultItem.siteUrl) ||
         stagnantSites.includes(resultItem.siteUrl);
 
-    const tracker = new URL(resultItem.descrLink).hostname;
     const tr = Dom('tr', {
-        'data-tracker': tracker,
+        'data-tracker': resultItem.tracker,
         'data-file-url': resultItem.fileUrl,
+        'data-media-type': resultItem.mediaType,
     }, [
+        Dom('td', {}, [
+            Dom('button', {
+                onclick: ToExpandTorrentView({resultItem, getTr: () => tr}),
+            }, 'Open'),
+        ]),
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
-        Dom('td', {}, TorrentNameParser({name: resultItem.fileName, tracker}).parts[0].mediaType),
+        Dom('td', {}, resultItem.mediaType),
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
         Dom('td', {class: 'seeders-number' + (seedsSuspicious ? ' suspicious-seeds' : '')}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),
@@ -100,7 +106,7 @@ const makeResultTr = (resultItem) => {
         Dom('td', {}, [
             Dom('a', {
                 href: resultItem.descrLink,
-            }, tracker),
+            }, resultItem.tracker),
         ]),
         Dom('td', {}, [
             Dom('a', {
@@ -116,11 +122,6 @@ const makeResultTr = (resultItem) => {
             }, [
                 Dom('button', {}, 'Full Page'),
             ]),
-        ]),
-        Dom('td', {}, [
-            Dom('button', {
-                onclick: ToExpandTorrentView({resultItem, getTr: () => tr}),
-            }, 'Expand'),
         ]),
     ]);
     return tr;
@@ -195,18 +196,47 @@ const main = async () => {
         });
 
         gui.status_text.textContent = resultsRs.status;
-        const resultsChunk = resultsRs.results
-            .map(r => {
+        if (resultsRs.results.length > 0) {
+            const mediaTypeToCount = new Map();
+            const resultsChunk = resultsRs.results.map(r => {
                 r.infoHash = (parseMagnetUrl(r.fileUrl) || {}).infoHash;
+                const tracker = new URL(r.descrLink).hostname;
+                const mediaType = TorrentNameParser({name: r.fileName, tracker}).parts[0].mediaType;
+                mediaTypeToCount.set(mediaType, (mediaTypeToCount.get(mediaType) || 0) + 1);
+                r.tracker = tracker;
+                r.mediaType = mediaType;
                 return r;
             });
-        if (resultsChunk.length > 0) {
             offset += resultsChunk.length;
             listUpdater.update(resultsChunk);
+            for (const [mediaType, count] of mediaTypeToCount) {
+                const existingEntry = [...gui.media_types_whitelist.children]
+                    .find(e => e.getAttribute('data-media-type') === mediaType);
+                if (existingEntry) {
+                    const amountHolder = existingEntry.querySelector('.amount-holder');
+                    amountHolder.textContent = +amountHolder.textContent + count;
+                } else {
+                    gui.media_types_whitelist.appendChild(
+                        Dom('div', {'data-media-type': mediaType}, [
+                            Dom('label', {}, [
+                                Dom('input', {
+                                    type: 'checkbox',
+                                    checked: 'checked',
+                                    onchange: (event) => {
+                                        document.body.classList.toggle('media-type-excluded--' + mediaType, !event.target.checked);
+                                    },
+                                }),
+                                Dom('span', {}, mediaType),
+                            ]),
+                            Dom('span', {class: 'amount-holder'}),
+                        ]),
+                    );
+                }
+            }
         }
 
         if (resultsRs.status !== 'Running' &&
-          offset >= resultsRs.total
+            offset >= resultsRs.total
         ) {
             break;
         }
