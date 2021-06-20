@@ -2,17 +2,17 @@ import * as url from 'url';
 import {shortenFileInfo, shortenTorrentInfo, TorrentInfo, TorrentMainInfo} from "./actions/ScanInfoHashStatus";
 import * as http from "http";
 import {HTTP_PORT} from "./Constants";
-import Exc from "klesun-node-tools/src/ts/Exc";
 import Swarm = TorrentStream.Swarm;
 import TorrentEngine = TorrentStream.TorrentEngine;
 import Qbtv2 from "./Qbtv2";
 import {parseMagnetUrl} from "../common/Utils.js";
 const torrentStream = require('torrent-stream');
-const {timeout} = require('klesun-node-tools/src/Lang.js');
+const {timeout} = require('klesun-node-tools/src/Utils/Lang.js');
 const util = require('util');
 const execFile = util.promisify(require('child_process').execFile);
 import * as fs from 'fs';
 import * as parseTorrent from 'parse-torrent';
+import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-errors";
 
 type SwarmWire = {
     downloaded: number,
@@ -31,6 +31,8 @@ interface NowadaysSwarm extends Swarm {
     wires: SwarmWire[],
     /** Includes everything from wires + "choking" peers, that refuse to send us data */
     _peers: Record<string, {wire: SwarmWire}>,
+    downloadSpeed: () => number,
+    connections: unknown,
 }
 
 interface NowadaysEngine extends TorrentEngine {
@@ -56,7 +58,7 @@ const makeSwarmSummary = (swarm: NowadaysSwarm) => {
     for (const [address, peer] of Object.entries(swarm._peers)) {
         const {wire} = peer;
         if (!wire) {
-            chokers.push({address});
+            chokers.push({address, downloaded: 0});
             continue;
         }
         const {downloaded, peerChoking, peerInterested} = wire;
@@ -156,9 +158,9 @@ const Api = () => {
     const getFfmpegInfo = async (rq: http.IncomingMessage) => {
         const {infoHash, filePath} = <Record<string, string>>url.parse(<string>rq.url, true).query;
         if (!infoHash || infoHash.length !== 40) {
-            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+            throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         } else if (!filePath) {
-            throw Exc.BadRequest('filePath parameter is mandatory');
+            throw new BadRequest('filePath parameter is mandatory');
         }
         await prepareTorrentStream(infoHash);
         const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
@@ -175,7 +177,7 @@ const Api = () => {
         tr = typeof tr === 'string' ? [tr] : tr;
 
         if (!infoHash || infoHash.length !== 40) {
-            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+            throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         }
         const engine = await prepareTorrentStream(<string>infoHash, tr);
         return {
@@ -187,11 +189,11 @@ const Api = () => {
         const query = url.parse(<string>rq.url, true).query;
         let {infoHash} = <Record<string, string>>query;
         if (!infoHash || infoHash.length !== 40) {
-            throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+            throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
         }
         const engine = infoHashToEngine[infoHash] || null;
         if (!engine) {
-            throw Exc.TooEarly('Engine must be initialized first');
+            throw new TooEarly('Engine must be initialized first');
         }
         return engine;
     };
@@ -223,7 +225,7 @@ const Api = () => {
         } catch (exc) {
             const msg = (exc.stderr ? 'STDERR: ' + exc.stderr.trim() + '\n' : '') +
                 'Python script failed to retrieve torrent';
-            throw Exc.BadGateway(msg);
+            throw new BadGateway(msg);
         }
         const {stdout, stderr} = result;
         const [path, effectiveUrl] = stdout.trim().split(/\s+/);
@@ -232,7 +234,7 @@ const Api = () => {
                 '\nSTDOUT:\n' + stdout + (stderr.trim() ? 'STDERR:\n' + stderr : '') + '\nno match:\n' +
                 fileUrl + '\n' +
                 effectiveUrl;
-            throw Exc.BadGateway(msg);
+            throw new BadGateway(msg);
         }
         let infoHash;
         let announce: string[] = [];
@@ -249,7 +251,7 @@ const Api = () => {
             infoHash = torrentFileData.infoHash;
         } else {
             const msg = 'Unexpected downloaded torrent file path format - ' + path;
-            throw Exc.NotImplemented(msg);
+            throw new NotImplemented(msg);
         }
 
         return {infoHash, announce};

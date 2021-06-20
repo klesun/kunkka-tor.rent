@@ -7,6 +7,10 @@
 		"strict": true,
 		"noImplicitAny": true
 	},
+	"ts-node": {
+		"transpiler": "ts-node/transpilers/swc-experimental",
+		"transpileOnly": true
+	},
 	"include": ["src/server", "src/common"],
 	"exclude": ["node_modules"]
 }

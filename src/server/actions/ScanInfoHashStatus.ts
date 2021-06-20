@@ -2,7 +2,7 @@ import {IApi} from "../Api";
 import TorrentFile = TorrentStream.TorrentFile;
 
 const torrentStream = require('torrent-stream');
-const {timeout} = require('klesun-node-tools/src/Lang.js');
+const {timeout} = require('klesun-node-tools/src/Utils/Lang.js');
 
 type BaseItemStatus = {
     infoHash: string,

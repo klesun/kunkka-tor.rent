@@ -12,8 +12,13 @@
   "author": "klesun",
   "license": "ISC",
   "dependencies": {
+    "@curveball/http-errors": "^0.4.0",
+    "@swc/core": "^1.2.55",
+    "@swc/helpers": "^0.2.11",
     "papaparse": "^5.3.0",
-    "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/3e44f2bb4ad8ee34a3eb78dbae9b7b7295965c8c",
+    "sqlite": "^4.0.23",
+    "sqlite3": "^5.0.2",
+    "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/47fd4867b61be3b28521d2ff9594bbb639d933e5",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
     "node-unrar-js": "https://github.com/klesun-misc/node-unrar.js-issue3/tarball/6bd09d67d7ee1a94b4191912b2c4be8686bf76c2",
@@ -24,7 +29,7 @@
     "srt-to-vtt": "^1.1.3",
     "subtitle-converter": "^3.0.6",
     "torrent-stream": "^1.2.0",
-    "ts-node": "^8.10.2",
+    "ts-node": "github:TypeStrong/ts-node#main",
     "typescript": "^3.9.7",
     "unzip-stream": "^0.3.1"
   },

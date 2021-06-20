@@ -1,8 +1,8 @@
 
 import * as Papaparse from 'papaparse';
 import * as fsSync from 'fs';
-import Exc from "klesun-node-tools/src/ts/Exc";
 import {HandleHttpParams} from "../HandleHttpRequest";
+import {InternalServerError} from "@curveball/http-errors";
 
 const fs = fsSync.promises;
 const Xml = require('klesun-node-tools/src/Utils/Xml.js');
@@ -28,7 +28,7 @@ const whenInfoHashToRecord = fs.readFile(torrentsCsvPath, 'utf-8').then(csvText 
     const rows = <string[][]>parsed.data;
     const columns = rows.shift();
     if (!columns) {
-        throw Exc.InternalServerError('torrents.csv is empty');
+        throw new InternalServerError('torrents.csv is empty');
     }
     const infohashToRecord: Map<string, TorrentsCsvRecord> = new Map();
     for (const row of rows) {

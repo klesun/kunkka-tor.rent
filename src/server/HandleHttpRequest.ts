@@ -5,19 +5,16 @@ import * as http from "http";
 import {IApi} from "./Api";
 import {SerialData} from "./TypeDefs";
 import { lookup } from 'mime-types'
-import Exc from "klesun-node-tools/src/ts/Exc";
 import {HTTP_PORT} from "./Constants";
 import { Writable } from "stream";
 import * as EventEmitter from "events";
 import {ReadStream} from "fs";
 import ServeInfoPage from "./actions/ServeInfoPage";
+import {BadRequest, NotFound} from "@curveball/http-errors";
 const {spawn} = require('child_process');
 const unzip = require('unzip-stream');
 const srt2vtt = require('srt-to-vtt');
 const fs = fsSync.promises;
-
-const Rej = require('klesun-node-tools/src/Rej.js');
-const {getMimeByExt, removeDots} = require('klesun-node-tools/src/Utils/HttpUtil.js');
 
 export interface HandleHttpParams {
     rq: http.IncomingMessage,
@@ -31,6 +28,28 @@ const redirect = (rs: http.ServerResponse, url: string) => {
         'Location': url,
     });
     rs.end();
+};
+
+/**
+ * @param path = '/entry/midiana/../../secret/ololo.pem'
+ * @return {String} '/secret/ololo.pem'
+ */
+const removeDots = (path: string) => {
+    const parts = path.split('/');
+    const resultParts = [];
+    for (const part of parts) {
+        if (part === '..' && resultParts.slice(-1)[0] !== '..') {
+            while (resultParts.slice(-1)[0] === '.') resultParts.pop();
+            if (resultParts.length > 0) {
+                resultParts.pop();
+            } else {
+                resultParts.push('..');
+            }
+        } else if (part !== '.') {
+            resultParts.push(part);
+        }
+    }
+    return resultParts.join('/');
 };
 
 const setCorsHeaders = (rs: http.ServerResponse) => {
@@ -52,7 +71,7 @@ const serveMkv = async (absPath: string, params: HandleHttpParams) => {
     }
     const match = range.match(/^bytes=(\d+)-(\d*)/);
     if (!match) {
-        throw Exc.BadRequest('Malformed "range" header: ' + range);
+        throw new BadRequest('Malformed "range" header: ' + range);
     }
     let [_, start, rqEnd] = match.map(n => +n);
     const total = stats.size;
@@ -79,21 +98,6 @@ async function checkFileExists(path: string) {
         .catch(() => false)
 }
 
-const getMimeByName = (filePath: string) => {
-    const ext = filePath.replace(/^.*\./, '');
-    const mime = getMimeByExt(ext);
-    if (mime) {
-        return mime;
-    } else if (ext === 'mp4') {
-        return 'video/mp4';
-    } else if (ext === 'mkv') {
-        return 'video/x-matroska';
-    } else if (ext === 'vtt') {
-        // rs.setHeader('Content-Type', 'TextTrack');
-        return  'text/vtt';
-    }
-};
-
 const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     const {rq, rs, rootPath} = params;
     pathname = decodeURIComponent(pathname);
@@ -102,15 +106,15 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
         absPath += 'index.html';
     }
     if (!(await checkFileExists(absPath))) {
-        return Rej.NotFound('File ' + pathname + ' does not exist or not accessible');
+        return new NotFound('File ' + pathname + ' does not exist or not accessible');
     }
     if ((await fs.lstat(absPath)).isDirectory()) {
         return redirect(rs, pathname + '/');
     }
-    const mime = getMimeByName(absPath);
+    const mime = lookup(absPath);
     if (mime) rs.setHeader('Content-Type', mime);
 
-    if (['video/x-matroska', 'video/mp4'].includes(mime)) {
+    if (mime && ['video/x-matroska', 'video/mp4'].includes(mime)) {
         await serveMkv(absPath, params);
     } else {
         fsSync.createReadStream(absPath).pipe(rs);
@@ -122,15 +126,15 @@ const getFileInTorrent = async (params: HandleHttpParams) => {
     const {infoHash, filePath, ...restParams} = <Record<string, string>>url.parse(<string>rq.url, true).query;
 
     if (!infoHash || infoHash.length !== 40) {
-        throw Exc.BadRequest('Invalid infoHash, must be a 40 characters long hex string');
+        throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
     } else if (!filePath) {
-        throw Exc.BadRequest('filePath parameter is mandatory');
+        throw new BadRequest('filePath parameter is mandatory');
     }
 
     const engine = await api.prepareTorrentStream(infoHash);
     const file = engine.files.find(f => f.path === filePath);
     if (!file) {
-        throw Exc.BadRequest('filePath not found in this torrent, possible options: ' + engine.files.map(f => f.path));
+        throw new BadRequest('filePath not found in this torrent, possible options: ' + engine.files.map(f => f.path));
     }
     return {file, restParams};
 };
@@ -164,7 +168,7 @@ const serveTorrentStream = async (params: HandleHttpParams) => {
 
     const match = rangeStr.match(/^bytes=(\d+)-(\d*)/);
     if (!match) {
-        throw Exc.BadRequest('Malformed "range" header: ' + rangeStr);
+        throw new BadRequest('Malformed "range" header: ' + rangeStr);
     }
     let [_, start, end] = match.map(n => +n);
     end = end || file.length - 1;
@@ -339,7 +343,7 @@ const serveZipReaderFile = async (params: HandleHttpParams) => {
     readStream.pipe(unzip.Parse()).on('entry', (entry: UnzipEntry) => {
         //const {_readableState, _events, _writableState, _transformState, isDirectory, _maxListeners, _eventsCount, readable, writable, allowHalfOpen, type, ...rest} = entry;
         if (entry.path === zippedFilePath) {
-            const mime = getMimeByName(zippedFilePath);
+            const mime = lookup(zippedFilePath);
             if (mime) rs.setHeader('Content-Type', mime);
 
             entry.pipe(rs).on('close', () => rs.end());
@@ -370,6 +374,9 @@ const apiRouter: Record<string, ActionForApi> = {
 const HandleHttpRequest = async (params: HandleHttpParams) => {
     const {rq, rs, rootPath, api} = params;
     const parsedUrl = url.parse(<string>rq.url);
+    if (!parsedUrl.pathname) {
+        throw new BadRequest("Missing pathname in requested URL");
+    }
     const pathname: string = <string>removeDots(parsedUrl.pathname);
 
     const actionForApi = apiRouter[pathname];

@@ -1,6 +1,6 @@
 import * as http from "http";
+import {BadGateway} from "@curveball/http-errors";
 const fetch = require('node-fetch');
-import Exc from 'klesun-node-tools/src/ts/Exc';
 
 const readPost = (rq: http.IncomingMessage) => new Promise<string>((ok, err) => {
     if (rq.method === 'POST') {
@@ -42,7 +42,7 @@ const Qbtv2 = ({port = 44011} = {}) => {
                 try {
                     return JSON.parse(body);
                 } catch (exc) {
-                    throw Exc.BadGateway('Failed to parse qbt json response - ' + body);
+                    throw new BadGateway('Failed to parse qbt json response - ' + body);
                 }
             },
             /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-search-results */
@@ -59,7 +59,7 @@ const Qbtv2 = ({port = 44011} = {}) => {
                 try {
                     return JSON.parse(body);
                 } catch (exc) {
-                    throw Exc.BadGateway('Failed to parse qbt json response - ' + body);
+                    throw new BadGateway('Failed to parse qbt json response - ' + body);
                 }
             },
         },
