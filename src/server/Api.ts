@@ -13,6 +13,7 @@ const execFile = util.promisify(require('child_process').execFile);
 import * as fs from 'fs';
 import * as parseTorrent from 'parse-torrent';
 import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-errors";
+import TorrentNamesFts from "./repositories/TorrentNamesFts";
 
 type SwarmWire = {
     downloaded: number,
@@ -132,6 +133,7 @@ const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
 const Api = () => {
     const infoHashToEngine: Record<string, NowadaysEngine> = {};
     const infoHashToWhenReadyEngine: Record<string, Promise<NowadaysEngine>> = {};
+    const torrentNamesFts = TorrentNamesFts();
 
     const prepareTorrentStream = async (infoHash: string, trackers: string[] = []): Promise<NowadaysEngine> => {
         if (!infoHash || infoHash.length !== 40) {
@@ -257,6 +259,11 @@ const Api = () => {
         return {infoHash, announce};
     };
 
+    const findTorrentsInLocalDb = (req: http.IncomingMessage) => {
+        const {userInput} = <Record<string, string>>url.parse(<string>req.url, true).query;
+        return torrentNamesFts.select(userInput);
+    };
+
     return {
         checkInfoHashMeta: checkInfoHashMeta,
         checkInfoHashPeers: checkInfoHashPeers,
@@ -265,6 +272,7 @@ const Api = () => {
         getSwarmInfo: getSwarmInfo,
         printDetailedSwarmInfo: printDetailedSwarmInfo,
         downloadTorrentFile: downloadTorrentFile,
+        findTorrentsInLocalDb: findTorrentsInLocalDb,
 
         qbtv2: Qbtv2(),
 

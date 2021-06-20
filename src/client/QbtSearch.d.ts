@@ -13,6 +13,12 @@ type QbtSearchResultItem = {
     infoHash: undefined,
 }
 
+type QbtSearchResultItemExtended = QbtSearchResultItem & {
+    infoHash?: string,
+    tracker: string,
+    mediaType: 'video' | 'music' | 'book' | 'unknown',
+};
+
 type QbtSearchResult = {
     status: "Running" | "Stopped",
     total: 442,

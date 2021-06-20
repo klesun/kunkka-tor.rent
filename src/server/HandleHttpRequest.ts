@@ -367,6 +367,7 @@ const apiRouter: Record<string, ActionForApi> = {
     '/api/getSwarmInfo': api => api.getSwarmInfo,
     '/api/printDetailedSwarmInfo': api => api.printDetailedSwarmInfo,
     '/api/downloadTorrentFile': api => api.downloadTorrentFile,
+    '/api/findTorrentsInLocalDb': api => api.findTorrentsInLocalDb,
     '/api/qbtv2/search/start': api => api.qbtv2.search.start,
     '/api/qbtv2/search/results': api => api.qbtv2.search.results,
 };

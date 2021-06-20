@@ -1,4 +1,8 @@
 
+/**
+ * @typedef {import("./../server/repositories/TorrentNamesFts").DbRow} api_findTorrentsInLocalDb_DbRow
+ */
+
 const parseResponse = rs => rs.status !== 200
     ? Promise.reject(rs.statusText)
     : rs.json();
@@ -121,12 +125,16 @@ const Api = () => {
          * @return {Promise<{infoHash: string, announce: string[]}>}
          */
         downloadTorrentFile: params => get('/api/downloadTorrentFile', params),
-
         /**
          * @param {{infoHash: string, filePath: string}} params
          * @return {Promise<AsyncGenerator<{path: string, size: number}>>}
          */
         prepareZipReader: params => getAsyncIter('/api/prepareZipReader', params),
+        /**
+         * @param {{userInput: string}} params
+         * @return {Promise<api_findTorrentsInLocalDb_DbRow[]>}
+         */
+        findTorrentsInLocalDb: params => get('/api/findTorrentsInLocalDb', params),
 
         /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list */
         qbtv2: {

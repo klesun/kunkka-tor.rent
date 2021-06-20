@@ -142,6 +142,7 @@ const makeResultTr = (resultItem) => {
 const makeListUpdater = (listDom, watchIndex) => {
     const allResults = [];
     const comparator = makeComparator(watchIndex);
+    /** @param {QbtSearchResultItemExtended[]} resultsChunk */
     const update = (resultsChunk) => {
         resultsChunk = resultsChunk.filter(resultItem => {
             // forged seed numbers, no way to exclude on API level apparently
@@ -198,6 +199,22 @@ const main = async () => {
         plugins: searchParams.get('plugins') || 'all',
     });
     const watchIndex = collectWatchIndex(window.localStorage);
+    const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
+    const localResults = await api.findTorrentsInLocalDb({
+        userInput: searchParams.get('pattern'),
+    });
+    listUpdater.update(localResults.map(({infohash, name}) => ({
+        infoHash: infohash,
+        descrLink: 'https://kunkka-torrent.online/views/infoPage/' + infohash,
+        fileName: name,
+        fileSize: -1,
+        fileUrl: 'magnet:?xt=urn:btih:' + infohash,
+        nbLeechers: 0,
+        nbSeeders: 1,
+        siteUrl: 'https://kunkka-torrent.online',
+        tracker: 'kunkka-torrent.online',
+        type: 'unknown',
+    })));
     const {id} = await started;
 
     gui.filters_form.onchange = (event) => {
@@ -206,8 +223,7 @@ const main = async () => {
         }
     };
     let offset = 0;
-    const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
-    for (let i = 0; i < 60; ++i) {
+    for (let i = 0; i < 120; ++i) {
         const resultsRs = await api.qbtv2.search.results({
             id: id, limit: 500, offset: offset,
         });
@@ -257,7 +273,7 @@ const main = async () => {
         ) {
             break;
         }
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 };
 
