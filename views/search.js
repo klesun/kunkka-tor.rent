@@ -4,6 +4,8 @@ import Api from "../src/client/Api.js";
 import {parseMagnetUrl} from "../src/common/Utils.js";
 import TorrentNameParser from "../src/common/TorrentNameParser.js";
 
+const api = Api();
+
 const gui = {
     status_text: document.getElementById('status_text'),
     search_results_list: document.getElementById('search_results_list'),
@@ -12,44 +14,79 @@ const gui = {
 };
 
 /** I'd question their honesty in the claimed seed numbers */
-const suspiciousSites = ['https://1337x.to', 'https://limetor.com', 'https://zooqle.com'];
-/** not updating seeders information for years, but at least numbers look realistic, just outdated */
-const stagnantSites = ['https://bakabt.me'];
-/** updating seeders info constantly, I think on every request (you can easily distinguish them: the seed amounts are around 10-20, not 100-500) */
-const credibleSites = ['https://nyaa.si', 'https://rutracker.org', 'https://nnmclub.to/forum/', 'https://torrents-csv.ml', 'https://rarbg.to'];
+const suspiciousSites = ['https://eztv.io', 'https://1337x.to', 'https://limetor.com'];
 
-const getScore = (item) => {
-    if (item.siteUrl === 'https://eztv.io') {
-        // returns irrelevant results if nothing matched query
-        return 0;
-    } else if (credibleSites.includes(item.siteUrl)) {
-        return item.nbSeeders;
-    } else if (item.siteUrl === 'https://bakabt.me') {
-        // tried few Kara no Kyoukai torrents, reports 44 and 38 seeds, but both seems to be dead, seems like
-        // numbers weren't updated in years - in this regard torrents.csv would be much more credible for example
-        return item.nbSeeders / 4;
-    } else if (item.siteUrl === 'https://thepiratebay.org') {
-        // don't know the reason, but recently popular piratebay torrents are showing as 1 seed, probably script broken
-        return item.nbSeeders * 20;
-    } else if (suspiciousSites.includes(item.siteUrl)) {
-        return item.nbSeeders / 128;
-    } else {
-        return item.nbSeeders / 2;
+/** not updating seeders information for years, but at least numbers look realistic, just outdated */
+const stagnantSites = ['https://bakabt.me', 'https://zooqle.com', ...suspiciousSites];
+/** updating seeders info constantly, I think on every request (you can easily distinguish them: the seed amounts are around 10-20, not 100-500) */
+const liveSeedUpdateSites = ['https://nyaa.si', 'https://rutracker.org', 'https://nnmclub.to/forum/', 'https://rarbg.to'];
+const credibleSites = [...liveSeedUpdateSites, 'https://torrents-csv.ml'];
+
+const hashToScrape = new Map();
+
+const isStagnant = object => {
+    return suspiciousSites.includes(object.stored.siteUrl);
+}
+
+const compareObjects = (a, b) => {
+    if (isStagnant(a) && !isStagnant(b)) {
+        return -1;
     }
+    if (!isStagnant(a) && isStagnant(b)) {
+        return 1;
+    }
+    const aSeeders = a.scrape?.seeders ?? a.stored.nbSeeders;
+    const bSeeders = b.scrape?.seeders ?? b.stored.nbSeeders;
+    if (+aSeeders !== +bSeeders) {
+        return aSeeders - bSeeders;
+    }
+    const aLeechers = a.scrape?.leechers ?? a.stored.nbLeechers;
+    const bLeechers = b.scrape?.leechers ?? b.stored.nbLeechers;
+    if (+aLeechers !== +bLeechers) {
+        return aLeechers - bLeechers;
+    }
+    const aCompleted = a.scrape?.completed ?? '0';
+    const bCompleted = b.scrape?.completed ?? '0';
+    if (+aCompleted !== +bCompleted) {
+        return aCompleted - bCompleted;
+    }
+    return 0;
 };
 
-const makeComparator = (watchIndex) => {
-    return (a,b) => {
-        const aFilesWatched = watchIndex.get(a.fileUrl) || [];
-        const bFilesWatched = watchIndex.get(b.fileUrl) || [];
+const trToObject = (tr) => {
+    return {
+        stored: {
+            nbSeeders: tr.getAttribute('data-stored-seeders'),
+            nbLeechers: tr.getAttribute('data-stored-leechers'),
+            siteUrl: tr.getAttribute('data-site-url'),
+        },
+        scrape: {
+            seeders: tr.getAttribute('data-live-seeders'),
+            leechers: tr.getAttribute('data-live-leechers'),
+            completed: tr.getAttribute('data-live-completed'),
+        },
+    };
+};
 
-        if (bFilesWatched.length === aFilesWatched.length ||
-            aFilesWatched.length < 2 && bFilesWatched.length < 2
-        ) {
-            return getScore(b) - getScore(a);
-        } else {
-            return bFilesWatched.length - aFilesWatched.length;
-        }
+/**
+ * @param {HTMLTableRowElement} a
+ * @param {HTMLTableRowElement} b
+ */
+const compareTrs = (a, b) => {
+    return compareObjects(trToObject(a), trToObject(b));
+
+};
+
+const makeDataComparator = (watchIndex) => {
+    /**
+     * @param {QbtSearchResultItemExtended} a
+     * @param {QbtSearchResultItemExtended} b
+     */
+    return (a,b) => {
+        return -compareObjects(
+            {stored: a, scrape: hashToScrape.get(a.infoHash) || null},
+            {stored: b, scrape: hashToScrape.get(b.infoHash) || null},
+        );
     }
 };
 
@@ -89,16 +126,18 @@ const getSizeDecimalCategory = (bytes) => {
     }
 };
 
+/** @param {QbtSearchResultItemExtended} resultItem */
 const makeResultTr = (resultItem) => {
-    const seedsSuspicious =
-        suspiciousSites.includes(resultItem.siteUrl) ||
-        stagnantSites.includes(resultItem.siteUrl);
+    const seedsSuspicious = stagnantSites.includes(resultItem.siteUrl);
 
     const tr = Dom('tr', {
         'data-tracker': resultItem.tracker,
+        'data-site-url': resultItem.siteUrl,
         'data-file-url': resultItem.fileUrl,
         'data-media-type': resultItem.mediaType,
         'data-size-decimal-category': getSizeDecimalCategory(resultItem.fileSize),
+        'data-stored-seeders': resultItem.nbSeeders,
+        'data-stored-leechers': resultItem.nbLeechers,
     }, [
         Dom('td', {}, [
             Dom('button', {
@@ -109,7 +148,12 @@ const makeResultTr = (resultItem) => {
         Dom('td', {}, resultItem.mediaType),
         makeSizeTd(resultItem.fileSize),
         Dom('td', {class: 'leechers-number'}, resultItem.nbLeechers),
-        Dom('td', {class: 'seeders-number' + (seedsSuspicious ? ' suspicious-seeds' : '')}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),
+        Dom('td', {
+            class: 'seeders-number' + (seedsSuspicious ? ' suspicious-seeds' : ''),
+        }, [
+            Dom('span', {class: 'live-seeds-holder'}, ''),
+            Dom('span', {class: 'stored-seeds-holder'}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),
+        ]),
         Dom('td', {class: 'infohash'}, [
             Dom('a', {
                 href: resultItem.fileUrl,
@@ -139,34 +183,99 @@ const makeResultTr = (resultItem) => {
     return tr;
 };
 
+/** @param {HTMLTableRowElement} tr */
+const formatTr = (tr) => {
+    return tr.getAttribute('data-stored-seeders') + ' | ' + tr.getAttribute('data-live-seeders') + ' | ' + tr.querySelector('.torrent-file-name').textContent;
+};
+
+/** @param {HTMLTableRowElement} tr */
+const updateOrder = (tr) => {
+    const tbody = tr.parentNode;
+    let prev = tr.previousSibling;
+    while (prev) {
+        if (compareTrs(tr, prev) > 0) {
+            prev = prev.previousSibling;
+        } else {
+            break;
+        }
+    }
+    tr.remove();
+    tbody.insertBefore(tr, prev ? prev.nextSibling : tbody.children[0]);
+
+    let next = tr.nextSibling;
+    while (next) {
+        if (compareTrs(tr, next) < 0) {
+            next = next.nextSibling;
+        } else {
+            break;
+        }
+    }
+    tr.remove();
+    tbody.insertBefore(tr, next);
+};
+
 const makeListUpdater = (listDom, watchIndex) => {
-    const allResults = [];
-    const comparator = makeComparator(watchIndex);
+    const comparator = makeDataComparator(watchIndex);
+    const foundHashes = new Set();
     /** @param {QbtSearchResultItemExtended[]} resultsChunk */
     const update = (resultsChunk) => {
         resultsChunk = resultsChunk.filter(resultItem => {
             // forged seed numbers, no way to exclude on API level apparently
             return resultItem.siteUrl !== 'https://limetor.com';
-        });
-        let trIndex = allResults.length - 1;
-        allResults.push(...resultsChunk);
-        allResults.sort(comparator);
+        }).filter(resultItem => {
+            if (resultItem.infoHash) {
+                if (foundHashes.has(resultItem.infoHash.toLowerCase())) {
+                    return false;
+                } else {
+                    foundHashes.add(resultItem.infoHash.toLowerCase());
+                }
+            }
+            return true;
+        }).sort(comparator);
 
-        for (let i = allResults.length - 1; i >= 0; --i) {
-            const resultItem = allResults[i];
-            const tr = listDom.children[trIndex];
+        const hashToTrs = new Map();
+
+        const resultChunkTrs = resultsChunk.map(resultItem => {
             const newTr = makeResultTr(resultItem);
             const filesWatched = watchIndex.get(resultItem.fileUrl) || [];
             if (filesWatched.length > 1) {
                 newTr.classList.toggle('was-watching', true);
             }
-            if (trIndex < 0) {
-                listDom.insertBefore(newTr, listDom.children[0]);
-            } else if (tr.getAttribute('data-file-url') !== resultItem.fileUrl) {
-                listDom.insertBefore(newTr, tr.nextSibling);
-            } else {
-                --trIndex;
+            if (!hashToTrs.has(resultItem.infoHash)) {
+                hashToTrs.set(resultItem.infoHash, []);
             }
+            hashToTrs.get(resultItem.infoHash).push(newTr);
+            return newTr;
+        });
+
+        for (const oldTr of [...listDom.children]) {
+            while (resultChunkTrs.length > 0 && compareTrs(resultChunkTrs[0], oldTr) > 0) {
+                listDom.insertBefore(resultChunkTrs.shift(), oldTr);
+            }
+        }
+        resultChunkTrs.forEach(chunkItem => listDom.appendChild(chunkItem));
+
+        const needForSeed = resultsChunk.filter(i => {
+            return i.infoHash
+                && !liveSeedUpdateSites.includes(i.siteUrl)
+                && !suspiciousSites.includes(i.siteUrl);
+        });
+        if (needForSeed.length > 0) {
+            (async () => {
+                const torrents = needForSeed.map(i => ({infohash: i.infoHash}));
+                const scraps = await api.scrapeTrackersSeedInfo({torrents});
+                for await (const {infohash, ...scrape} of scraps) {
+                    for (const tr of hashToTrs.get(infohash) || []) {
+                        tr.querySelector('.live-seeds-holder').textContent = scrape.seeders;
+                        tr.setAttribute('title', JSON.stringify(scrape));
+                        tr.setAttribute('data-live-seeders', scrape.seeders);
+                        tr.setAttribute('data-live-completed', scrape.completed);
+                        tr.setAttribute('data-live-leechers', scrape.leechers);
+                        updateOrder(tr);
+                    }
+                    hashToScrape.set(infohash, scrape);
+                }
+            })();
         }
     };
     return { update };
@@ -191,7 +300,6 @@ const collectWatchIndex = (localStorage) => {
 };
 
 const main = async () => {
-    const api = Api();
     const searchParams = new URLSearchParams(window.location.search);
     const started = api.qbtv2.search.start({
         pattern: searchParams.get('pattern'),
@@ -213,7 +321,7 @@ const main = async () => {
         nbSeeders: 1,
         siteUrl: 'https://kunkka-torrent.online',
         tracker: 'kunkka-torrent.online',
-        type: 'unknown',
+        mediaType: TorrentNameParser({name}).parts[0].mediaType,
     })));
     const {id} = await started;
 
@@ -266,6 +374,7 @@ const main = async () => {
                     );
                 }
             }
+            break;
         }
 
         if (resultsRs.status !== 'Running' &&

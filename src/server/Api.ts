@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import * as parseTorrent from 'parse-torrent';
 import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-errors";
 import TorrentNamesFts from "./repositories/TorrentNamesFts";
+import {readPost} from "./utils/Http";
 
 type SwarmWire = {
     downloaded: number,

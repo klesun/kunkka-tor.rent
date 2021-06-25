@@ -28,6 +28,7 @@ const TorrentNameParser = ({
         name.match(/\bTV\b/i) ||
         name.match(/\.mp4$/i) ||
         name.match(/\.mov$/i) ||
+        name.match(/\.mkv$/i) ||
         name.match(/\b[hx]26[45]\b/i)
     ) {
         mediaType = 'video';

@@ -84,6 +84,14 @@ const getAsyncIter = (route, params = null) => {
         .then(parseAsyncIterResponse);
 };
 
+const postAsyncIter = (route, params = null) => {
+    const url = makeGetUrl(route);
+    return fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(params),
+    }).then(parseAsyncIterResponse);
+};
+
 const post = (route, params) => {
     return fetch(route, {
         method: 'POST',
@@ -135,6 +143,17 @@ const Api = () => {
          * @return {Promise<api_findTorrentsInLocalDb_DbRow[]>}
          */
         findTorrentsInLocalDb: params => get('/api/findTorrentsInLocalDb', params),
+        /**
+         * @param {{torrents: {infohash: string}[]}} params
+         * @return {Promise<AsyncGenerator<{
+         *     seeders: number,
+         *     completed: number,
+         *     leechers: number,
+         *     infohash: string,
+         *     trackerUrl: string,
+         * }>>}
+         */
+        scrapeTrackersSeedInfo: params => postAsyncIter('/api/scrapeTrackersSeedInfo', params),
 
         /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list */
         qbtv2: {

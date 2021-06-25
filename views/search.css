@@ -162,3 +162,10 @@ body.size-decimal-category-excluded--more-than-100gb tr[data-size-decimal-catego
 label, input[type="checkbox"] {
     cursor: pointer;
 }
+
+.live-seeds-holder {
+    color: cyan;
+    font-weight: bold;
+    margin-right: 6px;
+    cursor: help;
+}

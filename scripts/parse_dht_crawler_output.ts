@@ -60,16 +60,6 @@ const saveToArchiveDb = async (records: Record[]) => {
     });
 };
 
-const saveToFtsDb = async (records: Record[]) => {
-    const rows = records.map(r => ({
-        infohash: r.infohash,
-        name: r.name,
-    }));
-    const repo = TorrentNamesFts();
-    await repo.delete({});
-    await repo.insert(rows);
-};
-
 const main = async () => {
     const dhtOutPath = __dirname + '/../kunkka_host/handmade/random/kunkka_big_data/shiyanhui_dht_out.txt';
     const fileStream = fsSync.createReadStream(dhtOutPath);
@@ -84,24 +74,30 @@ const main = async () => {
         if (!line.trim()) {
             continue;
         }
-        const record: Record = JSON.parse(line);
-        const oldRecord = infohashToRecord.get(record.infohash) ?? undefined;
-        if (oldRecord) {
-            ++oldRecord.occurrences;
-        } else {
-            record.occurrences = 1;
-            infohashToRecord.set(record.infohash, record);
-        }
-
-        if (++i % 1000 === 0) {
+        ++i;
+        if (i % 10000 === 0) {
             console.log(i, line);
+        }
+        const record: Record | Record[] = JSON.parse(line);
+        const records = Array.isArray(record) ? record : [record];
+        for (const record of records) {
+		  if (!record.length && !record.files) {
+			console.log('Parasha at ' + i + ' - ' + line);
+			continue;
+		  }
+          const oldRecord = infohashToRecord.get(record.infohash) ?? undefined;
+          if (oldRecord) {
+              ++oldRecord.occurrences;
+          } else {
+              record.occurrences = 1;
+              infohashToRecord.set(record.infohash, record);
+          }	
         }
     }
 
     const records = [...infohashToRecord.values()];
 
     await saveToArchiveDb(records);
-    await saveToFtsDb(records);
 
     const sorted = records
         .sort((a, b) => b.occurrences - a.occurrences);

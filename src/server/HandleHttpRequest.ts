@@ -11,6 +11,8 @@ import * as EventEmitter from "events";
 import {ReadStream} from "fs";
 import ServeInfoPage from "./actions/ServeInfoPage";
 import {BadRequest, NotFound} from "@curveball/http-errors";
+import {readPost} from "./utils/Http";
+import ScrapeTrackersSeedInfo, {trackerRecords} from "./actions/ScrapeTrackersSeedInfo";
 const {spawn} = require('child_process');
 const unzip = require('unzip-stream');
 const srt2vtt = require('srt-to-vtt');
@@ -131,7 +133,7 @@ const getFileInTorrent = async (params: HandleHttpParams) => {
         throw new BadRequest('filePath parameter is mandatory');
     }
 
-    const engine = await api.prepareTorrentStream(infoHash);
+    const engine = await api.prepareTorrentStream(infoHash, trackerRecords.map(t => t.url));
     const file = engine.files.find(f => f.path === filePath);
     if (!file) {
         throw new BadRequest('filePath not found in this torrent, possible options: ' + engine.files.map(f => f.path));
@@ -301,38 +303,83 @@ type UnzipEntry = {
     _eventsCount: unknown,
 }
 
+const serveStreamedApiResponse = async <TItem>(
+    res: http.ServerResponse,
+    itemsIter: AsyncGenerator<TItem>,
+) => {
+    let started = false;
+    const startMs = Date.now();
+    try {
+        for await (const item of itemsIter) {
+            if (!started) {
+                res.setHeader('content-type', 'application/json');
+                res.statusCode = 200;
+                res.write('[\n');
+                started = true;
+            }
+            res.write(JSON.stringify({type: 'item', item}) + ',\n');
+        }
+    } catch (error: unknown) {
+        if (started) {
+            res.write(JSON.stringify({
+                type: 'end',
+                processingTimeMs: Date.now() - startMs,
+                error: String(error),
+            }) + '\n');
+            res.write(']')
+        } else {
+            throw error;
+        }
+    }
+    if (started) {
+        // because don't want to mess with comas
+        res.write(JSON.stringify({type: 'end', processingTimeMs: Date.now() - startMs}) + '\n');
+        res.write(']')
+    } else {
+        res.statusCode = 424;
+    }
+    res.end();
+};
+
+type ZipItem = {path: string, size: number} | null;
+
 const serveZipReader = async (params: HandleHttpParams) => {
     // set timeout to 10 minutes instead of 2 minutes, maybe could make
     // it even more and abort manually if torrent actually hangs...
     params.rq.connection.setTimeout(10 * 60 * 1000);
-    const {rs} = params;
     const {file} = await getFileInTorrent(params);
     const readStream = file.createReadStream();
 
-    let started = false;
-    const startMs = Date.now();
-    rs.setHeader('content-type', 'application/json');
-    readStream.pipe(unzip.Parse()).on('entry', (entry: UnzipEntry) => {
-        if (!started) {
-            rs.statusCode = 200;
-            rs.write('[\n');
-            started = true;
+    const itemsIter = async function*() {
+        const emitter: EventEmitter.EventEmitter = readStream.pipe(unzip.Parse());
+
+        let resolve: (item: ZipItem) => void;
+        let promise = new Promise<ZipItem>(r => resolve = r);
+
+        emitter
+            .on('entry', (entry: UnzipEntry) => {
+                const {path, size, isDirectory} = entry;
+                if (!isDirectory) {
+                    resolve({path, size});
+                    promise = new Promise(r => resolve = r);
+                    entry.autodrain();
+                }
+            })
+            .on('close', () => resolve(null));
+
+        for (let item; item = await promise;) {
+            yield item;
         }
-        const {path, size, isDirectory} = entry;
-        if (!isDirectory) {
-            rs.write(JSON.stringify({type: 'item', item: {path, size}}) + ',\n');
-            entry.autodrain();
-        }
-    }).on('close', () => {
-        if (started) {
-            // because don't want to mess with comas
-            rs.write(JSON.stringify({type: 'end', processingTimeMs: Date.now() - startMs}) + '\n');
-            rs.write(']')
-        } else {
-            rs.statusCode = 424;
-        }
-        rs.end();
-    });
+    }();
+    return serveStreamedApiResponse(params.rs, itemsIter);
+};
+
+const scrapeTrackersSeedInfo = async (params: HandleHttpParams) => {
+    const postStr = await readPost(params.rq);
+    const {torrents}: {torrents: {infohash: string}[]} = JSON.parse(postStr);
+    /** should probably cache retrieved seeds data eventually */
+    const itemsIter = ScrapeTrackersSeedInfo(torrents.map(t => t.infohash));
+    return serveStreamedApiResponse(params.rs, itemsIter);
 };
 
 const serveZipReaderFile = async (params: HandleHttpParams) => {
@@ -405,6 +452,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         return serveTorrentStreamExtractSubs(params);
     } else if (pathname === '/torrent-stream-extract-audio') {
         return serveTorrentStreamExtractAudio(params);
+    } else if (pathname === '/api/scrapeTrackersSeedInfo') {
+        return scrapeTrackersSeedInfo(params);
     } else if (pathname === '/api/prepareZipReader') {
         return serveZipReader(params);
     } else if (pathname === '/ftp/zipReaderFile') {

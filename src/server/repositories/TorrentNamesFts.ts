@@ -42,7 +42,6 @@ const TorrentNamesFts = () => {
                 .map(w => w.split('').map(c => c === '"' ? '""' : c).join(''))
                 .map(w => '"' + w + '"')
                 .join(' ');
-            console.log('ololo escapedInput', escapedInput);
             const sql = `SELECT * FROM ${table} WHERE name MATCH ?`;
             const placedValues = [escapedInput];
             return dbPool.withDb<DbRow>(db => db.all<DbRow>(sql, ...placedValues))
