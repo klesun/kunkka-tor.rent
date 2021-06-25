@@ -19,6 +19,7 @@
     "sqlite": "^4.0.23",
     "sqlite3": "^5.0.2",
     "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/d34874bba56852160127ce11262e2ef502f3e890",
+    "torrent-tracker": "https://github.com/klesun-productions/torrent-tracker/tarball/d8d66c30db17204c977a3584fd377ce25cfbf075",
     "mime-types": "^2.1.27",
     "node-fetch": "^2.6.1",
     "node-unrar-js": "https://github.com/klesun-misc/node-unrar.js-issue3/tarball/6bd09d67d7ee1a94b4191912b2c4be8686bf76c2",
@@ -31,7 +32,7 @@
     "subtitle-converter": "^3.0.6",
     "torrent-stream": "^1.2.0",
     "ts-node": "github:TypeStrong/ts-node#main",
-    "typescript": "^3.9.7",
+    "typescript": "^4.2.4",
     "unzip-stream": "^0.3.1"
   },
   "devDependencies": {
@@ -41,7 +42,7 @@
     "@types/papaparse": "^5.2.4",
     "@types/parse-torrent": "^5.8.3",
     "@types/pump": "^1.1.0",
-    "@types/socket.io": "^3.0.2",
+    "@types/socket.io": "^2.0.0",
     "@types/torrent-stream": "0.0.5",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.0",
