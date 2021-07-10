@@ -1,12 +1,9 @@
 
-import {promises as fs} from 'fs';
 import * as fsSync from 'fs';
 import * as readline from 'readline';
 import DbPool, {SQLITE_MAX_VARIABLE_NUMBER} from "../src/server/utils/DbPool";
-import { Database } from "sqlite/build/Database";
 import * as SqlUtil from 'klesun-node-tools/src/Utils/SqlUtil.js';
 import {InfohashDbRow} from "../src/server/typing/InfohashDbRow";
-import TorrentNamesFts from "../src/server/repositories/TorrentNamesFts";
 
 type RecordBase = {
     infohash: string,
@@ -68,7 +65,8 @@ const main = async () => {
         input: fileStream,
         crlfDelay: Infinity
     });
-    const infohashToRecord = new Map<string, Record>();
+    const infohashToOccurrences = new Map<string, number>();
+    let infohashToRecord = new Map<string, Record>();
     let i = 0;
     for await (const line of linesStream) {
         if (!line.trim()) {
@@ -77,6 +75,9 @@ const main = async () => {
         ++i;
         if (i % 10000 === 0) {
             console.log(i, line);
+            const records = [...infohashToRecord.values()];
+            await saveToArchiveDb(records);
+            infohashToRecord = new Map();
         }
         const record: Record | Record[] = JSON.parse(line);
         const records = Array.isArray(record) ? record : [record];
@@ -85,24 +86,13 @@ const main = async () => {
 			console.log('Parasha at ' + i + ' - ' + line);
 			continue;
 		  }
-          const oldRecord = infohashToRecord.get(record.infohash) ?? undefined;
-          if (oldRecord) {
-              ++oldRecord.occurrences;
-          } else {
-              record.occurrences = 1;
-              infohashToRecord.set(record.infohash, record);
-          }	
+          const occurrences = (infohashToOccurrences.get(record.infohash) ?? 0) + 1;
+		  infohashToOccurrences.set(record.infohash, occurrences);
+		  record.occurrences = occurrences;
+          infohashToRecord.set(record.infohash, record);
         }
     }
-
-    const records = [...infohashToRecord.values()];
-
-    await saveToArchiveDb(records);
-
-    const sorted = records
-        .sort((a, b) => b.occurrences - a.occurrences);
-    console.log(sorted.slice(0, 20));
-    console.log('total hashes: ' + sorted.length);
+    console.log('total hashes: ' + i);
 };
 
 main().then(() => process.exit(0)).catch(error => {

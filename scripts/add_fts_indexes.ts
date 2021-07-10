@@ -3,9 +3,6 @@ import * as SqlUtil from 'klesun-node-tools/src/Utils/SqlUtil.js';
 import {InfohashDbRow} from "../src/server/typing/InfohashDbRow";
 import TorrentNamesFts from "../src/server/repositories/TorrentNamesFts";
 
-/** @see https://stackoverflow.com/questions/7106016/too-many-sql-variables-error-in-django-with-sqlite3 */
-const SQLITE_MAX_VARIABLE_NUMBER = 32766;
-
 const main = async () => {
     const table_Infohashes = 'Infohashes';
     const dbPool_Infohashes = DbPool({
