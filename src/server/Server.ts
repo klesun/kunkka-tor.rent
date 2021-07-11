@@ -4,10 +4,15 @@ import Api from "./Api";
 import * as SocketIo from 'socket.io';
 import ScanInfoHashStatus, {ItemStatus} from "./actions/ScanInfoHashStatus";
 import {HTTP_PORT} from "./Constants";
+import {HttpErrorBase} from "@curveball/http-errors";
 
 const handleRq = (params: HandleHttpParams) => {
     HandleHttpRequest(params).catch(exc => {
-        params.rs.statusCode = exc.httpStatusCode || 500;
+        if (exc instanceof HttpErrorBase) {
+            params.rs.statusCode = exc.httpStatus;
+        } else {
+            params.rs.statusCode = 500;
+        }
         params.rs.statusMessage = ((exc || {}).message || exc + '' || '(empty error)')
             // sanitize, as statusMessage seems to not allow special characters
             .slice(0, 300).replace(/[^ -~]/g, '?');

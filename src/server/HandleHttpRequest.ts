@@ -108,7 +108,7 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
         absPath += 'index.html';
     }
     if (!(await checkFileExists(absPath))) {
-        return new NotFound('File ' + pathname + ' does not exist or not accessible');
+        throw new NotFound('File ' + pathname + ' does not exist or not accessible');
     }
     if ((await fs.lstat(absPath)).isDirectory()) {
         return redirect(rs, pathname + '/');
