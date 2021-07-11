@@ -1,5 +1,4 @@
-import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
-import ToExpandTorrentView from "../src/client/ToExpandTorrentView.js";
+import {Dom} from '../src/client/Dom.js';
 import Api from "../src/client/Api.js";
 import {parseMagnetUrl} from "../src/common/Utils.js";
 import TorrentNameParser from "../src/common/TorrentNameParser.js";
@@ -126,6 +125,13 @@ const getSizeDecimalCategory = (bytes) => {
     }
 };
 
+//import ToExpandTorrentView from "../src/client/ToExpandTorrentView.js";
+
+// import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
+const whenToExpandTorrentView = import('https://klesun.github.io/ts-browser/src/ts-browser.js')
+    .then(tsBrowser => tsBrowser.loadModule('./../src/client/ToExpandTorrentView.ts'))
+    .then(module => module.default);
+
 /** @param {QbtSearchResultItemExtended} resultItem */
 const makeResultTr = (resultItem) => {
     const seedsSuspicious = stagnantSites.includes(resultItem.siteUrl);
@@ -141,7 +147,9 @@ const makeResultTr = (resultItem) => {
     }, [
         Dom('td', {}, [
             Dom('button', {
-                onclick: ToExpandTorrentView({resultItem, getTr: () => tr}),
+                onclick: () => whenToExpandTorrentView.then(ToExpandTorrentView => {
+                    return ToExpandTorrentView({resultItem, getTr: () => tr})();
+                }),
             }, 'Open'),
         ]),
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
@@ -301,16 +309,18 @@ const collectWatchIndex = (localStorage) => {
 
 const main = async () => {
     const searchParams = new URLSearchParams(window.location.search);
+    const startMs = Date.now();
     const started = api.qbtv2.search.start({
         pattern: searchParams.get('pattern'),
         category: searchParams.get('category') || 'all',
         plugins: searchParams.get('plugins') || 'all',
     });
-    const watchIndex = collectWatchIndex(window.localStorage);
-    const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
-    const localResults = await api.findTorrentsInLocalDb({
+    const whenLocalResults = api.findTorrentsInLocalDb({
         userInput: searchParams.get('pattern'),
     });
+    const localResults = await whenLocalResults;
+    const watchIndex = collectWatchIndex(window.localStorage);
+    const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
     listUpdater.update(localResults.map(({infohash, name}) => ({
         infoHash: infohash,
         descrLink: 'https://kunkka-torrent.online/views/infoPage/' + infohash,

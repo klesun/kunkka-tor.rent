@@ -1,8 +1,10 @@
 
-import {Dom} from 'https://klesun-misc.github.io/dev_data/common/js/Dom.js';
+import {Dom} from './Dom.js';
 import Api from "../client/Api.js";
-import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
-import RarStreamer from "./RarStreamer.js";
+// TODO: support! https://github.com/klesun/ts-browser/issues/19
+// import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
+import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
+import {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../common/FixNaturalOrder.js";
 
 const WATCHED_STORAGE_PREFIX = 'WATCHED_STORAGE_PREFIX';
@@ -282,10 +284,19 @@ const makeZipFileView = (fileApiParams) => {
     ]);
 };
 
+let whenRarStreamer = null;
+const getRarStreamer = () => {
+    if (whenRarStreamer === null) {
+        whenRarStreamer = import("./RarStreamer.js").then(rs => rs.default);
+    }
+    return whenRarStreamer;
+};
+
 const makeRarFileView = (src) => {
     const raredFilesList = Dom('div');
     const statusPanel = Dom('div', {}, 'Loading archive contents...');
     fetch(src).then(async rs => {
+        const RarStreamer = await getRarStreamer();
         const reader = rs.body.getReader();
         const iterating = RarStreamer({reader});
         let filesLoaded = 0;
