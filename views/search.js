@@ -128,7 +128,7 @@ const getSizeDecimalCategory = (bytes) => {
 //import ToExpandTorrentView from "../src/client/ToExpandTorrentView.js";
 
 // import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
-const whenToExpandTorrentView = import('https://klesun.github.io/ts-browser/src/ts-browser.js')
+const whenToExpandTorrentView = import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
     .then(tsBrowser => tsBrowser.loadModule('./../src/client/ToExpandTorrentView.ts'))
     .then(module => module.default);
 
@@ -136,6 +136,9 @@ const whenToExpandTorrentView = import('https://klesun.github.io/ts-browser/src/
 const makeResultTr = (resultItem) => {
     const seedsSuspicious = stagnantSites.includes(resultItem.siteUrl);
 
+    const whenExpandView = whenToExpandTorrentView.then(ToExpandTorrentView => {
+        return ToExpandTorrentView({resultItem, getTr: () => tr});
+    });
     const tr = Dom('tr', {
         'data-tracker': resultItem.tracker,
         'data-site-url': resultItem.siteUrl,
@@ -147,9 +150,7 @@ const makeResultTr = (resultItem) => {
     }, [
         Dom('td', {}, [
             Dom('button', {
-                onclick: () => whenToExpandTorrentView.then(ToExpandTorrentView => {
-                    return ToExpandTorrentView({resultItem, getTr: () => tr})();
-                }),
+                onclick: () => whenExpandView.then(expandView => expandView()),
             }, 'Open'),
         ]),
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),

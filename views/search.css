@@ -41,8 +41,8 @@ tr:not(.expanded-view-row):hover {
     background-color: #33466970;
 }
 video {
-    max-width: 640px;
-    max-height: 480px;
+    max-width: 960px;
+    max-height: 720px;
 }
 
 #selected_video_ffmpeg_info {

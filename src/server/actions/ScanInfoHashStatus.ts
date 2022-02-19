@@ -44,7 +44,7 @@ export const shortenTorrentInfo = (torrent: TorrentMainInfo) => ({
 });
 
 export type TorrentInfo = ReturnType<typeof shortenTorrentInfo>;
-type ShortTorrentFileInfo = {
+export type ShortTorrentFileInfo = {
     path: string,
     length: number,
 };

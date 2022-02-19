@@ -6,16 +6,20 @@ import Api from "../client/Api.js";
 import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
 import {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../common/FixNaturalOrder.js";
+import {FfprobeOutput, FfprobeStream} from "./FfprobeOutput.d";
+import {QbtSearchResultItem, QbtSearchResultItemExtended} from "./QbtSearch.d";
+// TODO: allow to express through .d.ts and add ignore `import type` statements
+//import type {ShortTorrentFileInfo} from "../server/actions/ScanInfoHashStatus";
+// import type  {FileHeader} from "../../node_modules/node-unrar-js/src/js/extractor";
 
 const WATCHED_STORAGE_PREFIX = 'WATCHED_STORAGE_PREFIX';
 
-/** @param {QbtSearchResultItem} resultItem */
-const getInfoHash = async resultItem => {
+const getInfoHash = async (resultItem: QbtSearchResultItemExtended) => {
     const asMagnet = resultItem.fileUrl.match(/^magnet:\?(\S+)$/);
     if (asMagnet) {
         const magnetQueryPart = asMagnet[1];
         const search = new URLSearchParams(magnetQueryPart);
-        const infoHash = search.get('xt').replace(/^urn:btih:/, '');
+        const infoHash = search.get('xt')!.replace(/^urn:btih:/, '');
         const tr = search.getAll('tr');
         return {infoHash, tr};
     } else {
@@ -25,12 +29,16 @@ const getInfoHash = async resultItem => {
     }
 };
 
-const typeToStreamInfoMaker = {
+const typeToStreamInfoMaker: {
+    [type in FfprobeStream['codec_type']]: (
+        stream: FfprobeStream & {codec_type: type}
+    ) => HTMLElement
+} = {
     'video': (stream) => {
         const {width, height, display_aspect_ratio, avg_frame_rate, bits_per_raw_sample, pix_fmt, ...rest} = stream;
         return Dom('span', {}, [
             Dom('span', {}, display_aspect_ratio + ' ' + width + 'x' + height),
-            Dom('span', {}, avg_frame_rate.split('/')[0] / 1000),
+            Dom('span', {}, +avg_frame_rate.split('/')[0] / 1000),
             Dom('span', {}, 'Colors: ' + pix_fmt),
         ]);
     },
@@ -40,7 +48,7 @@ const typeToStreamInfoMaker = {
         return Dom('span', {}, [
             Dom('span', {}, language || ''),
             Dom('span', {}, title || ''),
-            Dom('span', {}, (sample_rate / 1000) + ' kHz'),
+            Dom('span', {}, (+sample_rate / 1000) + ' kHz'),
             Dom('span', {}, channels + ' ch'),
         ]);
     },
@@ -64,10 +72,9 @@ const typeToStreamInfoMaker = {
 const subsExtensions = ['srt', 'vtt', 'subrip', 'ass', 'sub'];
 const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
 
-const isBadAudioCodec = (codec_name) => ['ac3', 'eac3'].includes(codec_name);
+const isBadAudioCodec = (codec_name: string) => ['ac3', 'eac3'].includes(codec_name);
 
-/** @param {FfprobeStream} stream */
-const makeStreamItem = (stream) => {
+const makeStreamItem = (stream: FfprobeStream) => {
     const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
     const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
     const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
@@ -77,7 +84,11 @@ const makeStreamItem = (stream) => {
         Dom('span', {}, '#' + index),
         Dom('label', {}, [
             ...(codec_type !== 'audio' ? [] : [
-                Dom('input', {type: 'radio', name: 'selectedAudioTrack', value: index}),
+                Dom('input', {
+                    type: 'radio',
+                    name: 'selectedAudioTrack',
+                    value: String(index),
+                }),
             ]),
             Dom('span', {
                 ...(isBadCodec ? {class: 'bad-codec'} : {}),
@@ -90,8 +101,11 @@ const makeStreamItem = (stream) => {
     ]);
 };
 
-/** @param {HTMLVideoElement} video */
-const addSubsTrack = ({video, src, tags = {}}) => {
+const addSubsTrack = ({video, src, tags = {}}: {
+    video: HTMLVideoElement,
+    src: string,
+    tags,
+}) => {
     const srclang = (tags || {}).language;
     const hadTracks = !!video.querySelector('track');
     const label = ((srclang || '') + ' ' + ((tags || {}).title || '')).trim();
@@ -106,15 +120,13 @@ const addSubsTrack = ({video, src, tags = {}}) => {
     );
 };
 
-/**
- * @param {HTMLVideoElement} video
- * @param {HTMLFormElement} ffmpegInfoBlock
- */
-const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}) => {
-    /** @type {HTMLAudioElement} */
+const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}: {
+    video: HTMLVideoElement,
+    ffmpegInfoBlock: HTMLFormElement,
+    fileApiParams,
+}) => {
     const audioTrackPlayer = Dom('audio', {
         controls: 'controls',
-        buffered: 'buffered',
         preload: 'auto',
     });
     ffmpegInfoBlock.appendChild(audioTrackPlayer);
@@ -171,14 +183,15 @@ const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}) => {
     }, 100);
 };
 
-/**
- * @param {FfprobeOutput} ffprobeOutput
- * @param {HTMLVideoElement} video
- * @param {HTMLFormElement} ffmpegInfoBlock
- */
 const displayFfprobeOutput = ({
     ffprobeOutput, gui: {
         video, ffmpegInfoBlock,
+    },
+}: {
+    ffprobeOutput: FfprobeOutput,
+    gui: {
+        video: HTMLVideoElement,
+        ffmpegInfoBlock: HTMLFormElement,
     },
 }) => {
     const streamList = Dom('div', {class: 'stream-list'});
@@ -216,7 +229,9 @@ const displayFfprobeOutput = ({
     monitorAudioTracks({video, ffmpegInfoBlock, fileApiParams});
 };
 
-const makeFileView = ({src, extension}) => {
+const makeFileView = ({src, extension}: {
+    src: string, extension: string,
+}) => {
     if (['png', 'jpg', 'jpeg'].includes(extension)) {
         // разожми меня покрепче, шакал
         return Dom('div', {}, [
@@ -284,20 +299,30 @@ const makeZipFileView = (fileApiParams) => {
     ]);
 };
 
-let whenRarStreamer = null;
-const getRarStreamer = () => {
+type RarStreamer = (params: {reader: ReadableStreamReader<Uint8Array>}) => ({
+    iter: AsyncGenerator<FileHeader>,
+    getBytes: () => Uint8Array,
+    extractFile: (fileHeader: FileHeader) => [
+        {state: string},
+        {files: {extract: Blob[]}[]},
+    ],
+});
+
+let whenRarStreamer: Promise<RarStreamer> | null = null;
+const getRarStreamer = (): Promise<RarStreamer> => {
     if (whenRarStreamer === null) {
-        whenRarStreamer = import("./RarStreamer.js").then(rs => rs.default);
+        whenRarStreamer = import("./RarStreamer.js")
+            .then(module => module.default);
     }
     return whenRarStreamer;
 };
 
-const makeRarFileView = (src) => {
+const makeRarFileView = (src: string) => {
     const raredFilesList = Dom('div');
     const statusPanel = Dom('div', {}, 'Loading archive contents...');
     fetch(src).then(async rs => {
         const RarStreamer = await getRarStreamer();
-        const reader = rs.body.getReader();
+        const reader = rs.body!.getReader();
         const iterating = RarStreamer({reader});
         let filesLoaded = 0;
         for await (const file of iterating.iter) {
@@ -316,13 +341,14 @@ const makeRarFileView = (src) => {
                                 console.log('ololo stateRec', stateRec);
                                 alert('No success in extracting file');
                             } else {
-                                const mimeType = {
+                                const mimeTypes: Record<string, string> = {
                                     'png': 'image/png',
                                     'jpg': 'image/jpeg',
                                     'jpeg': 'image/jpeg',
                                     'ogg': 'audio/ogg',
                                     'mp3': 'audio/mp3',
-                                }[file.name.replace(/.*\./, '').toLowerCase()];
+                                };
+                                const mimeType = mimeTypes[extension];
                                 const blob = new Blob([resultRec.files[0].extract[1]], {type: mimeType});
                                 const src = URL.createObjectURL(blob);
                                 let fileView = makeFileView({src, extension});
@@ -352,11 +378,12 @@ const makeRarFileView = (src) => {
     ]);
 };
 
-/**
- * @param {ShortTorrentFileInfo} file
- * @param {ShortTorrentFileInfo[]} files
- */
-const initPlayer = (infoHash, file, files, isBadCodec) => {
+const initPlayer = (
+    infoHash: string,
+    file: ShortTorrentFileInfo,
+    files: ShortTorrentFileInfo[],
+    isBadCodec: boolean
+) => {
     // TODO: must detect hevc from ffmpeg info, not from name!
     const streamPath = isBadCodec ? '/torrent-stream-code-in-h264' : '/torrent-stream';
     const fileApiParams = {
@@ -421,13 +448,13 @@ const initPlayer = (infoHash, file, files, isBadCodec) => {
     ]);
 };
 
-/**
- * @param {boolean} isBadCodec
- * @param {number} seconds
- * @param {ShortTorrentFileInfo[]} files
- * @param {function(f: ShortTorrentFileInfo): void} playCallback
- */
-const makeFilesList = ({isBadCodec, resultItem, seconds, files, playCallback}) => {
+const makeFilesList = ({isBadCodec, resultItem, seconds, files, playCallback}: {
+    isBadCodec: boolean,
+    resultItem: QbtSearchResultItemExtended,
+    seconds: number,
+    files: ShortTorrentFileInfo,
+    playCallback: (f: ShortTorrentFileInfo) => void,
+}) => {
     const makeStorageKey = f => WATCHED_STORAGE_PREFIX + '&' + encodeURIComponent(resultItem.fileUrl) + '&' + encodeURIComponent(f.path);
     files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
     let activeTr = null;
@@ -484,17 +511,16 @@ const makeFilesList = ({isBadCodec, resultItem, seconds, files, playCallback}) =
     return {dom, tryPlayNext};
 };
 
-/**
- * @param {QbtSearchResultItem} resultItem
- * @param {function(): HTMLTableRowElement} getTr
- */
 const ToExpandTorrentView = ({
     resultItem, getTr,
+}: {
+    resultItem: QbtSearchResultItem,
+    getTr: () => HTMLTableRowElement,
 }) => {
-    let expandedView = null;
-    let swarmInfoInterval = null;
+    let expandedView: HTMLTableRowElement | null = null;
+    let swarmInfoInterval: number | undefined;
     let whenMetaInfo = null;
-    let whenMagnetData = null;
+    let whenMagnetData: ReturnType<typeof getInfoHash> | null = null;
     const isBadCodec =
         resultItem.fileName.match(/265/) ||
         resultItem.fileName.match(/hevc/i) ||
@@ -530,7 +556,7 @@ const ToExpandTorrentView = ({
                 ]),
             ]),
         ]);
-        tr.parentNode.insertBefore(expandedView, tr.nextSibling);
+        tr.parentNode!.insertBefore(expandedView, tr.nextSibling);
         const startedMs = Date.now();
         whenMagnetData = whenMagnetData || getInfoHash(resultItem);
         whenMetaInfo = whenMetaInfo || whenMagnetData
@@ -560,12 +586,12 @@ const ToExpandTorrentView = ({
         });
 
         const updateSwarmInfo = async () => {
-            const {infoHash} = await whenMagnetData;
+            const {infoHash} = await whenMagnetData!;
             const swarmSummary = await Api().getSwarmInfo({infoHash});
             swarmInfoPanel.textContent = window.Tls.jsExport(swarmSummary, null, 90);
         };
         let intervalStartMs = Date.now();
-        swarmInfoInterval = setInterval(() => {
+        swarmInfoInterval = window.setInterval(() => {
             if (Date.now() - intervalStartMs > 120 * 1000) {
                 // start with frequent updates to keep user in touch,
                 // then decrease frequency when video supposedly started

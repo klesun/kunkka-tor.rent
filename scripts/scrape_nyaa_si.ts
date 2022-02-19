@@ -19,11 +19,10 @@ const MAX_DELAY = 2500;
 
 const main = async () => {
     let ddosErrors = 0;
-    for (let i = 3801; i <= 1407696; ++i) {
-        console.log('processing #' + i);
-        const relIndex = i % CHUNK_SIZE;
-        const chunkDir = baseDir + '/' + (i - relIndex + 1) + '_' + (i - relIndex + CHUNK_SIZE);
-        if (relIndex === 1) {
+    for (let i = 40066; i <= 1407696; ++i) {
+        const relIndex = (i - 1) % CHUNK_SIZE;
+        const chunkDir = baseDir + '/' + (i - relIndex) + '_' + (i - relIndex - 1 + CHUNK_SIZE);
+        if (relIndex === 0) {
             await fs.mkdir(chunkDir, {recursive: true})
         }
         const url = 'https://nyaa.si/view/' + i;
@@ -32,6 +31,7 @@ const main = async () => {
                 'user-agent': 'kunkka-tor.rent/bcbdb50580bb42d0abb9d57367aad843c226ec2c infohashes crawler script',
             },
         });
+        console.log('processing #' + i + ' - ' + response.status);
         if (response.status === 404) {
             // skip this number, torrent was deleted
         } else {
@@ -54,7 +54,7 @@ const main = async () => {
                     const msg = 'DDoS protection response ' + response.status +
                         ', pausing for ' + delay + ' ms\n' + pageHtml;
                     console.warn(msg);
-                    await new Promise(_ => setTimeout(_, baseDelay * 20));
+                    await new Promise(_ => setTimeout(_, baseDelay * 20 * Math.pow(2, ddosErrors)));
                     continue;
                 }
             }

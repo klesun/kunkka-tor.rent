@@ -4,6 +4,12 @@
  * it as a dependency (from github pages though, not npm, as I'm usually not using webpack)
  */
 
+/**
+ * @param {string} tagName
+ * @param {Record<string, string|number>} attributes
+ * @param {HTMLElement[]|string|number} children
+ * @return {HTMLElement}
+ */
 export const Dom = (tagName, attributes = {}, children = [], metaParams = {}) => {
     const dom = metaParams.namespace
         ? document.createElementNS(metaParams.namespace, tagName)

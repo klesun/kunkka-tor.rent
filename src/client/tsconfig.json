@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"lib": ["esnext", "dom", "dom.iterable"],
+		"module": "ES2020",
+		"allowJs": true,
+		"target": "es2020",
+		"moduleResolution": "Node",
+		"noEmit": true,
+		"strict": true
+	},
+	"ts-node": {
+		"transpiler": "ts-node/transpilers/swc-experimental",
+		"transpileOnly": true
+	}
+}

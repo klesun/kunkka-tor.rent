@@ -1,5 +1,5 @@
 
-type QbtSearchResultItem = {
+export type QbtSearchResultItem = {
     descrLink: "https://pirateproxy.live/torrent/7504788/Warcraft_-_Frozen_Throne_DotA_1.26Version",
     fileName: "Warcraft - Frozen Throne DotA 1.26Version",
     fileSize: 2265595248,
