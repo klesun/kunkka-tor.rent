@@ -2,6 +2,7 @@
 const tsNode = require('ts-node');
 
 tsNode.register({
+    swc: true,
     transpileOnly: true,
     // otherwise it ignores ts files imported from node_modules
     // add here any other npm libs with source .ts files you are going to import

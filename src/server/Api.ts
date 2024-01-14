@@ -168,7 +168,14 @@ const Api = () => {
         await prepareTorrentStream(infoHash);
         const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
             infoHash + '&filePath=' + encodeURIComponent(filePath);
-        const execResult = await execFile('ffprobe', ['-v' ,'quiet', '-print_format', 'json', '-show_format', '-show_streams', streamUrl]);
+        const ffprobeArgs = ['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', streamUrl];
+        let execResult;
+        try {
+            execResult = await execFile('ffprobe', ffprobeArgs);
+        } catch (error) {
+            console.error('Ffprobe failed for params:', ffprobeArgs);
+            throw error;
+        }
         const {stdout, stderr} = execResult;
         return JSON.parse(stdout);
     };

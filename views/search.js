@@ -13,7 +13,7 @@ const gui = {
 };
 
 /** I'd question their honesty in the claimed seed numbers */
-const suspiciousSites = ['https://eztv.io', 'https://1337x.to', 'https://limetor.com'];
+const suspiciousSites = ['https://eztv.io', 'https://1337x.to', 'https://limetor.com', 'https://www.limetorrents.lol', 'https://torrentproject2.se'];
 
 /** not updating seeders information for years, but at least numbers look realistic, just outdated */
 const stagnantSites = ['https://bakabt.me', 'https://zooqle.com', ...suspiciousSites];
@@ -385,7 +385,6 @@ const main = async () => {
                     );
                 }
             }
-            break;
         }
 
         if (resultsRs.status !== 'Running' &&

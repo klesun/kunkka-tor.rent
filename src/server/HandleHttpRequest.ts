@@ -263,24 +263,56 @@ const serveTorrentStreamExtractSubs = async (params: HandleHttpParams) => {
 
 const serveTorrentStreamExtractAudio = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
-    const {infoHash, filePath, streamIndex} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+    const {infoHash, filePath, streamIndex, codecName} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+    rq.connection.setTimeout(3600000);
     await api.prepareTorrentStream(infoHash);
     const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
         infoHash + '&filePath=' + encodeURIComponent(filePath);
     const args = [
         '-i', streamUrl, '-map', '0:' + streamIndex,
-        '-codec:a', 'aac', '-f', 'matroska', '-',
+        '-codec:a', 'aac',
+        '-f', 'matroska', '-',
     ];
-    const spawned = spawn('ffmpeg', args);
-    spawned.stderr.on('data', (buf: Buffer) => {
+    const ffmpeg = spawn('ffmpeg', args);
+    rs.on('close', () => ffmpeg.kill());
+    ffmpeg.stderr.on('data', (buf: Buffer) => {
         if (rs.headersSent) {
             console.log('audio stderr', buf.toString('utf8'));
         } else {
             rs.setHeader('ffmpeg-stderr', buf.toString('utf8').replace(/[^ -~]/g, '?'));
         }
     });
-    rs.on('close', () => spawned.kill());
-    spawned.stdout.pipe(rs);
+    rs.setHeader('Accept-Ranges', 'bytes');
+    rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(filePath.replace(/^.*\//, '')).replace(/[^ -~]/g, '?')); 
+    rs.setHeader('Content-Type', 'video/x-matroska');
+    const range = params.rq.headers.range || null;
+    if (!range) {
+        // requested to download full file rather than stream a part of it. Sure, why not
+        ffmpeg.stdout.pipe(rs);
+        return;
+    }
+    const match = range.match(/^bytes=(\d+)-(\d*)/);
+    if (!match) {
+        throw new BadRequest('Malformed "range" header: ' + range);
+    }
+    let [_, start, rqEnd] = match.map(n => +n);
+
+    let chunkSize = 517299744;
+    if (rqEnd) {
+        chunkSize = Math.min(chunkSize, rqEnd - start + 1);
+    }
+    rs.statusCode = 206;
+    // apparently, to make timeline navigation work you have to specify range max value even if it is a stream without known length, so, as a workaround, I just put 10 GiB as the range size, by the time client reaches the end of streamed audio, he will either just receive an EOF or will just disregard this request as he is already done watching the video
+    rs.setHeader('Content-Range', 'bytes ' + start + '-9999999998/9999999999');
+    rs.setHeader('Connection', 'keep-alive');
+    
+    const tail = spawn('tail', ['-c', `+${start}`]);
+    const head = spawn('head', ['-c', `${chunkSize}`]);
+    rs.on('close', () => tail.kill());
+    rs.on('close', () => head.kill());
+    ffmpeg.stdout.pipe(tail.stdin);
+    tail.stdout.pipe(head.stdin);
+    head.stdout.pipe(rs);
 };
 
 type UnzipEntry = {

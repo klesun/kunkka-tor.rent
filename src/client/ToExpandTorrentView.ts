@@ -88,6 +88,7 @@ const makeStreamItem = (stream: FfprobeStream) => {
                     type: 'radio',
                     name: 'selectedAudioTrack',
                     value: String(index),
+                    'data-codec-name': stream.codec_name,
                 }),
             ]),
             Dom('span', {
@@ -133,10 +134,15 @@ const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}: {
 
     let activeAudioStreamIdx = -1;
     ffmpegInfoBlock.onchange = () => {
-        const audioIdx = +ffmpegInfoBlock.elements['selectedAudioTrack'].value;
-        if (audioIdx !== activeAudioStreamIdx) {
+        const radio = Array.isArray(ffmpegInfoBlock.elements['selectedAudioTrack'])
+	    ? [...ffmpegInfoBlock.elements['selectedAudioTrack']].find(r => r.checked)
+	    : ffmpegInfoBlock.elements['selectedAudioTrack'];
+        const audioIdx = +radio.value;
+        const codecName = radio.getAttribute('data-codec-name');
+        // commented cuz when first audio track codec is ac3 there is no sound out of the box
+	//if (audioIdx !== activeAudioStreamIdx) {
             const src = '/torrent-stream-extract-audio?' + new URLSearchParams({
-                ...fileApiParams, streamIndex: audioIdx,
+                ...fileApiParams, streamIndex: audioIdx, codecName: codecName,
             });
             audioTrackPlayer.setAttribute('src', src);
             video.muted = true;
@@ -146,7 +152,7 @@ const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}: {
                 });
             }
             activeAudioStreamIdx = audioIdx;
-        }
+        //}
     };
     const syncAudio = () => {
         const EPS = 0.1;
@@ -247,6 +253,7 @@ const makeFileView = ({src, extension}: {
             textarea,
             Dom('div', {}, 'Loading text...'),
         ]);
+    // pdf could be opened in an iframe
     } else if (['exe', 'msi', 'pdf', 'djvu'].includes(extension)) {
         window.open(src, '_blank');
         return Dom('div', {}, 'Binary file, initiating download...');
@@ -384,8 +391,7 @@ const initPlayer = (
     files: ShortTorrentFileInfo[],
     isBadCodec: boolean
 ) => {
-    // TODO: must detect hevc from ffmpeg info, not from name!
-    const streamPath = isBadCodec ? '/torrent-stream-code-in-h264' : '/torrent-stream';
+    const streamPath = '/torrent-stream';
     const fileApiParams = {
         infoHash: infoHash,
         filePath: file.path,
@@ -452,12 +458,12 @@ const makeFilesList = ({isBadCodec, resultItem, seconds, files, playCallback}: {
     isBadCodec: boolean,
     resultItem: QbtSearchResultItemExtended,
     seconds: number,
-    files: ShortTorrentFileInfo,
+    files: ShortTorrentFileInfo[],
     playCallback: (f: ShortTorrentFileInfo) => void,
 }) => {
-    const makeStorageKey = f => WATCHED_STORAGE_PREFIX + '&' + encodeURIComponent(resultItem.fileUrl) + '&' + encodeURIComponent(f.path);
+    const makeStorageKey = (f: ShortTorrentFileInfo) => WATCHED_STORAGE_PREFIX + '&' + encodeURIComponent(resultItem.fileUrl) + '&' + encodeURIComponent(f.path);
     files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
-    let activeTr = null;
+    let activeTr: null | HTMLTableRowElement = null;
     let lastPlayIndex = -1;
     const trs = files.map((f, i) => {
         const key = makeStorageKey(f);
@@ -474,13 +480,13 @@ const makeFilesList = ({isBadCodec, resultItem, seconds, files, playCallback}: {
                 Dom('button', {
                     onclick: () => playFileAt(i),
                     ...(!isBadCodec ? {} : {
-                        title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
+                        title: 'Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent',
                     }),
                 }, 'Watch'),
             ]),
         ]);
     });
-    const playFileAt = (i) => {
+    const playFileAt = (i: number) => {
         const tr = trs[i];
         const f = files[i];
         if (activeTr) {
