@@ -19,7 +19,7 @@ const MAX_DELAY = 2500;
 
 const main = async () => {
     let ddosErrors = 0;
-    for (let i = 40066; i <= 1407696; ++i) {
+    for (let i = 40065; i <= 1766459; ++i) {
         const relIndex = (i - 1) % CHUNK_SIZE;
         const chunkDir = baseDir + '/' + (i - relIndex) + '_' + (i - relIndex - 1 + CHUNK_SIZE);
         if (relIndex === 0) {
@@ -28,7 +28,7 @@ const main = async () => {
         const url = 'https://nyaa.si/view/' + i;
         const response = await fetch(url, {
             headers: {
-                'user-agent': 'kunkka-tor.rent/bcbdb50580bb42d0abb9d57367aad843c226ec2c infohashes crawler script',
+                'user-agent': 'torrent.klesun.net/af4a607a90e71c5ce9f8157442c813cd09a539c3 infohashes crawler script',
             },
         });
         console.log('processing #' + i + ' - ' + response.status);
