@@ -283,7 +283,7 @@ const serveTorrentStreamExtractAudio = async (params: HandleHttpParams) => {
         }
     });
     rs.setHeader('Accept-Ranges', 'bytes');
-    rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(filePath.replace(/^.*\//, '')).replace(/[^ -~]/g, '?')); 
+    rs.setHeader('Content-Disposition', `inline; filename=` + JSON.stringify(filePath.replace(/^.*\//, '')).replace(/[^ -~]/g, '?'));
     rs.setHeader('Content-Type', 'video/x-matroska');
     const range = params.rq.headers.range || null;
     if (!range) {
@@ -305,7 +305,7 @@ const serveTorrentStreamExtractAudio = async (params: HandleHttpParams) => {
     // apparently, to make timeline navigation work you have to specify range max value even if it is a stream without known length, so, as a workaround, I just put 10 GiB as the range size, by the time client reaches the end of streamed audio, he will either just receive an EOF or will just disregard this request as he is already done watching the video
     rs.setHeader('Content-Range', 'bytes ' + start + '-9999999998/9999999999');
     rs.setHeader('Connection', 'keep-alive');
-    
+
     const tail = spawn('tail', ['-c', `+${start}`]);
     const head = spawn('head', ['-c', `${chunkSize}`]);
     rs.on('close', () => tail.kill());
@@ -406,6 +406,29 @@ const serveZipReader = async (params: HandleHttpParams) => {
     return serveStreamedApiResponse(params.rs, itemsIter);
 };
 
+const serveListDirectory = async (params: HandleHttpParams) => {
+    const {rq, rs} = params;
+    const {path} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+    const dir = await fs.opendir(path);
+    const itemsIter = async function*() {
+        for await (const dirent of dir) {
+            let isDirectory;
+            if (dirent.isDirectory()) {
+                isDirectory = true;
+            } else if (dirent.isFile()) {
+                isDirectory = false;
+            } else {
+                continue; // symlinks and stuff
+            }
+            yield {
+                isDirectory,
+                name: dirent.name,
+            };
+        }
+    }();
+    return serveStreamedApiResponse(rs, itemsIter);
+};
+
 const scrapeTrackersSeedInfo = async (params: HandleHttpParams) => {
     const postStr = await readPost(params.rq);
     const {torrents}: {torrents: {infohash: string}[]} = JSON.parse(postStr);
@@ -490,6 +513,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         return serveZipReader(params);
     } else if (pathname === '/ftp/zipReaderFile') {
         return serveZipReaderFile(params);
+    } else if (pathname === '/api/listDirectory') {
+        return serveListDirectory(params);
     } else if (pathname.startsWith('/views/infoPage/')) {
         const infoHash = pathname.slice('/views/infoPage/'.length);
         return ServeInfoPage(params, infoHash);

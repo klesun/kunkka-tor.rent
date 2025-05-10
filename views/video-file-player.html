@@ -1,0 +1,10 @@
+
+<body>
+    <video id="video-playback-element" controls="controls" autoplay="autoplay"></video>
+
+    <script type="module">
+        const { searchParams } = new URL(window.location.href);
+        document.getElementById('video-playback-element').setAttribute('src', '/' + searchParams.get('path'));
+    </script>
+</body>
+
