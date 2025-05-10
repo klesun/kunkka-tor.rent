@@ -111,6 +111,7 @@ const postWwwForm = (route, params) => {
 
 const Api = () => {
     return {
+        listDirectory: params => getAsyncIter('/api/listDirectory', params),
         /**
          * @param {{infoHash: string, filePath: string}} params
          * @return {Promise<FfprobeOutput>}
