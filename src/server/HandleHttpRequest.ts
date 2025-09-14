@@ -486,6 +486,7 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
 
     setCorsHeaders(rs);
 
+    let match;
     if (rq.method === 'OPTIONS') {
         rs.write('CORS ok');
         rs.end();
@@ -515,8 +516,8 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         return serveZipReaderFile(params);
     } else if (pathname === '/api/listDirectory') {
         return serveListDirectory(params);
-    } else if (pathname.startsWith('/views/infoPage/')) {
-        const infoHash = pathname.slice('/views/infoPage/'.length);
+    } else if (match = pathname.match(/^\/views\/infoPage\/([a-fA-F0-9]{40})$/)) {
+        const infoHash = match[1];
         return ServeInfoPage(params, infoHash);
     } else {
         return serveStaticFile(pathname, params);

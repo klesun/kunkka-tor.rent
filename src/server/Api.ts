@@ -185,7 +185,7 @@ const Api = () => {
         const query = url.parse(<string>rq.url, true).query;
 
         let {infoHash, tr = []} = query;
-        tr = typeof tr === 'string' ? [tr] : tr;
+        tr = !tr ? [] : typeof tr === 'string' ? [tr] : tr;
 
         if (!infoHash || infoHash.length !== 40) {
             throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');

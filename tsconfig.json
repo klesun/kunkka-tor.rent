@@ -1,8 +1,10 @@
 {
 	"compilerOptions": {
 		"lib": ["esnext"],
+		"jsx": "react-jsx",
 		"allowJs": true,
-		"target": "es2020",
+		"target": "esnext",
+		"moduleResolution": "node",
 		"noEmit": true,
 		"strict": true
 	}

@@ -129,6 +129,7 @@ const getSizeDecimalCategory = (bytes) => {
 
 // import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
 const whenToExpandTorrentView = import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
+    // language=file-reference
     .then(tsBrowser => tsBrowser.loadModule('./../src/client/ToExpandTorrentView.ts'))
     .then(module => module.default);
 

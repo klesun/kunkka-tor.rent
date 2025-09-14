@@ -59,6 +59,13 @@ const formatSize = (bytes: number) => {
     }
 };
 
+const escapeHtmlContent = (unsafe: string) => {
+    return unsafe
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+};
+
 const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
     const csvRecord = await getInfohashRecord(infoHash);
     const description = !csvRecord ? null : `${formatSize(+csvRecord.size_bytes)} | ${csvRecord.seeders} seeds | ${csvRecord.leechers} leechers`;
@@ -70,6 +77,7 @@ const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
                 Xml('meta', {name: 'description', content: description}),
                 Xml('meta', {property: 'og:description', content: description}),
             ],
+            Xml('link', { rel: 'stylesheet', src: '../infoPage/index.css' }),
         ]),
         Xml('body', {}, [
             Xml('h2', {}, csvRecord ? csvRecord.name : '🧲 ' + infoHash),
@@ -77,6 +85,14 @@ const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
                 Xml('div', {}, 'Created At: ' + new Date(+csvRecord.created_unix * 1000).toISOString()),
                 Xml('div', {}, 'Scraped At: ' + new Date(+csvRecord.scraped_date * 1000).toISOString()),
             ],
+            Xml('div', { id: 'react-app-root-container' }),
+            `<script id="ssr-data-from-server" type="application/json">
+                ${escapeHtmlContent(JSON.stringify({ infoHash }))}
+            </script>`,
+            Xml('script', { id: 'ssr-data-from-server', type: 'application/json' }, JSON.stringify({ infoHash })),
+            Xml('script', { type: 'module', src: '../infoPage/index.js' }),
+            Xml('script', { src: 'https://unpkg.com/react@18/umd/react.development.js' }),
+            Xml('script', { src: 'https://unpkg.com/react-dom@18/umd/react-dom.development.js' }),
         ]),
     ]);
     params.rs.setHeader('content-type', 'text/html');
