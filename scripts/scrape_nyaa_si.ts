@@ -19,19 +19,41 @@ const MAX_DELAY = 2500;
 
 const main = async () => {
     let ddosErrors = 0;
-    for (let i = 40065; i <= 1766459; ++i) {
+    for (let i = 1599757; i <= 1766459; ++i) {
         const relIndex = (i - 1) % CHUNK_SIZE;
         const chunkDir = baseDir + '/' + (i - relIndex) + '_' + (i - relIndex - 1 + CHUNK_SIZE);
         if (relIndex === 0) {
             await fs.mkdir(chunkDir, {recursive: true})
         }
+        
         const url = 'https://nyaa.si/view/' + i;
-        const response = await fetch(url, {
+        const options = {
             headers: {
                 'user-agent': 'torrent.klesun.net/af4a607a90e71c5ce9f8157442c813cd09a539c3 infohashes crawler script',
             },
-        });
-        console.log('processing #' + i + ' - ' + response.status);
+        };
+        let lastError = null;
+        let response = null;
+        for (let j = 0; j < 7; ++j) {
+            try {
+                response = await fetch(url, options);
+                break;
+            } catch (error) {
+                console.warn(error);
+                lastError = error;
+                const baseDelay = MIN_DELAY + Math.floor(
+                    Math.random() * (MAX_DELAY - MIN_DELAY)
+                );
+                const delay = baseDelay * 20 * Math.pow(2, j);
+                const msg = 'Transport error, pausing for ' + delay + ' ms';
+                console.warn(msg);
+                await new Promise(_ => setTimeout(_, delay));
+            }
+        }
+        if (!response) {
+            throw lastError;
+        }
+        console.log('processing # ' + i + ' - ' + response.status);
         if (response.status === 404) {
             // skip this number, torrent was deleted
         } else {
@@ -40,7 +62,7 @@ const main = async () => {
                 ddosErrors = 0;
                 await fs.writeFile(chunkDir + '/' + i + '.html', pageHtml);
             } else {
-                if (ddosErrors > 5) {
+                if (ddosErrors > 7) {
                     const msg = 'Aborting after receiving unexpected response code ' + ddosErrors + ' times in a row ' +
                         response.status + ' - probably rate limit\n' + pageHtml;
                     throw new Error(msg);
@@ -50,11 +72,11 @@ const main = async () => {
                     const baseDelay = MIN_DELAY + Math.floor(
                         Math.random() * (MAX_DELAY - MIN_DELAY)
                     );
-                    const delay = baseDelay * 20;
+                    const delay = baseDelay * 20 * Math.pow(2, ddosErrors);
                     const msg = 'DDoS protection response ' + response.status +
                         ', pausing for ' + delay + ' ms\n' + pageHtml;
                     console.warn(msg);
-                    await new Promise(_ => setTimeout(_, baseDelay * 20 * Math.pow(2, ddosErrors)));
+                    await new Promise(_ => setTimeout(_, delay));
                     continue;
                 }
             }
