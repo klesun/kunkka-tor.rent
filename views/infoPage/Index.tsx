@@ -177,23 +177,22 @@ export default function Index({ infoHash }: { infoHash: string }) {
     }, []);
 
     return <div>
-        <link rel="stylesheet" href="./../search.css"/>,
-        {Dom('div', {class: 'expanded-torrent-block'}, [
-            Dom('div', {
-                class: 'expanded-view-left-section'
-            }, [
-                !metaInfo
-                    ? Dom('div', {class: 'file-list-cont'}, 'Loading File List...')
-                    : renderFileList(metaInfo),
-                !swarmInfo
-                    ? Dom('div', { class: 'swarm-info-container'})
-                    : Dom('div', { class: 'swarm-info-container'}, JSON.stringify(swarmInfo, null, 4)),
-            ]),
+        <link rel="stylesheet" href="./../search.css"/>
+        <div className="expanded-torrent-block">
+            <div className="expanded-view-left-section">
+                {!metaInfo
+                    ? <div className="file-list-cont">Loading File List...</div>
+                    : renderFileList(metaInfo)}
+                {!swarmInfo
+                    ? <div className="swarm-info-container"></div>
+                    : <div className="swarm-info-container">{JSON.stringify(swarmInfo, null, 4)}</div>}
+            </div>
             <div className="player-cont">{
-                !metaInfo ? 'Meta Data is loading...' : !openedFile ? 'Choose a File from the List...' : <Player
+                !metaInfo ? 'Meta Data is loading...' : !openedFile ? 'Choose a File from the List.' : <Player
                     key={openedFile.path} infoHash={infoHash} file={openedFile} files={metaInfo.files}
                 />
             }</div>,
         ])}
+        </div>
     </div>;
 }
