@@ -2,7 +2,7 @@
 import {Dom} from './Dom.js';
 import Api from "../client/Api.js";
 import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
-import {VIDEO_EXTENSIONS, SUBS_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
+import {VIDEO_EXTENSIONS, SUBS_EXTENSIONS, GOOD_AUDIO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../common/FixNaturalOrder.js";
 import {FfprobeOutput, FfprobeStream} from "./FfprobeOutput.d";
 import {QbtSearchResultItem, QbtSearchResultItemExtended} from "./QbtSearch.d";
@@ -66,8 +66,6 @@ const typeToStreamInfoMaker: {
     },
 };
 
-const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
-
 const isBadAudioCodec = (codec_name: string) => ['ac3', 'eac3'].includes(codec_name);
 
 const makeStreamItem = (stream: FfprobeStream) => {
@@ -75,7 +73,7 @@ const makeStreamItem = (stream: FfprobeStream) => {
     const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
     const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
     const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name) || isBadAudioCodec(codec_name);
-    const isGoodCodec = ['h264', 'vp9', ...SUBS_EXTENSIONS, ...goodAudioExtensions].includes(codec_name);
+    const isGoodCodec = ['h264', 'vp9', ...SUBS_EXTENSIONS, ...GOOD_AUDIO_EXTENSIONS].includes(codec_name);
     return Dom('div', {'data-codec-type': codec_type}, [
         Dom('span', {}, '#' + index),
         Dom('label', {}, [

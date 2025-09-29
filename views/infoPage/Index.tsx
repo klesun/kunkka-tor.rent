@@ -1,8 +1,9 @@
 import Api from "../../src/client/Api.js";
-import ExternalTrackMatcher, {SUBS_EXTENSIONS, VIDEO_EXTENSIONS } from "../../src/common/ExternalTrackMatcher.js";
+import ExternalTrackMatcher, { SUBS_EXTENSIONS, VIDEO_EXTENSIONS, GOOD_AUDIO_EXTENSIONS } from "../../src/common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../../src/common/FixNaturalOrder.js";
 import type { IApi_connectToSwarm_rs, IApi_getSwarmInfo_rs } from "../../src/server/Api";
 import type {ShortTorrentFileInfo} from "../../src/server/actions/ScanInfoHashStatus";
+import type { FfprobeOutput, FfprobeStream } from "../../src/client/FfprobeOutput";
 
 const { React, ReactDOM } = window;
 const { useEffect, useState } = React;
@@ -47,20 +48,112 @@ function FilesList({ seconds, isBadCodec, files, playCallback }: {
     </div>;
 }
 
+const typeToStreamInfoMaker: {
+    [type in FfprobeStream['codec_type']]: (
+        stream: FfprobeStream & {codec_type: type}
+    ) => React.ReactElement
+} = {
+    'video': (stream) => {
+        const {width, height, display_aspect_ratio, avg_frame_rate, bits_per_raw_sample, pix_fmt, ...rest} = stream;
+        return <span>
+            <span>{display_aspect_ratio + ' ' + width + 'x' + height}</span>
+            <span>{+avg_frame_rate.split('/')[0] / 1000}</span>
+            <span>Colors: {pix_fmt}</span>
+        </span>;
+    },
+    'audio': (stream) => {
+        const { sample_fmt, sample_rate, channels, tags = {}, ...rest } = stream;
+        const { language, title } = tags;
+        return <span>
+            <span>{language || ''}</span>
+            <span>{title || ''}</span>
+            <span>{(+sample_rate / 1000) + ' kHz'}</span>
+            <span>{channels + ' ch'}</span>
+        </span>;
+    },
+    'subtitle': (stream) => {
+        const {language, title, NUMBER_OF_FRAMES} = stream.tags || {};
+        return <span>
+            <span>{language}</span>
+            <span>{title || ''}</span>
+            {!!NUMBER_OF_FRAMES && <span>{NUMBER_OF_FRAMES} frames</span>}
+        </span>;
+    },
+    'attachment': (stream) => {
+        const {tags = {}} = stream;
+        const {filename} = tags;
+        return <span>{filename || JSON.stringify(tags)}</span>;
+    },
+};
+
+function StreamItem({ stream }: { stream: FfprobeStream }) {
+    const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+    const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
+    const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
+    const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name) || isBadAudioCodec(codec_name);
+    const isGoodCodec = ['h264', 'vp9', ...SUBS_EXTENSIONS, ...GOOD_AUDIO_EXTENSIONS].includes(codec_name);
+    return <div data-codec-type={codec_type}>
+        <span>#{index}</span>
+        <label>
+            {codec_type !== "audio" && <input
+                type="radio"
+                name="selectedAudioTrack"
+                value={index}
+                data-codec-name={stream.codec_name}
+            />}
+            <span className={
+                isBadCodec ? 'bad-codec' :
+                isGoodCodec ? 'good-codec' :
+                undefined
+            }>{codec_name}</span>
+            <span>{codec_type}</span>
+            <span>{profile}</span>
+            <span>{typeInfo}</span>
+        </label>
+    </div>;
+}
+
+const isBadAudioCodec = (codec_name: string) => ['ac3', 'eac3'].includes(codec_name);
+
+function FfprobeOutput({ ffprobeOutput }: { ffprobeOutput: FfprobeOutput }) {
+    const { format, streams } = ffprobeOutput;
+    const { format_name, format_long_name, probe_score, bit_rate } = format;
+    const audioTracks = streams.filter(s => s.codec_type === 'audio');
+    const hasBadAudioCodec = audioTracks.some(s => isBadAudioCodec(s.codec_name));
+
+    const streamItems = [];
+    let subsIndex = 0;
+    for (const stream of streams) {
+        const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+        streamItems.push(<StreamItem key={streamItems.length} stream={stream}/>);
+
+        if (codec_type === 'subtitle') {
+            // const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
+            //     ...fileApiParams, subsIndex: subsIndex,
+            // });
+            // addSubsTrack({video, src, tags: stream.tags});
+            ++subsIndex;
+        }
+    }
+
+    return <form className={"ffmpeg-info" + (audioTracks.length > 1 || hasBadAudioCodec ? " can-change-audio-track" : "")}>
+        <div className="container-info">
+            {format_long_name + ' - ' + format_name + ' ' + (+bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate'}
+        </div>
+        <div className="stream-list">{streamItems}</div>
+    </form>;
+}
+
 function Player({ infoHash, file, files }: {
     infoHash: string,
     file: ShortTorrentFileInfo,
     files: ShortTorrentFileInfo[],
 }) {
+    const [ffprobeOutput, setFfprobeOutput] = useState();
+
     useEffect(() => {
         Api().getFfmpegInfo(fileApiParams)
-            .then((ffprobeOutput) => {
-                // displayFfprobeOutput({
-                //     ffprobeOutput, gui: {
-                //         video, ffmpegInfoBlock,
-                //     }
-                // });
-            }).catch(exc => {
+            .then(setFfprobeOutput).catch(exc => {
                 if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
                     throw exc;
                 } else {
@@ -109,7 +202,9 @@ function Player({ infoHash, file, files }: {
         <div className="media-info-section">
             <div className="file-name">{file.path}</div>
             <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
-            <form className="ffmpeg-info">It may take a minute or so before playback can be started...</form>
+            {!ffprobeOutput
+                ? <div>It may take a minute or so before playback can be started...</div>
+                : <FfprobeOutput ffprobeOutput={ffprobeOutput} />}
         </div>
     </div>;
 }

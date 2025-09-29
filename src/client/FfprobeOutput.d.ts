@@ -31,7 +31,11 @@ type SubtitleStreamBase = {
     "codec_time_base": "0/1",
 };
 
-type StreamBase = StaticStreamBase & (VideoStreamBase | AudioStreamBase | SubtitleStreamBase);
+type AttachmentStreamBase = {
+    "codec_type": "attachment",
+};
+
+type StreamBase = StaticStreamBase & (VideoStreamBase | AudioStreamBase | SubtitleStreamBase | AttachmentStreamBase);
 
 export type FfprobeStream = VideoStreamBase & {
     "width": 1440,
@@ -162,6 +166,10 @@ export type FfprobeStream = VideoStreamBase & {
         "_STATISTICS_TAGS-eng": "BPS DURATION NUMBER_OF_FRAMES NUMBER_OF_BYTES",
         "DURATION": "00:23:51.365000000"
     }
+} | AttachmentStreamBase & {
+    tags?: {
+        filename?: string,
+    },
 };
 
 export type FfprobeOutput = {

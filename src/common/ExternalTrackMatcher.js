@@ -1,6 +1,7 @@
 import longestCommonSubstring from "./lib/longest-common-substring/longestCommonSubstring.js";
 
 export const VIDEO_EXTENSIONS = ['mkv', 'mp4', 'avi', 'mov', 'mpg', 'm2v'];
+export const GOOD_AUDIO_EXTENSIONS = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
 export const SUBS_EXTENSIONS = ['srt', 'vtt', 'subrip', 'ass', 'sub'];
 
 /**
