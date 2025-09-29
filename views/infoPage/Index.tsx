@@ -175,8 +175,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
                 !metaInfo ? 'Meta Data is loading...' : !openedFile ? 'Choose a File from the List.' : <Player
                     key={openedFile.path} infoHash={infoHash} file={openedFile} files={metaInfo.files}
                 />
-            }</div>,
-        ])}
+            }</div>
         </div>
     </div>;
 }
