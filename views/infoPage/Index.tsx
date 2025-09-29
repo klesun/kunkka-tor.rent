@@ -22,30 +22,29 @@ function FilesList({ seconds, isBadCodec, files, playCallback }: {
         // const key = makeStorageKey(f);
         // const watched = !!window.localStorage.getItem(key);
         const watched = false;
-        return Dom('tr', {
-            ...!watched ? {} : {
-                class: 'watched-in-past',
-            },
-            'data-file-extension': f.path.replace(/^.*\./, ''),
-        }, [
-            Dom('td', {}, f.path),
-            Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
-            Dom('td', {}, [
-                Dom('button', {
-                    onClick : () => playCallback(f),
-                    ...(!isBadCodec ? {} : {
-                        title: 'Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent',
-                    }),
-                }, 'Watch'),
-            ]),
-        ]);
+        return <tr
+            key={f.path}
+            className={!watched ? undefined : "watched-in-past"}
+            data-file-extension={f.path.replace(/^.*\./, '')}
+        >
+            <td>{f.path}</td>
+            <td>{(f.length / 1024 / 1024).toFixed(3) + ' MiB'}</td>
+            <td>
+                <button
+                    onClick={() => playCallback(f)}
+                    title={!isBadCodec ? undefined : 'Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent'}
+                >Watch</button>
+            </td>
+        </tr>;
     });
-    return Dom('div', {}, [
-        Dom('span', {}, seconds + ' seconds'),
-        Dom('table', {}, [
-            Dom('tbody', {class: 'files-in-torrent'}, trs),
-        ]),
-    ]);
+    return <div>
+        <span>{seconds + ' seconds'}</span>
+        <table>
+            <tbody className="files-in-torrent">
+                {trs}
+            </tbody>
+        </table>
+    </div>;
 }
 
 function Player({ infoHash, file, files }: {
