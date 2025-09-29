@@ -109,14 +109,14 @@ function Player({ infoHash, file, files }: {
     }
     const ffmpegInfoBlock = Dom('form', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
 
-    return Dom('div', {}, [
-        Dom('div', {}, [video]),
-        Dom('div', {class: 'media-info-section'}, [
-            Dom('div', {class: 'file-name'}, file.path),
-            Dom('div', {class: 'file-size'}, (file.length / 1024 / 1024).toFixed(3) + ' MiB'),
-            ffmpegInfoBlock,
-        ]),
-    ]);
+    return <div>
+        <div>{video}</div>
+        <div className="media-info-section">
+            <div className="file-name">{file.path}</div>
+            <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
+            {ffmpegInfoBlock}
+        </div>
+    </div>;
 }
 
 export default function Index({ infoHash }: { infoHash: string }) {
@@ -137,27 +137,11 @@ export default function Index({ infoHash }: { infoHash: string }) {
             f.path.match(/XviD/i) ||
             f.path.match(/mpeg-?4/i)
         ));
-        const dom = <FilesList {...{
+        return <FilesList {...{
             isBadCodec, seconds,
-            // resultItem,
             files: metaInfo.files,
-            playCallback: (f) => {
-                setOpenedFile(f);
-            //     [...playerCont.querySelectorAll('video')].forEach(v => {
-            //         v.pause();
-            //         v.removeAttribute('src');
-            //         v.load();
-            //     });
-            //     playerCont.innerHTML = '';
-            //     const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);
-            //     playerCont.appendChild(player);
-            //     [...player.querySelectorAll('video')].forEach(v => {
-            //         v.play();
-            //         v.addEventListener('ended', tryPlayNext);
-            //     });
-            },
+            playCallback: setOpenedFile,
         }}/>;
-        return dom;
     };
 
     useEffect(() => {
