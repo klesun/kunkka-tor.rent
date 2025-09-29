@@ -1,4 +1,5 @@
 import Api from "../../src/client/Api.js";
+import ExternalTrackMatcher, {SUBS_EXTENSIONS, VIDEO_EXTENSIONS } from "../../src/common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../../src/common/FixNaturalOrder.js";
 import type { IApi_connectToSwarm_rs, IApi_getSwarmInfo_rs } from "../../src/server/Api";
 import type {ShortTorrentFileInfo} from "../../src/server/actions/ScanInfoHashStatus";
@@ -10,12 +11,13 @@ const Dom = React.createElement;
 
 const startedMs = Date.now();
 
-function FilesList({ seconds, isBadCodec, files }: {
+function FilesList({ seconds, isBadCodec, files, playCallback }: {
     isBadCodec: boolean,
     seconds: number,
     files: ShortTorrentFileInfo[],
+    playCallback: (f: ShortTorrentFileInfo) => void,
 }) {
-    files = FixNaturalOrder({items: files, getName: f => f.path}).sortedItems;
+    files = FixNaturalOrder<ShortTorrentFileInfo>({ items: files, getName: f => f.path }).sortedItems;
     const trs = files.map((f, i) => {
         // const key = makeStorageKey(f);
         // const watched = !!window.localStorage.getItem(key);
@@ -29,12 +31,12 @@ function FilesList({ seconds, isBadCodec, files }: {
             Dom('td', {}, f.path),
             Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
             Dom('td', {}, [
-                // Dom('button', {
-                //     onclick: () => playFileAt(i),
-                //     ...(!isBadCodec ? {} : {
-                //         title: 'Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent',
-                //     }),
-                // }, 'Watch'),
+                Dom('button', {
+                    onClick : () => playCallback(f),
+                    ...(!isBadCodec ? {} : {
+                        title: 'Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent',
+                    }),
+                }, 'Watch'),
             ]),
         ]);
     });
@@ -46,11 +48,81 @@ function FilesList({ seconds, isBadCodec, files }: {
     ]);
 }
 
+function Player({ infoHash, file, files }: {
+    infoHash: string,
+    file: ShortTorrentFileInfo,
+    files: ShortTorrentFileInfo[],
+}) {
+    useEffect(() => {
+        Api().getFfmpegInfo(fileApiParams)
+            .then((ffprobeOutput) => {
+                // displayFfprobeOutput({
+                //     ffprobeOutput, gui: {
+                //         video, ffmpegInfoBlock,
+                //     }
+                // });
+            }).catch(exc => {
+                if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
+                    throw exc;
+                } else {
+                    // not a video file probably
+                    window.open(src, '_blank');
+                }
+            });
+    }, []);
+
+    const streamPath = '/torrent-stream';
+    const fileApiParams = {
+        infoHash: infoHash,
+        filePath: file.path,
+    };
+    const src = streamPath + '?' + new URLSearchParams(fileApiParams);
+
+    const extension = file.path.toLowerCase().replace(/^.*\./, '');
+    // TODO: implement and uncomment
+    // const fileView = makeFileView({src, extension});
+    // if (fileView) {
+    //     return fileView;
+    // // TODO: use FixNaturalOrder.js
+    // } else if (['zip', 'cbz', 'epub'].includes(extension)) {
+    //     return makeZipFileView(fileApiParams);
+    // } else if (['rar', 'cbr'].includes(extension)) {
+    //     return makeRarFileView(src);
+    // }
+
+    const {matchedTracks} = ExternalTrackMatcher({
+        videoPath: file.path, files: files,
+        trackExtensions: SUBS_EXTENSIONS,
+    });
+    const video = Dom('video', {
+        controls: 'controls',
+        'data-info-hash': infoHash,
+        'data-file-path': file.path,
+        'src': src,
+    });
+    for (const subsTrack of matchedTracks) {
+        const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
+            infoHash: infoHash,
+            filePath: subsTrack.path,
+        });
+        // addSubsTrack({video, src: subsSrc, tags: {title: subsTrack.title}});
+    }
+    const ffmpegInfoBlock = Dom('form', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
+
+    return Dom('div', {}, [
+        Dom('div', {}, [video]),
+        Dom('div', {class: 'media-info-section'}, [
+            Dom('div', {class: 'file-name'}, file.path),
+            Dom('div', {class: 'file-size'}, (file.length / 1024 / 1024).toFixed(3) + ' MiB'),
+            ffmpegInfoBlock,
+        ]),
+    ]);
+}
+
 export default function Index({ infoHash }: { infoHash: string }) {
     const [metaInfo, setMetaInfo] = useState<Awaited<IApi_connectToSwarm_rs>>();
     const [swarmInfo, setSwarmInfo] = useState<Awaited<IApi_getSwarmInfo_rs>>();
-
-    const playerCont = Dom('div', {class: 'player-cont'}, 'Choose a File from the List...');
+    const [openedFile, setOpenedFile] = useState<ShortTorrentFileInfo>();
 
     const updateSwarmInfo = async () => {
         const swarmSummary = await Api().getSwarmInfo({infoHash});
@@ -69,7 +141,8 @@ export default function Index({ infoHash }: { infoHash: string }) {
             isBadCodec, seconds,
             // resultItem,
             files: metaInfo.files,
-            // playCallback: (f) => {
+            playCallback: (f) => {
+                setOpenedFile(f);
             //     [...playerCont.querySelectorAll('video')].forEach(v => {
             //         v.pause();
             //         v.removeAttribute('src');
@@ -82,7 +155,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
             //         v.play();
             //         v.addEventListener('ended', tryPlayNext);
             //     });
-            // },
+            },
         }}/>;
         return dom;
     };
@@ -115,7 +188,11 @@ export default function Index({ infoHash }: { infoHash: string }) {
                     ? Dom('div', { class: 'swarm-info-container'})
                     : Dom('div', { class: 'swarm-info-container'}, JSON.stringify(swarmInfo, null, 4)),
             ]),
-            playerCont,
+            <div className="player-cont">{
+                !metaInfo ? 'Meta Data is loading...' : !openedFile ? 'Choose a File from the List...' : <Player
+                    key={openedFile.path} infoHash={infoHash} file={openedFile} files={metaInfo.files}
+                />
+            }</div>,
         ])}
     </div>;
 }

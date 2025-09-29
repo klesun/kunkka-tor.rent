@@ -102,11 +102,11 @@ export const splitTillFirstNumber = (fileName) => {
  * aim of this tool is to restore order for obvious cases like abc1, abc10, abc4 without hurting actually consistent lists
  *
  * @template T
- * @param {T[]} items
- * @param {function(T): string} getName
- * @return {{sortedItems: T[]}}
+ * @param {{ items: T[], getName: (item: T) => string }} params
+ * @return {{ sortedItems: T[] }}
  */
-const FixNaturalOrder = ({items, getName}) => {
+const FixNaturalOrder = (params) => {
+    const { items, getName } = params;
     const prefixToDigital = new Map();
     for (const item of items) {
         const fileName = getName(item);

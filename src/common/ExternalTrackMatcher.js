@@ -1,6 +1,7 @@
 import longestCommonSubstring from "./lib/longest-common-substring/longestCommonSubstring.js";
 
 export const VIDEO_EXTENSIONS = ['mkv', 'mp4', 'avi', 'mov', 'mpg', 'm2v'];
+export const SUBS_EXTENSIONS = ['srt', 'vtt', 'subrip', 'ass', 'sub'];
 
 /**
  * @param superstring = 'ololo hello vasya lololo'
@@ -53,12 +54,15 @@ const getAllUnambiguousMatches = (allFilePaths, allSubsOptions) => {
 /**
  * @param {string} videoPath
  * @param {{path: string, length: number}[]} files
- * @return {string[]} - list of paths to subs we identified as belonging to this video; may
+ * @param {{ videoPath: string, files: ShortTorrentFileInfo[], trackExtensions: string[] }} params
+ * @return {{ matchedTracks: {
+ *     title: string,
+ *     path: string,
+ * }[] }} - list of paths to subs we identified as belonging to this video; may
  *  be zero; also can be more than one, example: french, Italian, rus, all in separate files
  */
-const ExternalTrackMatcher = ({
-    videoPath, files, trackExtensions,
-}) => {
+const ExternalTrackMatcher = (params) => {
+    const { videoPath, files, trackExtensions } = params;
     const videoCleanName = videoPath
         // remove directory
         .replace(/.*\//, '')

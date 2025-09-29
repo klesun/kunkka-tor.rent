@@ -4,7 +4,7 @@ import Api from "../client/Api.js";
 // TODO: support! https://github.com/klesun/ts-browser/issues/19
 // import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
-import {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
+import {VIDEO_EXTENSIONS, SUBS_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../common/FixNaturalOrder.js";
 import {FfprobeOutput, FfprobeStream} from "./FfprobeOutput.d";
 import {QbtSearchResultItem, QbtSearchResultItemExtended} from "./QbtSearch.d";
@@ -69,7 +69,6 @@ const typeToStreamInfoMaker: {
     },
 };
 
-const subsExtensions = ['srt', 'vtt', 'subrip', 'ass', 'sub'];
 const goodAudioExtensions = ['aac', 'vorbis', 'flac', 'mp3', 'opus'];
 
 const isBadAudioCodec = (codec_name: string) => ['ac3', 'eac3'].includes(codec_name);
@@ -79,7 +78,7 @@ const makeStreamItem = (stream: FfprobeStream) => {
     const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
     const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
     const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name) || isBadAudioCodec(codec_name);
-    const isGoodCodec = ['h264', 'vp9', ...subsExtensions, ...goodAudioExtensions].includes(codec_name);
+    const isGoodCodec = ['h264', 'vp9', ...SUBS_EXTENSIONS, ...goodAudioExtensions].includes(codec_name);
     return Dom('div', {'data-codec-type': codec_type}, [
         Dom('span', {}, '#' + index),
         Dom('label', {}, [
@@ -244,7 +243,7 @@ const makeFileView = ({src, extension}: {
             Dom('img', {src: src, style: 'max-width: 100%; max-height: 900px'}),
             Dom('div', {}, 'Loading image...'),
         ]);
-    } else if ([...subsExtensions, 'txt', 'xml', 'json', 'yml', 'yaml', 'nfo', 'info', 'md5', 'sha', 'bat', 'rtf'].includes(extension)) {
+    } else if ([...SUBS_EXTENSIONS, 'txt', 'xml', 'json', 'yml', 'yaml', 'nfo', 'info', 'md5', 'sha', 'bat', 'rtf'].includes(extension)) {
         const textarea = Dom('textarea', {rows: 36, cols: 140});
         fetch(src)
             .then(rs => rs.text())
@@ -411,7 +410,7 @@ const initPlayer = (
 
     const {matchedTracks} = ExternalTrackMatcher({
         videoPath: file.path, files: files,
-        trackExtensions: subsExtensions,
+        trackExtensions: SUBS_EXTENSIONS,
     });
     const video = Dom('video', {
         controls: 'controls',
