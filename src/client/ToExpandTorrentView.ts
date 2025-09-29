@@ -1,16 +1,13 @@
 
 import {Dom} from './Dom.js';
 import Api from "../client/Api.js";
-// TODO: support! https://github.com/klesun/ts-browser/issues/19
-// import ExternalTrackMatcher, {VIDEO_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import ExternalTrackMatcher from "../common/ExternalTrackMatcher.js";
 import {VIDEO_EXTENSIONS, SUBS_EXTENSIONS} from "../common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../common/FixNaturalOrder.js";
 import {FfprobeOutput, FfprobeStream} from "./FfprobeOutput.d";
 import {QbtSearchResultItem, QbtSearchResultItemExtended} from "./QbtSearch.d";
-// TODO: allow to express through .d.ts and add ignore `import type` statements
-//import type {ShortTorrentFileInfo} from "../server/actions/ScanInfoHashStatus";
-// import type  {FileHeader} from "../../node_modules/node-unrar-js/src/js/extractor";
+import type {ShortTorrentFileInfo} from "../server/actions/ScanInfoHashStatus";
+import type {FileHeader} from "../../node_modules/node-unrar-js/src/js/extractor";
 
 const WATCHED_STORAGE_PREFIX = 'WATCHED_STORAGE_PREFIX';
 
@@ -133,9 +130,9 @@ const monitorAudioTracks = ({video, ffmpegInfoBlock, fileApiParams}: {
 
     let activeAudioStreamIdx = -1;
     ffmpegInfoBlock.onchange = () => {
-        const radio = Array.isArray(ffmpegInfoBlock.elements['selectedAudioTrack'])
-	    ? [...ffmpegInfoBlock.elements['selectedAudioTrack']].find(r => r.checked)
-	    : ffmpegInfoBlock.elements['selectedAudioTrack'];
+        const radio = Array.isArray(ffmpegInfoBlock.elements['selectedAudioTrack']) || ffmpegInfoBlock.elements['selectedAudioTrack'] instanceof RadioNodeList
+            ? [...ffmpegInfoBlock.elements['selectedAudioTrack']].find(r => r.checked)
+            : ffmpegInfoBlock.elements['selectedAudioTrack'];
         const audioIdx = +radio.value;
         const codecName = radio.getAttribute('data-codec-name');
         // commented cuz when first audio track codec is ac3 there is no sound out of the box
