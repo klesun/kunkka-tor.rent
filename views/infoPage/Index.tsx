@@ -94,12 +94,6 @@ function Player({ infoHash, file, files }: {
         videoPath: file.path, files: files,
         trackExtensions: SUBS_EXTENSIONS,
     });
-    const video = Dom('video', {
-        controls: 'controls',
-        'data-info-hash': infoHash,
-        'data-file-path': file.path,
-        'src': src,
-    });
     for (const subsTrack of matchedTracks) {
         const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
             infoHash: infoHash,
@@ -107,14 +101,16 @@ function Player({ infoHash, file, files }: {
         });
         // addSubsTrack({video, src: subsSrc, tags: {title: subsTrack.title}});
     }
-    const ffmpegInfoBlock = Dom('form', {class: 'ffmpeg-info'}, 'It may take a minute or so before playback can be started...');
 
     return <div>
-        <div>{video}</div>
+        <div>
+            <video controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
+            </video>
+        </div>
         <div className="media-info-section">
             <div className="file-name">{file.path}</div>
             <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
-            {ffmpegInfoBlock}
+            <form className="ffmpeg-info">It may take a minute or so before playback can be started...</form>
         </div>
     </div>;
 }
