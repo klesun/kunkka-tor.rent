@@ -121,20 +121,10 @@ function FfprobeOutput({ ffprobeOutput }: { ffprobeOutput: FfprobeOutput }) {
     const audioTracks = streams.filter(s => s.codec_type === 'audio');
     const hasBadAudioCodec = audioTracks.some(s => isBadAudioCodec(s.codec_name));
 
-    const streamItems = [];
-    let subsIndex = 0;
-    for (const stream of streams) {
+    const streamItems = streams.map(stream => {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
-        streamItems.push(<StreamItem key={stream.index} stream={stream}/>);
-
-        if (codec_type === 'subtitle') {
-            // const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
-            //     ...fileApiParams, subsIndex: subsIndex,
-            // });
-            // addSubsTrack({video, src, tags: stream.tags});
-            ++subsIndex;
-        }
-    }
+        return <StreamItem key={stream.index} stream={stream}/>;
+    });
 
     return <form className={"ffmpeg-info" + (audioTracks.length > 1 || hasBadAudioCodec ? " can-change-audio-track" : "")}>
         <div className="container-info">
@@ -187,16 +177,25 @@ function Player({ infoHash, file, files }: {
         trackExtensions: SUBS_EXTENSIONS,
     });
     for (const subsTrack of matchedTracks) {
-        const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
-            infoHash: infoHash,
-            filePath: subsTrack.path,
-        });
         // addSubsTrack({video, src: subsSrc, tags: {title: subsTrack.title}});
     }
 
     return <div>
         <div>
             <video controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
+                {matchedTracks.map((subsTrack, subsIndex) => {
+                    const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
+                        infoHash: infoHash,
+                        filePath: subsTrack.path,
+                    });
+                    return <track
+                        src={subsSrc}
+                        key={subsTrack.path}
+                        default={subsIndex === 0}
+                        kind="subtitles"
+                        label={subsTrack.title}
+                    />;
+                })}
                 {ffprobeOutput && ffprobeOutput.streams
                     .flatMap(s => s.codec_type === "subtitle" ? [s] : [])
                     .map((sub, subsIndex) => {
@@ -208,10 +207,11 @@ function Player({ infoHash, file, files }: {
                         const label = ((srclang || '') + ' ' + ((tags || { title: "" }).title || '')).trim();
                         return <track
                             src={src}
-                            default={subsIndex === 0}
+                            key={subsIndex}
+                            default={matchedTracks.length === 0 && subsIndex === 0}
                             kind="subtitles"
                             label={label || undefined}
-                            srclang={srclang || undefined}
+                            srcLang={srclang || undefined}
                         />;
                     })}
             </video>
