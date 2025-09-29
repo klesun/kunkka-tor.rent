@@ -546,7 +546,7 @@ const ToExpandTorrentView = ({
             expandedView = null;
             return;
         }
-        const swarmInfoPanel = Dom('div', {style: 'white-space: pre-wrap; font-family: monospace;'});
+        const swarmInfoPanel = Dom('div', {class: 'swarm-info-container'});
         const fileListCont = Dom('div', {class: 'file-list-cont'}, 'Loading File List...');
         const leftSection = Dom('div', {
             class: 'expanded-view-left-section'

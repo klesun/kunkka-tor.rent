@@ -29,6 +29,10 @@ td.infohash {
 table.resulting-list-of-torrents {
     width: 100%;
 }
+.swarm-info-container {
+    white-space: pre-wrap;
+    font-family: monospace;
+}
 .search-results-table-container {
     background-image: url(/unv/bg_4k_zeppelin_pov_no_margin.jpg);
     background-repeat: no-repeat;

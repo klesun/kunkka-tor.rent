@@ -177,6 +177,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
     }, []);
 
     return <div>
+        <link rel="stylesheet" href="./../search.css"/>,
         {Dom('div', {class: 'expanded-torrent-block'}, [
             Dom('div', {
                 class: 'expanded-view-left-section'
