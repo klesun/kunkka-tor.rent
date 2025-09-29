@@ -95,7 +95,7 @@ function StreamItem({ stream }: { stream: FfprobeStream }) {
     return <div data-codec-type={codec_type}>
         <span>#{index}</span>
         <label>
-            {codec_type !== "audio" && <input
+            {codec_type === "audio" && <input
                 type="radio"
                 name="selectedAudioTrack"
                 value={index}
