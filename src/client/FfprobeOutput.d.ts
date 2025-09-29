@@ -1,4 +1,5 @@
 type StaticStreamBase = {
+    "index": number,
     "codec_tag_string": "[0][0][0][0]",
     "codec_tag": "0x0000",
     "time_base": "1/1000",
@@ -32,7 +33,12 @@ type SubtitleStreamBase = {
 };
 
 type AttachmentStreamBase = {
+    "index": 24,
+    "codec_name": never,
+    "codec_long_name": never,
     "codec_type": "attachment",
+    "codec_time_base": never,
+    "tags": {"filename":"verdanab.ttf","mimetype":"font/ttf"}
 };
 
 type StreamBase = StaticStreamBase & (VideoStreamBase | AudioStreamBase | SubtitleStreamBase | AttachmentStreamBase);
@@ -167,8 +173,35 @@ export type FfprobeStream = VideoStreamBase & {
         "DURATION": "00:23:51.365000000"
     }
 } | AttachmentStreamBase & {
-    tags?: {
-        filename?: string,
+    "codec_tag_string": "[0][0][0][0]",
+    "codec_tag": "0x0000",
+    "r_frame_rate": "0/0",
+    "avg_frame_rate": "0/0",
+    "time_base": "1/90000",
+    "start_pts": 0,
+    "start_time": "0.000000",
+    "duration_ts": 137257740,
+    "duration": "1525.086000",
+    "extradata_size": 208456,
+    "disposition": {
+        "default": 0,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
     },
 };
 

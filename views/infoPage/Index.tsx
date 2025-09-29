@@ -80,8 +80,8 @@ const typeToStreamInfoMaker: {
         </span>;
     },
     'attachment': (stream) => {
-        const {tags = {}} = stream;
-        const {filename} = tags;
+        const { tags = { filename: "" } } = stream;
+        const { filename } = tags;
         return <span>{filename || JSON.stringify(tags)}</span>;
     },
 };
@@ -125,7 +125,7 @@ function FfprobeOutput({ ffprobeOutput }: { ffprobeOutput: FfprobeOutput }) {
     let subsIndex = 0;
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
-        streamItems.push(<StreamItem key={streamItems.length} stream={stream}/>);
+        streamItems.push(<StreamItem key={stream.index} stream={stream}/>);
 
         if (codec_type === 'subtitle') {
             // const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
@@ -149,7 +149,7 @@ function Player({ infoHash, file, files }: {
     file: ShortTorrentFileInfo,
     files: ShortTorrentFileInfo[],
 }) {
-    const [ffprobeOutput, setFfprobeOutput] = useState();
+    const [ffprobeOutput, setFfprobeOutput] = useState<FfprobeOutput>();
 
     useEffect(() => {
         Api().getFfmpegInfo(fileApiParams)
@@ -197,6 +197,23 @@ function Player({ infoHash, file, files }: {
     return <div>
         <div>
             <video controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
+                {ffprobeOutput && ffprobeOutput.streams
+                    .flatMap(s => s.codec_type === "subtitle" ? [s] : [])
+                    .map((sub, subsIndex) => {
+                        const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
+                            ...fileApiParams, subsIndex: String(subsIndex),
+                        });
+                        const { tags } = sub;
+                        const srclang = (tags || { language: undefined }).language;
+                        const label = ((srclang || '') + ' ' + ((tags || { title: "" }).title || '')).trim();
+                        return <track
+                            src={src}
+                            default={subsIndex === 0}
+                            kind="subtitles"
+                            label={label || undefined}
+                            srclang={srclang || undefined}
+                        />;
+                    })}
             </video>
         </div>
         <div className="media-info-section">
