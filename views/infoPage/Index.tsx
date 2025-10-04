@@ -134,6 +134,104 @@ function FfprobeOutput({ ffprobeOutput }: { ffprobeOutput: FfprobeOutput }) {
     </form>;
 }
 
+function TextFileView({ src }: { src: string }) {
+    const [text, setText] = useState<string>();
+
+    useEffect(() => {
+        fetch(src)
+            .then(rs => rs.text())
+            .then(setText);
+    }, []);
+
+    return <div>
+        {text === undefined ? <div>Loading text...</div> : <textarea rows={36} cols={140}>{text}</textarea>}
+        <div>Loading text...</div>
+    </div>;
+}
+
+function makeFileView({src, extension}: {
+    src: string, extension: string,
+}) {
+    if (['png', 'jpg', 'jpeg'].includes(extension)) {
+        // разожми меня покрепче, шакал
+        return <div>
+            <img src={src} style={{ maxWidth: "100%", maxHeight: "900px" }}/>,
+            <div>Loading image...</div>
+        </div>;
+    } else if ([...SUBS_EXTENSIONS, 'txt', 'xml', 'json', 'yml', 'yaml', 'nfo', 'info', 'md5', 'sha', 'bat', 'rtf'].includes(extension)) {
+        return <TextFileView src={src} />;
+    // pdf could be opened in an iframe
+    } else if (['exe', 'msi', 'pdf', 'djvu'].includes(extension)) {
+        window.open(src, '_blank');
+        return <div>Binary file, initiating download...</div>;
+    } else {
+        return null;
+    }
+}
+
+type FileApiParams = {
+    infoHash: string,
+    filePath: string,
+};
+
+type ZipFileEntry = { path: string, size: number };
+
+function FileEntryFromZip({ fileApiParams, entry }: { fileApiParams: FileApiParams, entry: ZipFileEntry }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    let openedFile;
+    if (!isOpen) {
+        openedFile = <></>;
+    } else {
+        const extension = entry.path.toLowerCase().replace(/^.*\./, '');
+        const src = '/ftp/zipReaderFile?' + new URLSearchParams({
+            ...fileApiParams, zippedFilePath: entry.path,
+        });
+        openedFile = makeFileView({src, extension});
+        if (!openedFile) {
+            window.open(src, '_blank');
+            openedFile = Dom('div', {}, 'Binary file, initiating download...');
+        }
+    }
+
+    return <>
+        <div>
+            <span>{entry.path}</span>
+            <span>{' '}</span>
+            <span>{(entry.size / 1024 / 1024).toFixed(2) + ' MiB'}</span>
+            <span>{' '}</span>
+            {!isOpen
+                ? <button type="button" onClick={() => setIsOpen(true)}>View</button>
+                : <button type="button" onClick={() => setIsOpen(false)}>Hide</button>}
+        </div>
+        <div>{openedFile}</div>
+    </>;
+}
+
+function ExtsactedZipFileView(fileApiParams: FileApiParams) {
+    const [entries, setEntries] = useState<ZipFileEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        Api().prepareZipReader(fileApiParams).then(async iter => {
+            for await (const entry of iter) {
+                setEntries(prev => [...prev, entry]);
+            }
+        }).finally(() => setLoading(false));
+    }, []);
+
+    const downloadSrc = '/torrent-stream?' + new URLSearchParams(fileApiParams);
+    return <div>
+        <div>{entries.map(entry => <div key={entry.path} style={{ textAlign: "right" }}>
+            <FileEntryFromZip fileApiParams={fileApiParams} entry={entry}/>
+        </div>)}</div>
+        <div>
+            <button type="button" onClick={() => window.open(downloadSrc, '_blank')}>Download</button>
+        </div>
+        <div>{loading ? 'Loading archive contents...' : 'Extracted ' + entries.length + ' files'}</div>
+    </div>;
+}
+
 function Player({ infoHash, file, files }: {
     infoHash: string,
     file: ShortTorrentFileInfo,
@@ -141,7 +239,30 @@ function Player({ infoHash, file, files }: {
 }) {
     const [ffprobeOutput, setFfprobeOutput] = useState<FfprobeOutput>();
 
+    const streamPath = '/torrent-stream';
+    const fileApiParams = {
+        infoHash: infoHash,
+        filePath: file.path,
+    };
+    const src = streamPath + '?' + new URLSearchParams(fileApiParams);
+
+    const extension = file.path.toLowerCase().replace(/^.*\./, '');
+    let fileView: React.ReactElement | null;
+    // TODO: use FixNaturalOrder.js
+    if (['zip', 'cbz', 'epub'].includes(extension)) {
+        fileView = <ExtsactedZipFileView {...fileApiParams}/>;
+        // TODO: implement and uncomment
+        // else if (['rar', 'cbr'].includes(extension)) {
+        //     return makeRarFileView(src);
+        // }
+    } else {
+        fileView = makeFileView({src, extension});
+    }
+
     useEffect(() => {
+        if (fileView) {
+            return;
+        }
         Api().getFfmpegInfo(fileApiParams)
             .then(setFfprobeOutput).catch(exc => {
                 if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
@@ -153,24 +274,9 @@ function Player({ infoHash, file, files }: {
             });
     }, []);
 
-    const streamPath = '/torrent-stream';
-    const fileApiParams = {
-        infoHash: infoHash,
-        filePath: file.path,
-    };
-    const src = streamPath + '?' + new URLSearchParams(fileApiParams);
-
-    const extension = file.path.toLowerCase().replace(/^.*\./, '');
-    // TODO: implement and uncomment
-    // const fileView = makeFileView({src, extension});
-    // if (fileView) {
-    //     return fileView;
-    // // TODO: use FixNaturalOrder.js
-    // } else if (['zip', 'cbz', 'epub'].includes(extension)) {
-    //     return makeZipFileView(fileApiParams);
-    // } else if (['rar', 'cbr'].includes(extension)) {
-    //     return makeRarFileView(src);
-    // }
+    if (fileView) {
+        return fileView;
+    }
 
     const {matchedTracks} = ExternalTrackMatcher({
         videoPath: file.path, files: files,
