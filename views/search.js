@@ -127,18 +127,38 @@ const getSizeDecimalCategory = (bytes) => {
 
 //import ToExpandTorrentView from "../src/client/ToExpandTorrentView.js";
 
-// import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
-const whenToExpandTorrentView = import('https://klesun-misc.github.io/ts-browser-beta/src/ts-browser.js')
-    // language=file-reference
-    .then(tsBrowser => tsBrowser.loadModule('./../src/client/ToExpandTorrentView.ts'))
-    .then(module => module.default);
+/**
+ * @param {QbtSearchResultItemExtended} resultItem
+ */
+const getInfoHash = async (resultItem) => {
+    const asMagnet = resultItem.fileUrl.match(/^magnet:\?(\S+)$/);
+    if (asMagnet) {
+        const magnetQueryPart = asMagnet[1];
+        const search = new URLSearchParams(magnetQueryPart);
+        const infoHash = search.get('xt').replace(/^urn:btih:/, '');
+        const tr = search.getAll('tr');
+        return {infoHash, tr};
+    } else {
+        const torrentFileData = await Api()
+            .downloadTorrentFile({fileUrl: resultItem.fileUrl});
+        return {infoHash: torrentFileData.infoHash, tr: torrentFileData.announce};
+    }
+};
 
 /** @param {QbtSearchResultItemExtended} resultItem */
 const makeResultTr = (resultItem) => {
     const seedsSuspicious = stagnantSites.includes(resultItem.siteUrl);
 
-    const whenExpandView = whenToExpandTorrentView.then(ToExpandTorrentView => {
-        return ToExpandTorrentView({resultItem, getTr: () => tr});
+    const anchor = Dom('a', {
+        target: '_blank',
+        style: 'white-space: nowrap',
+        onclick: () => alert('Infohash is loading. Try again in few seconds.'),
+    }, [
+        Dom('button', {}, 'Open'),
+    ]);
+    getInfoHash(resultItem).then(({ infoHash }) => {
+        anchor.setAttribute("href", './infoPage/' + infoHash.toLowerCase());
+        anchor.onclick = undefined;
     });
     const tr = Dom('tr', {
         'data-tracker': resultItem.tracker,
@@ -149,11 +169,7 @@ const makeResultTr = (resultItem) => {
         'data-stored-seeders': resultItem.nbSeeders,
         'data-stored-leechers': resultItem.nbLeechers,
     }, [
-        Dom('td', {}, [
-            Dom('button', {
-                onclick: () => whenExpandView.then(expandView => expandView()),
-            }, 'Open'),
-        ]),
+        Dom('td', {}, [anchor]),
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
         Dom('td', {}, resultItem.mediaType),
         makeSizeTd(resultItem.fileSize),
@@ -173,21 +189,6 @@ const makeResultTr = (resultItem) => {
             Dom('a', {
                 href: resultItem.descrLink,
             }, resultItem.tracker),
-        ]),
-        Dom('td', {}, [
-            Dom('a', {
-                ...resultItem.infoHash ? {
-                    target: '_blank',
-                    href: './infoPage/' + resultItem.infoHash.toLowerCase(),
-                    style: 'white-space: nowrap',
-                } : {
-                    onclick: () => {
-                        alert('TODO: implement magnet-less!');
-                    },
-                },
-            }, [
-                Dom('button', {}, 'Full Page'),
-            ]),
         ]),
     ]);
     return tr;
