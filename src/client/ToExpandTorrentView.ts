@@ -382,8 +382,7 @@ const makeRarFileView = (src: string) => {
 const initPlayer = (
     infoHash: string,
     file: ShortTorrentFileInfo,
-    files: ShortTorrentFileInfo[],
-    isBadCodec: boolean
+    files: ShortTorrentFileInfo[]
 ) => {
     const streamPath = '/torrent-stream';
     const fileApiParams = {
@@ -573,7 +572,7 @@ const ToExpandTorrentView = ({
                         v.load();
                     });
                     playerCont.innerHTML = '';
-                    const player = initPlayer(infoHash, f, metaInfo.files, isBadCodec);
+                    const player = initPlayer(infoHash, f, metaInfo.files);
                     playerCont.appendChild(player);
                     [...player.querySelectorAll('video')].forEach(v => {
                         v.play();

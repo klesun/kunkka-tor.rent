@@ -333,12 +333,90 @@ function ExtractedRarFileView({ src }: { src: string }) {
     </div>;
 }
 
-function Player({ infoHash, file, files }: {
+function VideoFileView(props: PlayerParams & { src: string, extension: string }) {
+    const { infoHash, file, files, src, extension } = props;
+    const fileApiParams = {
+        infoHash: infoHash,
+        filePath: file.path,
+    };
+
+    const [ffprobeOutput, setFfprobeOutput] = useState<FfprobeOutput>();
+
+    useEffect(() => {
+        Api().getFfmpegInfo(fileApiParams)
+            .then(setFfprobeOutput).catch(exc => {
+            if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
+                throw exc;
+            } else {
+                // not a video file probably
+                window.open(src, '_blank');
+            }
+        });
+    }, []);
+
+    const { matchedTracks } = ExternalTrackMatcher({
+        videoPath: file.path, files: files,
+        trackExtensions: SUBS_EXTENSIONS,
+    });
+
+    const subTracks = <>
+        {matchedTracks.map((subsTrack, subsIndex) => {
+            const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
+                infoHash: infoHash,
+                filePath: subsTrack.path,
+            });
+            return <track
+                src={subsSrc}
+                key={subsTrack.path}
+                default={subsIndex === 0}
+                kind="subtitles"
+                label={subsTrack.title}
+            />;
+        })}
+        {ffprobeOutput && ffprobeOutput.streams
+            .flatMap(s => s.codec_type === "subtitle" ? [s] : [])
+            .map((sub, subsIndex) => {
+                const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
+                    ...fileApiParams, subsIndex: String(subsIndex),
+                });
+                const { tags } = sub;
+                const srclang = (tags || { language: undefined }).language;
+                const label = ((srclang || '') + ' ' + ((tags || { title: "" }).title || '')).trim();
+                return <track
+                    src={src}
+                    key={subsIndex}
+                    default={matchedTracks.length === 0 && subsIndex === 0}
+                    kind="subtitles"
+                    label={label || undefined}
+                    srcLang={srclang || undefined}
+                />;
+            })}
+    </>;
+
+    return <>
+        <div>
+            <video controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
+                {subTracks}
+            </video>
+        </div>
+        <div className="media-info-section">
+            <div className="file-name">{file.path}</div>
+            <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
+            {!ffprobeOutput
+                ? <div>It may take a minute or so before playback can be started...</div>
+                : <FfprobeOutput ffprobeOutput={ffprobeOutput} />}
+        </div>
+    </>;
+}
+
+type PlayerParams = {
     infoHash: string,
     file: ShortTorrentFileInfo,
     files: ShortTorrentFileInfo[],
-}) {
-    const [ffprobeOutput, setFfprobeOutput] = useState<FfprobeOutput>();
+};
+
+function Player(props: PlayerParams) {
+    const { infoHash, file, files } = props;
 
     const streamPath = '/torrent-stream';
     const fileApiParams = {
@@ -358,73 +436,12 @@ function Player({ infoHash, file, files }: {
         fileView = makeFileView({src, extension});
     }
 
-    useEffect(() => {
-        if (fileView) {
-            return;
-        }
-        Api().getFfmpegInfo(fileApiParams)
-            .then(setFfprobeOutput).catch(exc => {
-                if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
-                    throw exc;
-                } else {
-                    // not a video file probably
-                    window.open(src, '_blank');
-                }
-            });
-    }, []);
-
     if (fileView) {
         return fileView;
     }
 
-    const { matchedTracks } = ExternalTrackMatcher({
-        videoPath: file.path, files: files,
-        trackExtensions: SUBS_EXTENSIONS,
-    });
-
     return <div>
-        <div>
-            <video controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
-                {matchedTracks.map((subsTrack, subsIndex) => {
-                    const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
-                        infoHash: infoHash,
-                        filePath: subsTrack.path,
-                    });
-                    return <track
-                        src={subsSrc}
-                        key={subsTrack.path}
-                        default={subsIndex === 0}
-                        kind="subtitles"
-                        label={subsTrack.title}
-                    />;
-                })}
-                {ffprobeOutput && ffprobeOutput.streams
-                    .flatMap(s => s.codec_type === "subtitle" ? [s] : [])
-                    .map((sub, subsIndex) => {
-                        const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
-                            ...fileApiParams, subsIndex: String(subsIndex),
-                        });
-                        const { tags } = sub;
-                        const srclang = (tags || { language: undefined }).language;
-                        const label = ((srclang || '') + ' ' + ((tags || { title: "" }).title || '')).trim();
-                        return <track
-                            src={src}
-                            key={subsIndex}
-                            default={matchedTracks.length === 0 && subsIndex === 0}
-                            kind="subtitles"
-                            label={label || undefined}
-                            srcLang={srclang || undefined}
-                        />;
-                    })}
-            </video>
-        </div>
-        <div className="media-info-section">
-            <div className="file-name">{file.path}</div>
-            <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
-            {!ffprobeOutput
-                ? <div>It may take a minute or so before playback can be started...</div>
-                : <FfprobeOutput ffprobeOutput={ffprobeOutput} />}
-        </div>
+        <VideoFileView {...props} src={src} extension={extension} />
     </div>;
 }
 
