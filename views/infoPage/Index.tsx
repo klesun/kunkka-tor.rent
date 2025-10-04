@@ -428,6 +428,16 @@ function Player({ infoHash, file, files }: {
     </div>;
 }
 
+function SwarmInfo(swarmInfo: Awaited<IApi_getSwarmInfo_rs>) {
+    const { downloaded, downloadSpeed, ...rest } = swarmInfo;
+
+    return <div>
+        <div>Downloaded: {(downloaded / 1024 / 1024).toFixed(3)} MiB</div>
+        <div>Downloaded Speed: {(downloadSpeed / 1024 / 1024).toFixed(3)} MiB/s</div>
+        {JSON.stringify(rest, null, 4)}
+    </div>;
+}
+
 export default function Index({ infoHash }: { infoHash: string }) {
     const [metaInfo, setMetaInfo] = useState<Awaited<IApi_connectToSwarm_rs>>();
     const [swarmInfo, setSwarmInfo] = useState<Awaited<IApi_getSwarmInfo_rs>>();
@@ -478,7 +488,9 @@ export default function Index({ infoHash }: { infoHash: string }) {
                     : renderFileList(metaInfo)}
                 {!swarmInfo
                     ? <div className="swarm-info-container"></div>
-                    : <div className="swarm-info-container">{JSON.stringify(swarmInfo, null, 4)}</div>}
+                    : <div className="swarm-info-container">
+                        <SwarmInfo {...swarmInfo}/>
+                    </div>}
             </div>
             <div className="player-cont">{
                 !metaInfo ? 'Meta Data is loading...' : !openedFile ? 'Choose a File from the List.' : <Player
