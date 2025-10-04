@@ -4,6 +4,7 @@ import FixNaturalOrder from "../../src/common/FixNaturalOrder.js";
 import type { IApi_connectToSwarm_rs, IApi_getSwarmInfo_rs } from "../../src/server/Api";
 import type {ShortTorrentFileInfo} from "../../src/server/actions/ScanInfoHashStatus";
 import type { FfprobeOutput, FfprobeStream } from "../../src/client/FfprobeOutput";
+import type {FileHeader} from "../../node_modules/node-unrar-js/src/js/extractor";
 
 const { React, ReactDOM } = window;
 const { useEffect, useState } = React;
@@ -155,7 +156,7 @@ function makeFileView({src, extension}: {
     if (['png', 'jpg', 'jpeg'].includes(extension)) {
         // разожми меня покрепче, шакал
         return <div>
-            <img src={src} style={{ maxWidth: "100%", maxHeight: "900px" }}/>,
+            <img src={src} style={{ maxWidth: "100%", maxHeight: "900px" }}/>
             <div>Loading image...</div>
         </div>;
     } else if ([...SUBS_EXTENSIONS, 'txt', 'xml', 'json', 'yml', 'yaml', 'nfo', 'info', 'md5', 'sha', 'bat', 'rtf'].includes(extension)) {
@@ -175,6 +176,25 @@ type FileApiParams = {
 };
 
 type ZipFileEntry = { path: string, size: number };
+
+type RarStreamer = (params: {reader: ReadableStreamReader<Uint8Array>}) => ({
+    iter: AsyncGenerator<FileHeader>,
+    getBytes: () => Uint8Array,
+    extractFile: (fileHeader: FileHeader) => [
+        {state: string},
+        {files: {extract: Blob[]}[]},
+    ],
+});
+
+let whenRarStreamer: Promise<RarStreamer> | null = null;
+function getRarStreamer(): Promise<RarStreamer> {
+    if (whenRarStreamer === null) {
+        // I wonder why this particular module had to be imported that way...
+        whenRarStreamer = import("../../src/client/RarStreamer.js")
+            .then(module => module.default);
+    }
+    return whenRarStreamer;
+}
 
 function FileEntryFromZip({ fileApiParams, entry }: { fileApiParams: FileApiParams, entry: ZipFileEntry }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -208,7 +228,55 @@ function FileEntryFromZip({ fileApiParams, entry }: { fileApiParams: FileApiPara
     </>;
 }
 
-function ExtsactedZipFileView(fileApiParams: FileApiParams) {
+function FileEntryFromRar({ file, iterating }: { file: FileHeader, iterating: ReturnType<RarStreamer> | undefined }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const extension = file.name.toLowerCase().replace(/^.*\./, '');
+
+    let openedFile;
+    if (!isOpen) {
+        openedFile = <></>;
+    } else if (!iterating) {
+        openedFile = <div>RAR stream iteration is not active!</div>;
+    } else {
+        const [stateRec, resultRec] = iterating.extractFile(file);
+        if (stateRec.state !== 'SUCCESS') {
+            console.log('ololo stateRec', stateRec);
+            openedFile = <div>No success in extracting file: {stateRec.state}</div>;
+        } else {
+            const mimeTypes: Record<string, string> = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'ogg': 'audio/ogg',
+                'mp3': 'audio/mp3',
+            };
+            const mimeType = mimeTypes[extension];
+            const blob = new Blob([resultRec.files[0].extract[1]], {type: mimeType});
+            const src = URL.createObjectURL(blob);
+            openedFile = makeFileView({src, extension});
+            if (!openedFile) {
+                window.open(src, '_blank');
+                openedFile = Dom('div', {}, 'Binary file, initiating download...');
+            }
+        }
+    }
+
+    return <>
+        <div>
+            <span>{file.name}</span>
+            <span>{' '}</span>
+            <span>{(file.unpSize / 1024 / 1024).toFixed(2) + ' MiB'}</span>
+            <span>{' '}</span>
+            {!isOpen
+                ? <button type="button" onClick={() => setIsOpen(true)}>View</button>
+                : <button type="button" onClick={() => setIsOpen(false)}>Hide</button>}
+        </div>
+        <div>{openedFile}</div>
+    </>;
+}
+
+function ExtractedZipFileView(fileApiParams: FileApiParams) {
     const [entries, setEntries] = useState<ZipFileEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -232,6 +300,39 @@ function ExtsactedZipFileView(fileApiParams: FileApiParams) {
     </div>;
 }
 
+function ExtractedRarFileView({ src }: { src: string }) {
+    const [files, setFiles] = useState<FileHeader[]>([]);
+    const [iterating, setIterating] = useState<ReturnType<RarStreamer>>();
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch(src).then(async rs => {
+            const RarStreamer = await getRarStreamer();
+            const reader = rs.body!.getReader();
+            const iterating = RarStreamer({reader});
+            setIterating(iterating);
+            let filesLoaded = 0;
+            for await (const file of iterating.iter) {
+                setFiles(prev => [...prev, file]);
+
+                // for a big 1+ GiB archive we'd like to gradually slow down to not clog
+                // user's CPU as re-parsing the archive becomes more and more demanding
+                await new Promise(_ => setTimeout(_, filesLoaded++ * 10));
+            }
+        }).finally(() => setLoading(false));
+    }, []);
+
+    return <div>
+        <div>{files.map(file => <div key={file.name} style={{ textAlign: "right" }}>
+            <FileEntryFromRar file={file} iterating={iterating}/>
+        </div>)}</div>
+        <div>
+            <button type="button" onClick={() => window.open(src, '_blank')}>Download</button>
+        </div>
+        <div>{loading ? 'Loading archive contents...' : 'Extracted ' + files.length + ' files'}</div>
+    </div>;
+}
+
 function Player({ infoHash, file, files }: {
     infoHash: string,
     file: ShortTorrentFileInfo,
@@ -250,11 +351,9 @@ function Player({ infoHash, file, files }: {
     let fileView: React.ReactElement | null;
     // TODO: use FixNaturalOrder.js
     if (['zip', 'cbz', 'epub'].includes(extension)) {
-        fileView = <ExtsactedZipFileView {...fileApiParams}/>;
-        // TODO: implement and uncomment
-        // else if (['rar', 'cbr'].includes(extension)) {
-        //     return makeRarFileView(src);
-        // }
+        fileView = <ExtractedZipFileView {...fileApiParams}/>;
+    } else if (['rar', 'cbr'].includes(extension)) {
+        return <ExtractedRarFileView src={src}/>;
     } else {
         fileView = makeFileView({src, extension});
     }
@@ -278,13 +377,10 @@ function Player({ infoHash, file, files }: {
         return fileView;
     }
 
-    const {matchedTracks} = ExternalTrackMatcher({
+    const { matchedTracks } = ExternalTrackMatcher({
         videoPath: file.path, files: files,
         trackExtensions: SUBS_EXTENSIONS,
     });
-    for (const subsTrack of matchedTracks) {
-        // addSubsTrack({video, src: subsSrc, tags: {title: subsTrack.title}});
-    }
 
     return <div>
         <div>
