@@ -7,33 +7,33 @@ type StaticStreamBase = {
 };
 
 type VideoStreamBase = {
-    "index": 0,
-    "codec_name": "h264",
-    "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
-    "profile": "High",
+    "index": 0 | number,
+    "codec_name": "h264" | string,
+    "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10" | string,
+    "profile": "High" | string,
     "codec_type": "video",
-    "codec_time_base": "1001/48000",
+    "codec_time_base": "1001/48000" | string,
 };
 
 type AudioStreamBase = {
-    "index": 1,
-    "codec_name": "aac",
-    "codec_long_name": "AAC (Advanced Audio Coding)",
-    "profile": "LC",
+    "index": 1 | number,
+    "codec_name": "aac" | string,
+    "codec_long_name": "AAC (Advanced Audio Coding)" | string,
+    "profile": "LC" | string,
     "codec_type": "audio",
-    "codec_time_base": "1/48000",
+    "codec_time_base": "1/48000" | string,
 };
 
 type SubtitleStreamBase = {
-    "index": 2,
-    "codec_name": "subrip",
-    "codec_long_name": "SubRip subtitle",
+    "index": 2 | number,
+    "codec_name": "subrip" | string,
+    "codec_long_name": "SubRip subtitle" | string,
     "codec_type": "subtitle",
-    "codec_time_base": "0/1",
+    "codec_time_base": "0/1" | string,
 };
 
 type AttachmentStreamBase = {
-    "index": 24,
+    "index": 24 | number,
     "codec_name": never,
     "codec_long_name": never,
     "codec_type": "attachment",

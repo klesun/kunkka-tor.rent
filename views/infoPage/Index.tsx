@@ -7,11 +7,15 @@ import type { FfprobeOutput, FfprobeStream } from "../../src/client/FfprobeOutpu
 import type {FileHeader} from "../../node_modules/node-unrar-js/src/js/extractor";
 
 const { React, ReactDOM } = window;
-const { useEffect, useState } = React;
+const { useEffect, useState, useRef } = React;
 
 const Dom = React.createElement;
 
 const startedMs = Date.now();
+
+function neverNull(message?: string): never {
+    throw new Error("Unexpected null value: " + message);
+}
 
 function FilesList({ seconds, isBadCodec, files, playCallback }: {
     isBadCodec: boolean,
@@ -50,26 +54,16 @@ function FilesList({ seconds, isBadCodec, files, playCallback }: {
 }
 
 const typeToStreamInfoMaker: {
-    [type in FfprobeStream['codec_type']]: (
-        stream: FfprobeStream & {codec_type: type}
+    [type in Exclude<FfprobeStream['codec_type'], "audio">]: (
+        stream: FfprobeStream & { codec_type: type }
     ) => React.ReactElement
 } = {
     'video': (stream) => {
-        const {width, height, display_aspect_ratio, avg_frame_rate, bits_per_raw_sample, pix_fmt, ...rest} = stream;
+        const { width, height, display_aspect_ratio, avg_frame_rate, bits_per_raw_sample, pix_fmt, ...rest } = stream;
         return <span>
             <span>{display_aspect_ratio + ' ' + width + 'x' + height}</span>
             <span>{+avg_frame_rate.split('/')[0] / 1000}</span>
             <span>Colors: {pix_fmt}</span>
-        </span>;
-    },
-    'audio': (stream) => {
-        const { sample_fmt, sample_rate, channels, tags = {}, ...rest } = stream;
-        const { language, title } = tags;
-        return <span>
-            <span>{language || ''}</span>
-            <span>{title || ''}</span>
-            <span>{(+sample_rate / 1000) + ' kHz'}</span>
-            <span>{channels + ' ch'}</span>
         </span>;
     },
     'subtitle': (stream) => {
@@ -87,36 +81,152 @@ const typeToStreamInfoMaker: {
     },
 };
 
-function StreamItem({ stream }: { stream: FfprobeStream }) {
-    const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+function StreamItem({ stream }: { stream: FfprobeStream & { codec_type: Exclude<FfprobeStream["codec_type"], "audio"> } }) {
+    const { codec_name, codec_long_name, profile, codec_type, ...rest } = stream;
     const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
-    const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest).slice(0, 70);
-    const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name) || isBadAudioCodec(codec_name);
-    const isGoodCodec = ['h264', 'vp9', ...SUBS_EXTENSIONS, ...GOOD_AUDIO_EXTENSIONS].includes(codec_name);
-    return <div data-codec-type={codec_type}>
-        <span>#{index}</span>
-        <label>
-            {codec_type === "audio" && <input
-                type="radio"
-                name="selectedAudioTrack"
-                value={index}
-                data-codec-name={stream.codec_name}
-            />}
-            <span className={
-                isBadCodec ? 'bad-codec' :
-                isGoodCodec ? 'good-codec' :
-                undefined
-            }>{codec_name}</span>
-            <span>{codec_type}</span>
-            <span>{profile}</span>
-            <span>{typeInfo}</span>
-        </label>
-    </div>;
+    const typeInfo = typedInfoMaker ? typedInfoMaker(rest) : JSON.stringify(rest).slice(0, 70);
+    const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
+    const isGoodCodec = SUBS_EXTENSIONS.includes(codec_name);
+    return <label>
+        <span className={
+            isBadCodec ? 'bad-codec' :
+            isGoodCodec ? 'good-codec' :
+            undefined
+        }>{codec_name}</span>
+        <span>{codec_type}</span>
+        <span>{profile}</span>
+        <span>{typeInfo}</span>
+    </label>;
+}
+
+type FfprobeAudioStream = FfprobeStream & { codec_type: "audio" };
+
+function AudioStreamItem({ stream, onSelected }: {
+    stream: FfprobeAudioStream,
+    onSelected: () => void,
+}) {
+    const { codec_name, profile, codec_type} = stream;
+
+    const { sample_fmt, sample_rate, channels, tags = {}, ...rest } = stream;
+    const { language, title } = tags;
+    const typeInfo = <span>
+        <span>{language || ''}</span>
+        <span>{title || ''}</span>
+        <span>{(+sample_rate / 1000) + ' kHz'}</span>
+        <span>{channels + ' ch'}</span>
+    </span>;
+
+    const isBadCodec = isBadAudioCodec(codec_name);
+    const isGoodCodec = GOOD_AUDIO_EXTENSIONS.includes(codec_name);
+    return <label>
+        <input
+            type="radio"
+            name="selectedAudioTrack"
+            onChange={e => e.target.checked && onSelected() }
+        />
+        <span className={
+            isBadCodec ? 'bad-codec' :
+            isGoodCodec ? 'good-codec' :
+            undefined
+        }>{codec_name}</span>
+        <span>{codec_type}</span>
+        <span>{profile}</span>
+        <span>{typeInfo}</span>
+    </label>;
 }
 
 const isBadAudioCodec = (codec_name: string) => ['ac3', 'eac3'].includes(codec_name);
 
-function FfprobeOutput({ ffprobeOutput }: { ffprobeOutput: FfprobeOutput }) {
+type AudioTrackParams = {
+    getVideoRef: () => (HTMLVideoElement | null),
+    fileApiParams: FileApiParams,
+};
+
+const syncTiming = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
+    const EPS = 0.1;
+    // should think of a better way, there is a small delay between when you
+    // set currentTime and when it actually starts playing at this time
+    const diff = video.currentTime - audio.currentTime;
+    if (Math.abs(diff) > EPS) {
+        // TODO: when audio is converted from ac3, you can't freely navigate
+        //  through timeline, probably better use speedup rewind like on a VCD =-D
+        //  (as I have no idea how to make it work correctly with encoding on-the-fly)
+        audio.currentTime = video.currentTime;
+    }
+};
+
+const syncState = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
+    if (video.paused) {
+        if (!audio.paused) {
+            audio.pause();
+        }
+    } else if (audio.currentTime > video.currentTime) {
+        // video is buffering
+        audio.muted = true;
+    } else if (Math.abs(audio.currentTime - video.currentTime) > 5) {
+        // significant desync
+        audio.muted = true;
+        syncTiming(video, audio);
+    } else {
+        audio.muted = false;
+        if (audio.paused) {
+            audio.play();
+        }
+    }
+};
+
+function SyncedAudioTrack(props: AudioTrackParams & {
+    selectedAudioTrack: FfprobeAudioStream,
+}) {
+    const audioRef = useRef<HTMLAudioElement>(null);
+
+    useEffect(() => {
+        const video = props.getVideoRef() ?? neverNull("video");
+        const audio = audioRef.current ?? neverNull("audio");
+        const syncTimingCallback = () => syncTiming(video, audio);
+        const syncStateCallback = () => syncState(video, audio);
+
+        const timingInterval = setInterval(syncTimingCallback, 5000);
+        const stateInterval = setInterval(syncStateCallback, 100);
+
+        video.addEventListener("seeking", syncStateCallback);
+        video.addEventListener("seeked", syncStateCallback);
+        audio.addEventListener("canplay", syncStateCallback);
+        video.addEventListener("playing", syncStateCallback);
+        video.addEventListener("pause", syncStateCallback);
+        video.addEventListener("waiting", syncStateCallback);
+        video.addEventListener("stalled", syncStateCallback);
+        return () => {
+            clearInterval(timingInterval);
+            clearInterval(stateInterval);
+
+            video.removeEventListener("seeking", syncStateCallback);
+            video.removeEventListener("seeked", syncStateCallback);
+            audio.removeEventListener("canplay", syncStateCallback);
+            video.removeEventListener("playing", syncStateCallback);
+            video.removeEventListener("pause", syncStateCallback);
+            video.removeEventListener("waiting", syncStateCallback);
+            video.removeEventListener("stalled", syncStateCallback);
+        };
+    }, []);
+
+    return <audio
+        ref={audioRef}
+        controls={true}
+        preload="auto"
+        src={'/torrent-stream-extract-audio?' + new URLSearchParams({
+            ...props.fileApiParams,
+            streamIndex: String(props.selectedAudioTrack.index),
+            codecName: props.selectedAudioTrack.codec_name,
+        })}
+    />;
+}
+
+function FfprobeOutput({ ffprobeOutput, ...audioTrackParams }: AudioTrackParams & {
+    ffprobeOutput: FfprobeOutput,
+}) {
+    const [selectedAudioTrackIdx, setSelectedAudioTrackIdx] = useState<number>();
+
     const { format, streams } = ffprobeOutput;
     const { format_name, format_long_name, probe_score, bit_rate } = format;
     const audioTracks = streams.filter(s => s.codec_type === 'audio');
@@ -124,14 +234,31 @@ function FfprobeOutput({ ffprobeOutput }: { ffprobeOutput: FfprobeOutput }) {
 
     const streamItems = streams.map(stream => {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
-        return <StreamItem key={stream.index} stream={stream}/>;
+        return <div data-codec-type={codec_type} key={index}>
+            <span>#{index}</span>
+            {codec_type === "audio"
+                ? <AudioStreamItem key={stream.index} stream={stream} onSelected={() => {
+                    const video = audioTrackParams.getVideoRef() ?? neverNull("video");
+                    video.muted = true;
+                    setSelectedAudioTrackIdx(index);
+                }} />
+                : <StreamItem key={stream.index} stream={stream} />}
+        </div>;
     });
+
+    const selectedAudioTrack: FfprobeAudioStream | undefined = selectedAudioTrackIdx === undefined ? undefined :
+        streams.flatMap(stream => stream.codec_type === "audio" && stream.index === selectedAudioTrackIdx ? [stream] : [])[0];
 
     return <form className={"ffmpeg-info" + (audioTracks.length > 1 || hasBadAudioCodec ? " can-change-audio-track" : "")}>
         <div className="container-info">
             {format_long_name + ' - ' + format_name + ' ' + (+bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate'}
         </div>
         <div className="stream-list">{streamItems}</div>
+        {selectedAudioTrack && <SyncedAudioTrack
+            key={selectedAudioTrackIdx}
+            {...audioTrackParams}
+            selectedAudioTrack={selectedAudioTrack}
+        />}
     </form>;
 }
 
@@ -333,33 +460,18 @@ function ExtractedRarFileView({ src }: { src: string }) {
     </div>;
 }
 
-function VideoFileView(props: PlayerParams & { src: string, extension: string }) {
-    const { infoHash, file, files, src, extension } = props;
+function getSubTracks(params: PlayerParams, ffprobeOutput: FfprobeOutput | undefined) {
+    const { infoHash, file, files } = params;
     const fileApiParams = {
         infoHash: infoHash,
         filePath: file.path,
     };
 
-    const [ffprobeOutput, setFfprobeOutput] = useState<FfprobeOutput>();
-
-    useEffect(() => {
-        Api().getFfmpegInfo(fileApiParams)
-            .then(setFfprobeOutput).catch(exc => {
-            if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
-                throw exc;
-            } else {
-                // not a video file probably
-                window.open(src, '_blank');
-            }
-        });
-    }, []);
-
     const { matchedTracks } = ExternalTrackMatcher({
         videoPath: file.path, files: files,
         trackExtensions: SUBS_EXTENSIONS,
     });
-
-    const subTracks = <>
+    return <>
         {matchedTracks.map((subsTrack, subsIndex) => {
             const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
                 infoHash: infoHash,
@@ -392,11 +504,39 @@ function VideoFileView(props: PlayerParams & { src: string, extension: string })
                 />;
             })}
     </>;
+}
+
+function VideoFileView(props: PlayerParams & { src: string, extension: string }) {
+    const { infoHash, file, src, extension } = props;
+    const fileApiParams = {
+        infoHash: infoHash,
+        filePath: file.path,
+    };
+
+    const [ffprobeOutput, setFfprobeOutput] = useState<FfprobeOutput>();
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    const getVideoRef = () => videoRef.current;
+
+    useEffect(() => {
+        const video = videoRef.current ?? neverNull("video");
+        video.play();
+
+        Api().getFfmpegInfo(fileApiParams)
+            .then(setFfprobeOutput).catch(exc => {
+            if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
+                throw exc;
+            } else {
+                // not a video file probably
+                window.open(src, '_blank');
+            }
+        });
+    }, []);
 
     return <>
         <div>
-            <video controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
-                {subTracks}
+            <video ref={videoRef} controls={true} data-info-hash={infoHash} data-file-path={file.path} src={src}>
+                {getSubTracks(props, ffprobeOutput)}
             </video>
         </div>
         <div className="media-info-section">
@@ -404,7 +544,11 @@ function VideoFileView(props: PlayerParams & { src: string, extension: string })
             <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
             {!ffprobeOutput
                 ? <div>It may take a minute or so before playback can be started...</div>
-                : <FfprobeOutput ffprobeOutput={ffprobeOutput} />}
+                : <FfprobeOutput
+                    ffprobeOutput={ffprobeOutput}
+                    getVideoRef={getVideoRef}
+                    fileApiParams={fileApiParams}
+                />}
         </div>
     </>;
 }
