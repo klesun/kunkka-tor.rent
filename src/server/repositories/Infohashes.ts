@@ -16,7 +16,6 @@ const Infohashes = () => {
 
             await dbPool.withDb(async db => {
                 for (let i = 0; i < rows.length; i += rowsPerBatch) {
-                    console.log('Inserting hashes batch from: ' + i);
                     const insertQuery = SqlUtil.makeInsertQuery({
                         table, insertType: 'replace', rows: rows.slice(i, i + rowsPerBatch),
                     });
