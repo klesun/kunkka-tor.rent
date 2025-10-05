@@ -79,8 +79,7 @@ const chunkFolders = chunkFolderNames
         const [startId, endId] = folderName.split("_").map(id => Number(id));
         return { folderName, startId, endId };
     })
-    .sort((a,b) => a.startId - b.startId)
-    .filter(f => f.startId >= 300001);
+    .sort((a,b) => a.startId - b.startId);
 
 const infohashes = Infohashes();
 
@@ -115,28 +114,49 @@ function prepareRow(parsed: ParsedNyaaSiPage, stats: Stats, nyaaId: number): Inf
     };
 }
 
+function is404(document: Document) {
+    return document.querySelector("h1")?.textContent?.trim() === "404 Not Found";
+}
+
+const NEXT_ID = 590092;
+
 let i = 0;
 let unflushedRows: InfohashDbRow[] = [];
 
-for (const { folderName } of chunkFolders) {
+for (const { folderName, startId, endId } of chunkFolders) {
+    if (endId < NEXT_ID) {
+        continue;
+    }
     const folderPath = ROOT_FOLDER_PATH + "/" + folderName;
     const htmlFileNames = await fs.readdir(folderPath);
     for (const htmlFileName of htmlFileNames) {
         const filePath = folderPath + "/" + htmlFileName;
         const nyaaId = Number(htmlFileName.replace(/\.html$/, ""));
+        if (nyaaId < NEXT_ID) {
+            continue;
+        }
         if (i++ % 50 === 0) {
             console.log("Processing #" + i + ": " + filePath);
         }
         if (i % 1000 === 0) {
-            console.log("Flushing");
+            console.log("Flushing at " + nyaaId);
             await infohashes.insert(unflushedRows);
             unflushedRows = [];
         }
-        const stats = await fs.stat(filePath);
-        const fileContent = await fs.readFile(filePath, "utf-8");
-        const dom = new JSDOM(fileContent);
-        const parsed = parseNyaaSiPage(dom.window.document);
-        unflushedRows.push(prepareRow(parsed, stats, nyaaId));
+        try {
+            const stats = await fs.stat(filePath);
+            const fileContent = await fs.readFile(filePath, "utf-8");
+            const dom = new JSDOM(fileContent);
+            if (is404(dom.window.document)) {
+                console.info("Skipping 404 at " + nyaaId);
+                continue;
+            }
+            const parsed = parseNyaaSiPage(dom.window.document);
+            unflushedRows.push(prepareRow(parsed, stats, nyaaId));
+        } catch (error) {
+            console.error("Error at " + nyaaId);
+            throw error;
+        }
     }
 }
 await infohashes.insert(unflushedRows);

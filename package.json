@@ -1,5 +1,8 @@
 {
   "name": "kunkka-torrent",
+  "scripts": {
+    "parse-nya": "vite-node scripts/parse_nyaa_si_scrapes.ts"
+  },
   "version": "0.0.1",
   "description": "A web app that allows playing video/music from torrents directly in the browser, without downloading to PC",
   "keywords": [

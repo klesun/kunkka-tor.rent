@@ -9,6 +9,9 @@ const Infohashes = () => {
     });
     return {
         insert: async (rows: InfohashDbRow[]) => {
+            if (rows.length === 0) {
+                return;
+            }
             const rowsPerBatch = Math.floor(
                 SQLITE_MAX_VARIABLE_NUMBER /
                 Object.keys(rows[0]).length
