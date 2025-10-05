@@ -6,6 +6,7 @@ type InfohashDbRowBase = {
     length: number,
     source: string,
     occurrences: number,
+    filesCount: number,
 }
 
 export type NoFilesInfoSource = 'tpb_dump_2019' | 'rutracker_dump_2020' | 'torrents_csv';

@@ -35,7 +35,7 @@ const TorrentNamesFts = () => {
                 }
             });
         },
-        select: async (userInput: string) => {
+        select: async (userInput: string): Promise<DbRow[]> => {
             const escapedInput = userInput
                 .split(' ')
                 // eventually could recognize the "" in user's query as _exact match_ like in google
@@ -44,7 +44,9 @@ const TorrentNamesFts = () => {
                 .join(' ');
             const sql = `SELECT * FROM ${table} WHERE name MATCH ?`;
             const placedValues = [escapedInput];
-            return dbPool.withDb<DbRow>(db => db.all<DbRow>(sql, ...placedValues))
+            return dbPool.withDb<DbRow[]>(
+                db => db.all<DbRow[]>(sql, ...placedValues)
+            );
         },
     };
 };

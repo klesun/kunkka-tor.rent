@@ -312,7 +312,6 @@ const collectWatchIndex = (localStorage) => {
 
 const main = async () => {
     const searchParams = new URLSearchParams(window.location.search);
-    const startMs = Date.now();
     const started = api.qbtv2.search.start({
         pattern: searchParams.get('pattern'),
         category: searchParams.get('category') || 'all',
@@ -326,14 +325,14 @@ const main = async () => {
     const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
     listUpdater.update(localResults.map(({infohash, name}) => ({
         infoHash: infohash,
-        descrLink: 'https://kunkka-torrent.online/views/infoPage/' + infohash,
+        descrLink: 'https://torrent.klesun.net/views/infoPage/' + infohash,
         fileName: name,
         fileSize: -1,
         fileUrl: 'magnet:?xt=urn:btih:' + infohash,
         nbLeechers: 0,
         nbSeeders: 1,
-        siteUrl: 'https://kunkka-torrent.online',
-        tracker: 'kunkka-torrent.online',
+        siteUrl: 'https://torrent.klesun.net',
+        tracker: 'kunkka-torrent',
         mediaType: TorrentNameParser({name}).parts[0].mediaType,
     })));
     const {id} = await started;

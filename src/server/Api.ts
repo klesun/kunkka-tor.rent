@@ -11,7 +11,6 @@ const {timeout} = require('klesun-node-tools/src/Utils/Lang.js');
 const util = require('util');
 const execFile = util.promisify(require('child_process').execFile);
 import * as fs from 'fs';
-import fsPromises from 'fs/promises';
 import * as parseTorrent from 'parse-torrent';
 import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-errors";
 import TorrentNamesFts from "./repositories/TorrentNamesFts";

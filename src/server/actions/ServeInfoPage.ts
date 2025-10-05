@@ -3,6 +3,8 @@ import * as Papaparse from 'papaparse';
 import * as fsSync from 'fs';
 import {HandleHttpParams} from "../HandleHttpRequest";
 import {InternalServerError} from "@curveball/http-errors";
+import Infohashes from "../repositories/Infohashes";
+import {InfohashDbRow} from "../typing/InfohashDbRow";
 
 const fs = fsSync.promises;
 const Xml = require('klesun-node-tools/src/Utils/Xml.js');
@@ -66,24 +68,64 @@ const escapeHtmlContent = (unsafe: string) => {
         .replaceAll(">", "&gt;");
 };
 
+type NormalizedRecord = {
+    name: string,
+    updatedDt: string,
+    length: number,
+    source: string,
+    description: string,
+};
+
+function normalizeCsvRecord(csvRecord: TorrentsCsvRecord): NormalizedRecord {
+    return {
+        name: csvRecord.name,
+        updatedDt: new Date(+csvRecord.scraped_date * 1000).toISOString(),
+        length: Number(csvRecord.size_bytes),
+        source: "torrents-csv",
+        description: `${formatSize(+csvRecord.size_bytes)} | ${csvRecord.seeders} seeds | ${csvRecord.leechers} leechers | ` + 'Created At: ' + new Date(+csvRecord.created_unix * 1000).toISOString(),
+    };
+}
+
+function normalizeLocalDbRecord(localDbRecord: InfohashDbRow): NormalizedRecord {
+    return {
+        name: localDbRecord.name,
+        updatedDt: localDbRecord.updatedDt,
+        length: localDbRecord.length,
+        source: localDbRecord.source,
+        description: `Files: ${localDbRecord.filesCount} | DHT Occurrences: ${localDbRecord.occurrences}`,
+    };
+}
+
 const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
-    const csvRecord = await getInfohashRecord(infoHash);
-    const description = !csvRecord ? null : `${formatSize(+csvRecord.size_bytes)} | ${csvRecord.seeders} seeds | ${csvRecord.leechers} leechers`;
+    const whenCsvRecord = getInfohashRecord(infoHash);
+    const whenLocalDbRecord = Infohashes().select(infoHash);
+    const csvRecord = await whenCsvRecord;
+    const localDbRecord = await whenLocalDbRecord;
+
+    const normalized =
+        localDbRecord ? normalizeLocalDbRecord(localDbRecord) :
+        csvRecord ? normalizeCsvRecord(csvRecord) :
+        null;
+
     const htmlRoot = Xml('html', {}, [
         Xml('head', {}, [
-            Xml('title', {}, csvRecord ? csvRecord.name + ' - torrent download' : '🧲 ' + infoHash),
+            Xml('title', {}, (normalized ? normalized.name + ' - torrent download/browse | ' : '') +  '🧲 ' + infoHash),
             Xml('meta', {'charset': 'utf-8'}),
-            ...!description ? [] : [
-                Xml('meta', {name: 'description', content: description}),
-                Xml('meta', {property: 'og:description', content: description}),
+            ...!normalized ? [] : [
+                Xml('meta', {name: 'description', content: normalized.description}),
+                Xml('meta', {property: 'og:description', content: normalized.description}),
             ],
             Xml('link', { rel: 'stylesheet', src: '../infoPage/index.css' }),
         ]),
         Xml('body', {}, [
-            Xml('h2', {}, csvRecord ? csvRecord.name : '🧲 ' + infoHash),
-            ...!csvRecord ? [] : [
-                Xml('div', {}, 'Created At: ' + new Date(+csvRecord.created_unix * 1000).toISOString()),
-                Xml('div', {}, 'Scraped At: ' + new Date(+csvRecord.scraped_date * 1000).toISOString()),
+            Xml('h1', {}, [
+                ...!normalized ? [] : [Xml('div', {}, normalized.name)],
+                Xml('div', {}, '🧲 ' + infoHash),
+            ]),
+            ...!normalized ? [] : [
+                Xml('div', {}, normalized.description),
+                Xml('div', {}, 'Updated At: ' + normalized.updatedDt),
+                Xml('div', {}, 'Source: ' + normalized.source),
             ],
             Xml('div', { id: 'react-app-root-container' }),
             `<script id="ssr-data-from-server" type="application/json">
