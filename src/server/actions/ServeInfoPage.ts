@@ -98,7 +98,7 @@ function normalizeLocalDbRecord(localDbRecord: InfohashDbRow): NormalizedRecord 
 
 const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
     const whenCsvRecord = getInfohashRecord(infoHash);
-    const whenLocalDbRecord = Infohashes().select(infoHash);
+    const whenLocalDbRecord = Infohashes().selectOne(infoHash);
     const csvRecord = await whenCsvRecord;
     const localDbRecord = await whenLocalDbRecord;
 

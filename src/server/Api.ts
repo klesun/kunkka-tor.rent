@@ -15,6 +15,7 @@ import * as parseTorrent from 'parse-torrent';
 import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-errors";
 import TorrentNamesFts from "./repositories/TorrentNamesFts";
 import {readPost} from "./utils/Http";
+import {trackerRecords} from "./actions/ScrapeTrackersSeedInfo";
 
 type SwarmWire = {
     downloaded: number,
@@ -146,7 +147,7 @@ const Api = () => {
             const engine = torrentStream(magnetLink, {
                 verify: false,
                 tracker: true,
-                trackers: trackers,
+                trackers: trackers.length !== 0 ? trackers : trackerRecords.map(t => t.url),
             });
             // TODO: clear when no ping for 30 seconds or something
             infoHashToEngine[infoHash] = engine;
@@ -233,7 +234,7 @@ const Api = () => {
         try {
             result = await execFile(scriptPath, args);
         } catch (exc) {
-            const msg = (exc.stderr ? 'STDERR: ' + exc.stderr.trim() + '\n' : '') +
+            const msg = (exc && typeof exc === "object" && ("stderr" in exc) && exc.stderr ? 'STDERR: ' + String(exc.stderr) + '\n' : '') +
                 'Python script failed to retrieve torrent';
             throw new BadGateway(msg);
         }
@@ -269,7 +270,7 @@ const Api = () => {
 
     const findTorrentsInLocalDb = (req: http.IncomingMessage) => {
         const {userInput} = <Record<string, string>>url.parse(<string>req.url, true).query;
-        return torrentNamesFts.select(userInput);
+        return torrentNamesFts.selectOne(userInput);
     };
 
     return {

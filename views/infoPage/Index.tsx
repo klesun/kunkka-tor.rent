@@ -153,6 +153,9 @@ const syncTiming = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
         //  (as I have no idea how to make it work correctly with encoding on-the-fly)
         audio.currentTime = video.currentTime;
     }
+    if (video.playbackRate !== audio.playbackRate) {
+        audio.playbackRate = video.playbackRate;
+    }
 };
 
 const syncState = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
@@ -189,6 +192,7 @@ function SyncedAudioTrack(props: AudioTrackParams & {
         const timingInterval = setInterval(syncTimingCallback, 5000);
         const stateInterval = setInterval(syncStateCallback, 100);
 
+        video.addEventListener("ratechange", syncTimingCallback);
         video.addEventListener("seeking", syncStateCallback);
         video.addEventListener("seeked", syncStateCallback);
         audio.addEventListener("canplay", syncStateCallback);
@@ -200,6 +204,7 @@ function SyncedAudioTrack(props: AudioTrackParams & {
             clearInterval(timingInterval);
             clearInterval(stateInterval);
 
+            video.removeEventListener("ratechange", syncTimingCallback);
             video.removeEventListener("seeking", syncStateCallback);
             video.removeEventListener("seeked", syncStateCallback);
             audio.removeEventListener("canplay", syncStateCallback);

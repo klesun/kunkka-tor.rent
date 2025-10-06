@@ -2,27 +2,21 @@ import DbPool from "../src/server/utils/DbPool";
 import * as SqlUtil from 'klesun-node-tools/src/Utils/SqlUtil.js';
 import {InfohashDbRow} from "../src/server/typing/InfohashDbRow";
 import TorrentNamesFts from "../src/server/repositories/TorrentNamesFts";
+import Infohashes from "../src/server/repositories/Infohashes";
+import * as console from "node:console";
 
 const main = async () => {
-    const table_Infohashes = 'Infohashes';
-    const dbPool_Infohashes = DbPool({
-        // make sure it's on ext4 ssd, or write will take several times longer
-        filename: __dirname + '/../data/db/' + table_Infohashes + '.sqlite',
-    });
-    const selectQuery = SqlUtil.makeSelectQuery({table: table_Infohashes});
-    const srcRows = await dbPool_Infohashes.withDb(db => {
-        return db.all<InfohashDbRow[]>(
-            selectQuery.sql, selectQuery.placedValues
-        );
-    });
-
-    const rows = srcRows.map(r => ({
-        infohash: r.infohash,
-        name: r.name,
-    }));
     const repo = TorrentNamesFts();
+    console.log("Deleting old indexes");
     await repo.delete({});
-    await repo.insert(rows);
+    let i = 0;
+    for await (const chunk of Infohashes().selectChunks()) {
+        console.log("Chunk #" + i++);
+        await repo.insert(chunk.map(r => ({
+            infohash: r.infohash,
+            name: r.name,
+        })));
+    }
 };
 
 main().then(() => process.exit(0)).catch(error => {

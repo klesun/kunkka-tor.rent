@@ -129,7 +129,21 @@ function isListResponse(document: Document) {
     return !!document.querySelector("table.torrent-list");
 }
 
-const NEXT_ID = 1775955;
+/** will need to re-fetch them manually */
+const skippedRanges = [
+    { startId: 1870322, endId: 1871161 },
+    { startId: 1871736, endId: 1871736 },
+    { startId: 1872145, endId: 1872145 },
+    { startId: 1872500, endId: 1872500 },
+    { startId: 1873349, endId: 1873349 },
+    { startId: 1873674, endId: 1873674 },
+    { startId: 1873738, endId: 1873738 },
+    { startId: 1874511, endId: 1874511 },
+    { startId: 1874861, endId: 1874861 },
+    { startId: 1933143, endId: 1933143 },
+];
+
+const NEXT_ID = 1933143;
 
 let i = 0;
 let unflushedRows: InfohashDbRow[] = [];
@@ -143,7 +157,7 @@ for (const { folderName, startId, endId } of chunkFolders) {
     for (const htmlFileName of htmlFileNames) {
         const filePath = folderPath + "/" + htmlFileName;
         const nyaaId = Number(htmlFileName.replace(/\.html$/, ""));
-        if (nyaaId < NEXT_ID) {
+        if (nyaaId < NEXT_ID || skippedRanges.some(r => nyaaId >= r.startId && nyaaId <= r.endId)) {
             continue;
         }
         if (i % 50 === 0) {
@@ -157,6 +171,11 @@ for (const { folderName, startId, endId } of chunkFolders) {
         }
         try {
             const fileContent = await fs.readFile(filePath, "utf-8");
+            if (fileContent === "Failed to proxy request: TypeError: fetch failed") {
+                // due to a mistake in the proxy, a bunch of such requests were not retried
+                console.warn("fetch failed at " + nyaaId);
+                continue;
+            }
             const dom = new JSDOM(fileContent);
             if (is404(dom.window.document)) {
                 continue;

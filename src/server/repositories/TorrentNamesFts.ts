@@ -17,7 +17,7 @@ const TorrentNamesFts = () => {
             const {sql, placedValues} = SqlUtil
                 .makeDeleteQuery({ ...params, table });
             return dbPool.withDb(async db => {
-                return db.run(sql ,placedValues);
+                return db.run(sql, placedValues);
             });
         },
         insert: async (rows: DbRow[]) => {
@@ -35,7 +35,7 @@ const TorrentNamesFts = () => {
                 }
             });
         },
-        select: async (userInput: string): Promise<DbRow[]> => {
+        selectOne: async (userInput: string): Promise<DbRow[]> => {
             const escapedInput = userInput
                 .split(' ')
                 // eventually could recognize the "" in user's query as _exact match_ like in google

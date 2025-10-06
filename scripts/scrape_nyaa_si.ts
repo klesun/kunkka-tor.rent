@@ -18,7 +18,7 @@ const MAX_DELAY = 350;
 
 const main = async () => {
     let ddosErrors = 0;
-    for (let i = 1775582; i <= 2027617; ++i) {
+    for (let i = 1939404; i <= 2027617; ++i) {
         const relIndex = (i - 1) % CHUNK_SIZE;
         const chunkDir = baseDir + '/' + (i - relIndex) + '_' + (i - relIndex - 1 + CHUNK_SIZE);
         if (relIndex === 0) {
@@ -58,8 +58,11 @@ const main = async () => {
             // skip this number, torrent was deleted
         } else {
             const pageHtml = await response.text();
-            if (response.status === 200) {
+            if (response.status === 200 && !pageHtml.includes("Checking your browser before accessing")) {
                 ddosErrors = 0;
+                if (pageHtml.includes("404 Not Found")) {
+                    // skip this number, torrent was deleted
+                }
                 await fs.writeFile(chunkDir + '/' + i + '.html', pageHtml);
             } else {
                 if (ddosErrors > 7) {
