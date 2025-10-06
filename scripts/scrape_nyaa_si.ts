@@ -1,5 +1,4 @@
 
-import fetch from 'node-fetch';
 import {promises as fs} from 'fs';
 
 /**
@@ -14,22 +13,23 @@ import {promises as fs} from 'fs';
 const baseDir = __dirname + '/../data/nyaa_si_scrapes';
 
 const CHUNK_SIZE = 1000;
-const MIN_DELAY = 1500;
-const MAX_DELAY = 2500;
+const MIN_DELAY = 150;
+const MAX_DELAY = 350;
 
 const main = async () => {
     let ddosErrors = 0;
-    for (let i = 1766460; i <= 2027617; ++i) {
+    for (let i = 1775582; i <= 2027617; ++i) {
         const relIndex = (i - 1) % CHUNK_SIZE;
         const chunkDir = baseDir + '/' + (i - relIndex) + '_' + (i - relIndex - 1 + CHUNK_SIZE);
         if (relIndex === 0) {
             await fs.mkdir(chunkDir, {recursive: true})
         }
         
-        const url = 'https://nyaa.si/view/' + i;
+        // const url = 'https://nyaa.si/view/' + i;
+        const url = 'https://nyaa-si-proxy.azurewebsites.net/nyaa.si/view/' + i;
         const options = {
             headers: {
-                'user-agent': 'torrent.klesun.net/af4a607a90e71c5ce9f8157442c813cd09a539c3 infohashes crawler script',
+                // 'user-agent': 'torrent.klesun.net/af4a607a90e71c5ce9f8157442c813cd09a539c3 infohashes crawler script',
             },
         };
         let lastError = null;

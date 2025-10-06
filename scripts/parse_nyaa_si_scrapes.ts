@@ -26,6 +26,18 @@ type Fields = {
 
 function parseRows(rows: Element[]) {
     const fields: Record<string, string> = {};
+    const normalize = () => {
+        const typed = fields as Fields;
+        return {
+            category: typed.Category || neverNull("Seeders"),
+            createdDt: typed.Date || neverNull("Seeders"),
+            submitter: typed.Submitter || neverNull("Seeders"),
+            seeders: Number(typed.Seeders || neverNull("Seeders")),
+            leechers: Number(typed.Leechers || neverNull("Leechers")),
+            fileSize: typed["File size"],
+            downloads: Number(typed.Completed || neverNull("Completed")),
+        };
+    };
     for (const row of rows) {
         const cells = [...row.children];
         for (let i = 0; i < cells.length; i += 2) {
@@ -33,18 +45,13 @@ function parseRows(rows: Element[]) {
             const key = k.textContent?.trim().replace(/:$/, "") ?? neverNull("key");
             const value = v.textContent?.trim() ?? neverNull("value");
             fields[key] = value;
+            // early return because nyaa.land adds donation links here, example: 985726
+            if (key === "Info hash") {
+                return normalize();
+            }
         }
     }
-    const typed = fields as Fields;
-    return {
-        category: typed.Category || neverNull("Seeders"),
-        createdDt: typed.Date || neverNull("Seeders"),
-        submitter: typed.Submitter || neverNull("Seeders"),
-        seeders: Number(typed.Seeders || neverNull("Seeders")),
-        leechers: Number(typed.Leechers || neverNull("Leechers")),
-        fileSize: typed["File size"],
-        downloads: Number(typed.Completed || neverNull("Completed")),
-    };
+    return normalize();
 }
 
 function parseNyaaSiPage(document: Document) {
@@ -118,7 +125,11 @@ function is404(document: Document) {
     return document.querySelector("h1")?.textContent?.trim() === "404 Not Found";
 }
 
-const NEXT_ID = 590092;
+function isListResponse(document: Document) {
+    return !!document.querySelector("table.torrent-list");
+}
+
+const NEXT_ID = 1775955;
 
 let i = 0;
 let unflushedRows: InfohashDbRow[] = [];
@@ -135,22 +146,26 @@ for (const { folderName, startId, endId } of chunkFolders) {
         if (nyaaId < NEXT_ID) {
             continue;
         }
-        if (i++ % 50 === 0) {
+        if (i % 50 === 0) {
             console.log("Processing #" + i + ": " + filePath);
         }
+        i++;
         if (i % 1000 === 0) {
             console.log("Flushing at " + nyaaId);
             await infohashes.insert(unflushedRows);
             unflushedRows = [];
         }
         try {
-            const stats = await fs.stat(filePath);
             const fileContent = await fs.readFile(filePath, "utf-8");
             const dom = new JSDOM(fileContent);
             if (is404(dom.window.document)) {
-                console.info("Skipping 404 at " + nyaaId);
                 continue;
             }
+            if (isListResponse(dom.window.document)) {
+                console.warn("List response at " + nyaaId);
+                continue;
+            }
+            const stats = await fs.stat(filePath);
             const parsed = parseNyaaSiPage(dom.window.document);
             unflushedRows.push(prepareRow(parsed, stats, nyaaId));
         } catch (error) {
