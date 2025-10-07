@@ -35,14 +35,14 @@ const TorrentNamesFts = () => {
                 }
             });
         },
-        selectOne: async (userInput: string): Promise<DbRow[]> => {
+        select: async (userInput: string): Promise<DbRow[]> => {
             const escapedInput = userInput
                 .split(' ')
                 // eventually could recognize the "" in user's query as _exact match_ like in google
                 .map(w => w.split('').map(c => c === '"' ? '""' : c).join(''))
                 .map(w => '"' + w + '"')
                 .join(' ');
-            const sql = `SELECT * FROM ${table} WHERE name MATCH ?`;
+            const sql = `SELECT * FROM ${table} WHERE name MATCH ? LIMIT 1000`;
             const placedValues = [escapedInput];
             return dbPool.withDb<DbRow[]>(
                 db => db.all<DbRow[]>(sql, ...placedValues)

@@ -270,7 +270,7 @@ const Api = () => {
 
     const findTorrentsInLocalDb = (req: http.IncomingMessage) => {
         const {userInput} = <Record<string, string>>url.parse(<string>req.url, true).query;
-        return torrentNamesFts.selectOne(userInput);
+        return torrentNamesFts.select(userInput);
     };
 
     return {

@@ -18,7 +18,7 @@ const MAX_DELAY = 350;
 
 const main = async () => {
     let ddosErrors = 0;
-    for (let i = 1939404; i <= 2027617; ++i) {
+    for (let i = 2027617; i <= 2027617; ++i) {
         const relIndex = (i - 1) % CHUNK_SIZE;
         const chunkDir = baseDir + '/' + (i - relIndex) + '_' + (i - relIndex - 1 + CHUNK_SIZE);
         if (relIndex === 0) {
