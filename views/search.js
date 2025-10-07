@@ -323,17 +323,22 @@ const main = async () => {
     const localResults = await whenLocalResults;
     const watchIndex = collectWatchIndex(window.localStorage);
     const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
-    listUpdater.update(localResults.map(({infohash, name}) => ({
-        infoHash: infohash,
-        descrLink: 'https://torrent.klesun.net/views/infoPage/' + infohash,
-        fileName: name,
-        fileSize: -1,
-        fileUrl: 'magnet:?xt=urn:btih:' + infohash,
-        nbLeechers: 0,
-        nbSeeders: 1,
-        siteUrl: 'https://torrent.klesun.net',
-        tracker: 'kunkka-torrent',
-        mediaType: TorrentNameParser({name}).parts[0].mediaType,
+    listUpdater.update(localResults.map((record) => ({
+        infoHash: record.infohash,
+        descrLink: 'https://torrent.klesun.net/views/infoPage/' + record.infohash,
+        fileName: record.name,
+        fileSize: record.length,
+        fileUrl: 'magnet:?xt=urn:btih:' + record.infohash,
+        nbLeechers: record.trackerData?.leechers ?? 0,
+        nbSeeders: record.trackerData?.seeders ?? 1,
+        siteUrl:
+            record.source === "nyaa_si" ? "https://nyaa.si" :
+            record.source === "tpb_dump_2019" ? "https://thepiratebay.org" :
+            record.source === "rutracker_dump_2020" ? "https://rutracker.org" :
+            record.source === "dht_crawler" ? "https://btdig.com/" :
+            'https://torrent.klesun.net',
+        tracker: record.source,
+        mediaType: TorrentNameParser({ name: record.name }).parts[0].mediaType,
     })));
     const {id} = await started;
 

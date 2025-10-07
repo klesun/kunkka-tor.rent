@@ -16,6 +16,7 @@ import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-
 import TorrentNamesFts from "./repositories/TorrentNamesFts";
 import {readPost} from "./utils/Http";
 import {trackerRecords} from "./actions/ScrapeTrackersSeedInfo";
+import Infohashes from "./repositories/Infohashes";
 
 type SwarmWire = {
     downloaded: number,
@@ -136,6 +137,7 @@ const Api = () => {
     const infoHashToEngine: Record<string, NowadaysEngine> = {};
     const infoHashToWhenReadyEngine: Record<string, Promise<NowadaysEngine>> = {};
     const torrentNamesFts = TorrentNamesFts();
+    const infohashes = Infohashes();
 
     const prepareTorrentStream = async (infoHash: string, trackers: string[] = []): Promise<NowadaysEngine> => {
         if (!infoHash || infoHash.length !== 40) {
@@ -268,9 +270,10 @@ const Api = () => {
         return {infoHash, announce};
     };
 
-    const findTorrentsInLocalDb = (req: http.IncomingMessage) => {
+    const findTorrentsInLocalDb = async (req: http.IncomingMessage) => {
         const {userInput} = <Record<string, string>>url.parse(<string>req.url, true).query;
-        return torrentNamesFts.select(userInput);
+        const ftsRows = await torrentNamesFts.select(userInput);
+        return infohashes.selectIn(ftsRows.map(r => r.infohash));
     };
 
     return {

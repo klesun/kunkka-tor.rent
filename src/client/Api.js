@@ -1,6 +1,6 @@
 
 /**
- * @typedef {import("./../server/repositories/TorrentNamesFts").DbRow} api_findTorrentsInLocalDb_DbRow
+ * @typedef {import("./../server/repositories/Infohashes").AppInfohash} api_findTorrentsInLocalDb_DbRow
  */
 
 const parseResponse = rs => rs.status !== 200

@@ -3,6 +3,7 @@ import {InfohashDbRow} from "../typing/InfohashDbRow";
 import * as SqlUtil from 'klesun-node-tools/src/Utils/SqlUtil.js';
 import * as console from "node:console";
 import { Database } from "sqlite";
+import {ParsedNyaaSiPage} from "../../../scripts/parse_nyaa_si_scrapes";
 
 function neverNull(): never {
     throw new Error("Unexpected null value");
@@ -107,6 +108,16 @@ const selectMany = async function<TRow>(db: Database, selectSql: string, placedV
     return rowsGenerator;
 };
 
+type TrackerData = Partial<ParsedNyaaSiPage["fields"]>;
+
+function deserialize(dbRow: InfohashDbRow) {
+    const { trackerData_json, ...scalar } = dbRow;
+    const trackerData: TrackerData | null = !trackerData_json ? null : JSON.parse(trackerData_json);
+    return { ...scalar, trackerData };
+}
+
+export type AppInfohash = ReturnType<typeof deserialize>;
+
 const Infohashes = () => {
     const table = 'Infohashes';
     const dbPool = DbPool({
@@ -136,9 +147,27 @@ const Infohashes = () => {
             // language=sqlite
             const sql = `SELECT * FROM Infohashes WHERE infohash = ?`;
             const placedValues = [infohash];
-            return dbPool.withDb<InfohashDbRow | undefined>(
+            const dbRow = await dbPool.withDb<InfohashDbRow | undefined>(
                 db => db.get<InfohashDbRow>(sql, ...placedValues)
             );
+            if (!dbRow) {
+                return undefined;
+            } else {
+                return deserialize(dbRow);
+            }
+        },
+        selectIn: async (infohashes: string[]): Promise<InfohashDbRow[]> => {
+            if (infohashes.length === 0) {
+                return [];
+            }
+            const sql = `
+                SELECT * FROM Infohashes 
+                WHERE infohash IN (${infohashes.map(_ => "?").join(",")})
+            `;
+            const dbRows = await dbPool.withDb(
+                db => db.all<InfohashDbRow[]>(sql, ...infohashes)
+            );
+            return dbRows.map(deserialize);
         },
         selectChunks: async function*() {
             const CHUNK_SIZE = 200000;
@@ -153,7 +182,7 @@ const Infohashes = () => {
                     return db.all(selectSql, [lastId, CHUNK_SIZE]);
                 });
                 if (chunk.length > 0) {
-                    yield chunk;
+                    yield chunk.map(deserialize);
                     lastId = chunk[chunk.length - 1].rowid
                 } else {
                     break;

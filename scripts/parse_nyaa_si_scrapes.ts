@@ -78,7 +78,7 @@ function parseNyaaSiPage(document: Document) {
     };
 }
 
-type ParsedNyaaSiPage = ReturnType<typeof parseNyaaSiPage>;
+export type ParsedNyaaSiPage = ReturnType<typeof parseNyaaSiPage>;
 
 const chunkFolderNames = await fs.readdir(ROOT_FOLDER_PATH);
 const chunkFolders = chunkFolderNames
