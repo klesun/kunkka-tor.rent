@@ -18,6 +18,7 @@ tbody {
 }
 .torrent-file-name {
     font-size: 12px;
+    max-width: 480px;
 }
 td.infohash {
     width: 260px;
@@ -84,10 +85,6 @@ video {
 }
 .file-list-cont {
     max-height: 600px;
-    overflow-y: auto;
-}
-.player-cont {
-    max-height: 800px;
     overflow-y: auto;
 }
 

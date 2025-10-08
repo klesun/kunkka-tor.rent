@@ -123,13 +123,18 @@ const serveStaticFile = async (pathname: string, params: HandleHttpParams) => {
     }
 };
 
+function assertValidInfoHash(infoHash: string) {
+    if (!infoHash || infoHash.length !== 40 && !infoHash.match(/^[a-zA-Z2-7]{32}$/)) {
+        throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string or a 32 characters long base32 string');
+    }
+}
+
 const getFileInTorrent = async (params: HandleHttpParams) => {
     const {rq, rs, api} = params;
     const {infoHash, filePath, ...restParams} = <Record<string, string>>url.parse(<string>rq.url, true).query;
 
-    if (!infoHash || infoHash.length !== 40) {
-        throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
-    } else if (!filePath) {
+    assertValidInfoHash(infoHash);
+    if (!filePath) {
         throw new BadRequest('filePath parameter is mandatory');
     }
 
@@ -516,7 +521,10 @@ const HandleHttpRequest = async (params: HandleHttpParams) => {
         return serveZipReaderFile(params);
     } else if (pathname === '/api/listDirectory') {
         return serveListDirectory(params);
-    } else if (match = pathname.match(/^\/views\/infoPage\/([a-fA-F0-9]{40})$/)) {
+    } else if (match = (
+        pathname.match(/^\/views\/infoPage\/([a-fA-F0-9]{40})$/) ?? // hex
+        pathname.match(/^\/views\/infoPage\/([a-zA-Z2-7]{32})$/) // base32
+    )) {
         const infoHash = match[1];
         return ServeInfoPage(params, infoHash);
     } else {

@@ -23,9 +23,13 @@ elif download_url.startswith("https://nnmclub.to/"):
 elif download_url.startswith("https://www.torlock.com/"):
     from torlock import torlock
     tracker_client = torlock()
+elif download_url.startswith("https://www.torlock2.com/"):
+    from torlock import torlock
+    tracker_client = torlock()
 else:
     print(json.dumps({
         "status": "UNSUPPORTED_TRACKER",
+        "zhopa": download_url,
     }), file=sys.stderr)
     exit(127)
 

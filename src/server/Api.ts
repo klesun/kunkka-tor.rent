@@ -17,6 +17,7 @@ import TorrentNamesFts from "./repositories/TorrentNamesFts";
 import {readPost} from "./utils/Http";
 import {trackerRecords} from "./actions/ScrapeTrackersSeedInfo";
 import Infohashes from "./repositories/Infohashes";
+import * as console from "node:console";
 
 type SwarmWire = {
     downloaded: number,
@@ -41,6 +42,15 @@ interface NowadaysSwarm extends Swarm {
 
 interface NowadaysEngine extends TorrentEngine {
     swarm: NowadaysSwarm;
+}
+
+function assertValidInfoHash(infoHash: string | null | undefined | string[]) {
+    if (Array.isArray(infoHash)) {
+        throw new BadRequest('Only one infohash is expected in parameters');
+    }
+    if (!infoHash || infoHash.length !== 40 && !infoHash.match(/^[a-zA-Z2-7]{32}$/)) {
+        throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string or a 32 characters long base32 string');
+    }
 }
 
 const getCircularReplacer = () => {
@@ -84,9 +94,7 @@ const makeSwarmSummary = (swarm: NowadaysSwarm) => {
 
 const checkInfoHashMeta = async (rq: http.IncomingMessage) => {
     const {infoHash} = url.parse(<string>rq.url, true).query;
-    if (!infoHash || infoHash.length !== 40) {
-        throw new Error('Invalid infoHash, must be a 40 characters long hex string');
-    }
+    assertValidInfoHash(infoHash);
 
     const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
     const whenMeta = new Promise<TorrentInfo>(resolve => {
@@ -106,9 +114,7 @@ const checkInfoHashMeta = async (rq: http.IncomingMessage) => {
 
 const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
     const {infoHash} = url.parse(<string>rq.url, true).query;
-    if (!infoHash || infoHash.length !== 40) {
-        throw new Error('Invalid infoHash, must be a 40 characters long hex string');
-    }
+    assertValidInfoHash(infoHash);
     const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
     // would be real cool to send response incrementally...
     engine.listen();
@@ -140,9 +146,7 @@ const Api = () => {
     const infohashes = Infohashes();
 
     const prepareTorrentStream = async (infoHash: string, trackers: string[] = []): Promise<NowadaysEngine> => {
-        if (!infoHash || infoHash.length !== 40) {
-            throw new Error('Invalid infoHash, must be a 40 characters long hex string');
-        }
+        assertValidInfoHash(infoHash);
         if (!infoHashToWhenReadyEngine[infoHash]) {
             const magnetLink = 'magnet:?xt=urn:btih:' + infoHash +
                 trackers.map(tr => '&tr=' + encodeURIComponent(tr)).join('');
@@ -163,9 +167,8 @@ const Api = () => {
 
     const getFfmpegInfo = async (rq: http.IncomingMessage) => {
         const {infoHash, filePath} = <Record<string, string>>url.parse(<string>rq.url, true).query;
-        if (!infoHash || infoHash.length !== 40) {
-            throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
-        } else if (!filePath) {
+        assertValidInfoHash(infoHash);
+        if (!filePath) {
             throw new BadRequest('filePath parameter is mandatory');
         }
         await prepareTorrentStream(infoHash);
@@ -189,9 +192,7 @@ const Api = () => {
         let {infoHash, tr = []} = query;
         tr = !tr ? [] : typeof tr === 'string' ? [tr] : tr;
 
-        if (!infoHash || infoHash.length !== 40) {
-            throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
-        }
+        assertValidInfoHash(infoHash);
         const engine = await prepareTorrentStream(<string>infoHash, tr);
         return {
             files: engine.files.map(shortenFileInfo),
@@ -201,9 +202,7 @@ const Api = () => {
     const getExistingEngine = (rq: http.IncomingMessage) => {
         const query = url.parse(<string>rq.url, true).query;
         let {infoHash} = <Record<string, string>>query;
-        if (!infoHash || infoHash.length !== 40) {
-            throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string');
-        }
+        assertValidInfoHash(infoHash);
         const engine = infoHashToEngine[infoHash] || null;
         if (!engine) {
             throw new TooEarly('Engine must be initialized first');
@@ -224,6 +223,38 @@ const Api = () => {
         return JSON.parse(JSON.stringify(normalized, getCircularReplacer()));
     };
 
+    const tryInterpretAsMagnet = async (fileUrl: string) => {
+        const response = await fetch(fileUrl, {
+            redirect: "manual",
+        });
+        if (response.status === 302) {
+            const location = response.headers.get("location");
+            if (!location) {
+                throw new Error("Missing redirect location");
+            }
+            if (!location.startsWith("magnet:?")) {
+                throw new Error("Redirect link is not magnet: " + location);
+            }
+            const searchParams = new URLSearchParams(location.slice("magnet:?".length));
+            const infoHash = searchParams.get("xt")?.replace(/^urn:btih:/, "");
+            if (!infoHash) {
+                throw new Error("Missing infohash in magnet link");
+            }
+            return { infoHash, announce: searchParams.getAll("tr") };
+        } else if (response.status === 200) {
+            if (response.headers.get("content-type") === "application/x-bittorrent") {
+                const arrayBuffer = await response.arrayBuffer();
+                const torrentFileData = parseTorrent(Buffer.from(arrayBuffer));
+                const announce = torrentFileData.announce || [];
+                const infoHash = torrentFileData.infoHash;
+                return { infoHash, announce };
+            } else {
+                throw new Error("Not implemented for response content type " + response.headers.get("content-type"));
+            }
+        }
+        throw new Error("Not implemented for response status " + response.status);
+    };
+
     /**
      * sites like rutracker, bakabt, kinozal, etc... require login and password
      * to download torrents, so need to integrate with qbt python plugins
@@ -238,7 +269,11 @@ const Api = () => {
         } catch (exc) {
             const msg = (exc && typeof exc === "object" && ("stderr" in exc) && exc.stderr ? 'STDERR: ' + String(exc.stderr) + '\n' : '') +
                 'Python script failed to retrieve torrent';
-            throw new BadGateway(msg);
+            if (msg.includes("UNSUPPORTED_TRACKER")) {
+                return await tryInterpretAsMagnet(fileUrl);
+            } else {
+                throw new BadGateway(msg);
+            }
         }
         const {stdout, stderr} = result;
         const [path, effectiveUrl] = stdout.trim().split(/\s+/);
@@ -255,7 +290,9 @@ const Api = () => {
         const asMagnet = parseMagnetUrl(path);
         if (asMagnet) {
             infoHash = asMagnet.infoHash;
-        } else if (path.match(/^[A-Fa-f0-9]{40}$/)) {
+        } else if (path.match(/^[A-Fa-f0-9]{40}$/) // hnx
+                || path.match(/^[a-zA-Z2-7]{32}$/) // base32
+        ) {
             infoHash = path;
         } else if (path.startsWith('/tmp/')) {
             const torrentFileBuf = await fs.promises.readFile(path);

@@ -42,7 +42,7 @@ const TorrentNamesFts = () => {
                 .map(w => w.split('').map(c => c === '"' ? '""' : c).join(''))
                 .map(w => '"' + w + '"')
                 .join(' ');
-            const sql = `SELECT * FROM ${table} WHERE name MATCH ? LIMIT 1000`;
+            const sql = `SELECT * FROM ${table} WHERE name MATCH ? ORDER BY rowid DESC LIMIT 5000`;
             const placedValues = [escapedInput];
             return dbPool.withDb<DbRow[]>(
                 db => db.all<DbRow[]>(sql, ...placedValues)

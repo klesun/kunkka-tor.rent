@@ -36,7 +36,7 @@
     "srt-to-vtt": "^1.1.3",
     "subtitle-converter": "^3.0.6",
     "torrent-stream": "^1.2.0",
-    "torrent-tracker": "https://github.com/klesun-productions/torrent-tracker/tarball/d8d66c30db17204c977a3584fd377ce25cfbf075",
+    "torrent-tracker": "https://github.com/klesun-productions/torrent-tracker/tarball/f83d4adfe6de745041cc38dbd4f21b4cce1129c6",
     "torrents-csv-data": "git+https://codeberg.org/klesun/torrents-csv-data.git#e739231a782f64d4ba264b1606775248e8e4ff5a",
     "ts-node": "10.9.2",
     "typescript": "latest",

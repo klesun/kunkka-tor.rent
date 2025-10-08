@@ -131,7 +131,7 @@ const getSizeDecimalCategory = (bytes) => {
  * @param {QbtSearchResultItemExtended} resultItem
  */
 const getInfoHash = async (resultItem) => {
-    const asMagnet = resultItem.fileUrl.match(/^magnet:\?(\S+)$/);
+    const asMagnet = resultItem.fileUrl.match(/^magnet:\?(.+)$/);
     if (asMagnet) {
         const magnetQueryPart = asMagnet[1];
         const search = new URLSearchParams(magnetQueryPart);
@@ -149,17 +149,22 @@ const getInfoHash = async (resultItem) => {
 const makeResultTr = (resultItem) => {
     const seedsSuspicious = stagnantSites.includes(resultItem.siteUrl);
 
-    const anchor = Dom('a', {
+    const openAnchor = Dom('a', {
         target: '_blank',
         style: 'white-space: nowrap',
         onclick: () => alert('Infohash is loading. Try again in few seconds.'),
     }, [
         Dom('button', {}, 'Open'),
     ]);
+    const downloadAnchor = Dom('a', {
+        href: resultItem.fileUrl,
+    }, resultItem.infoHash || resultItem.fileUrl.replace(/^https?:\/\/[^\/?]*/, ''));
+
     getInfoHash(resultItem).then(({ infoHash }) => {
-        anchor.setAttribute("href", './infoPage/' + infoHash.toLowerCase());
-        anchor.onclick = undefined;
-    });
+        openAnchor.setAttribute("href", './infoPage/' + infoHash.toLowerCase());
+        downloadAnchor.textContent = infoHash;
+        openAnchor.onclick = undefined;
+    }, error => openAnchor.onclick = () => alert(String(error)));
     const tr = Dom('tr', {
         'data-tracker': resultItem.tracker,
         'data-site-url': resultItem.siteUrl,
@@ -169,7 +174,7 @@ const makeResultTr = (resultItem) => {
         'data-stored-seeders': resultItem.nbSeeders,
         'data-stored-leechers': resultItem.nbLeechers,
     }, [
-        Dom('td', {}, [anchor]),
+        Dom('td', {}, [openAnchor]),
         Dom('td', {class: 'torrent-file-name'}, resultItem.fileName),
         Dom('td', {}, resultItem.mediaType),
         makeSizeTd(resultItem.fileSize),
@@ -181,9 +186,7 @@ const makeResultTr = (resultItem) => {
             Dom('span', {class: 'stored-seeds-holder'}, (seedsSuspicious ? '(≖_≖)' : '') + resultItem.nbSeeders),
         ]),
         Dom('td', {class: 'infohash'}, [
-            Dom('a', {
-                href: resultItem.fileUrl,
-            }, resultItem.infoHash || resultItem.fileUrl.replace(/^https?:\/\/[^\/?]*/, '')),
+            downloadAnchor,
         ]),
         Dom('td', {}, [
             Dom('a', {
@@ -268,7 +271,7 @@ const makeListUpdater = (listDom, watchIndex) => {
 
         const needForSeed = resultsChunk.filter(i => {
             return i.infoHash
-                && !liveSeedUpdateSites.includes(i.siteUrl)
+                && (!liveSeedUpdateSites.includes(i.siteUrl) || i.asLocalDbRecord)
                 && !suspiciousSites.includes(i.siteUrl);
         });
         if (needForSeed.length > 0) {
@@ -324,6 +327,7 @@ const main = async () => {
     const watchIndex = collectWatchIndex(window.localStorage);
     const listUpdater = makeListUpdater(gui.search_results_list, watchIndex);
     listUpdater.update(localResults.map((record) => ({
+        asLocalDbRecord: record,
         infoHash: record.infohash,
         descrLink: 'https://torrent.klesun.net/views/infoPage/' + record.infohash,
         fileName: record.name,
@@ -358,7 +362,7 @@ const main = async () => {
             const mediaTypeToCount = new Map();
             const resultsChunk = resultsRs.results.map(r => {
                 r.infoHash = (parseMagnetUrl(r.fileUrl) || {}).infoHash;
-                const tracker = new URL(r.descrLink).hostname;
+                const tracker = r.descrLink ? new URL(r.descrLink).hostname : "";
                 const mediaType = TorrentNameParser({name: r.fileName, tracker}).parts[0].mediaType;
                 mediaTypeToCount.set(mediaType, (mediaTypeToCount.get(mediaType) || 0) + 1);
                 r.tracker = tracker;
