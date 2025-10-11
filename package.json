@@ -19,6 +19,7 @@
     "@curveball/http-errors": "^0.4.0",
     "@swc/core": "^1.13.5",
     "@swc/helpers": "^0.5.17",
+    "eslint-plugin-unused-imports": "^4.2.0",
     "jsdom": "^27.0.0",
     "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/d34874bba56852160127ce11262e2ef502f3e890",
     "mime-types": "^2.1.27",
@@ -39,11 +40,12 @@
     "torrent-tracker": "https://github.com/klesun-productions/torrent-tracker/tarball/f83d4adfe6de745041cc38dbd4f21b4cce1129c6",
     "torrents-csv-data": "git+https://codeberg.org/klesun/torrents-csv-data.git#e739231a782f64d4ba264b1606775248e8e4ff5a",
     "ts-node": "10.9.2",
-    "typescript": "latest",
     "unzip-stream": "^0.3.1",
     "vite-node": "^3.2.4"
   },
   "devDependencies": {
+    "@eslint/compat": "^1.4.0",
+    "@stylistic/eslint-plugin": "^5.4.0",
     "@types/jsdom": "^27.0.0",
     "@types/mime-types": "^2.1.0",
     "@types/node": "^14.0.27",
@@ -55,10 +57,16 @@
     "@types/react-dom": "^18.3.7",
     "@types/socket.io": "^2.0.0",
     "@types/torrent-stream": "0.0.5",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.0",
+    "eslint": "^9.37.0",
+    "eslint-plugin-import": "^2.32.0",
     "path-browserify": "^1.0.1",
     "stream-browserify": "^3.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0",
     "webpack": "^5.11.0",
     "webpack-cli": "^4.2.0"
   }
