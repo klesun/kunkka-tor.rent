@@ -137,10 +137,10 @@ tr.viewed-file {
 #media_types_whitelist [data-media-type] > * {
     margin: 0 4px;
 }
-body.media-type-excluded--unknown tr[data-media-type="unknown"],
-body.media-type-excluded--music tr[data-media-type="music"],
-body.media-type-excluded--book tr[data-media-type="book"],
-body.media-type-excluded--video tr[data-media-type="video"] {
+.css-filtered-list.media-type-excluded--unknown tr[data-media-type="unknown"],
+.css-filtered-list.media-type-excluded--music tr[data-media-type="music"],
+.css-filtered-list.media-type-excluded--book tr[data-media-type="book"],
+.css-filtered-list.media-type-excluded--video tr[data-media-type="video"] {
     display: none;
 }
 
@@ -152,13 +152,13 @@ label[data-size-decimal-category="1gb-10gb"], tr[data-size-decimal-category="1gb
 label[data-size-decimal-category="10gb-100gb"], tr[data-size-decimal-category="10gb-100gb"] .torrent-size { color: #ba5b1e; }
 label[data-size-decimal-category="more-than-100gb"], tr[data-size-decimal-category="more-than-100gb"] .torrent-size { color: #950505; }
 
-body.size-decimal-category-excluded--less-than-1mb tr[data-size-decimal-category="less-than-1mb"],
-body.size-decimal-category-excluded--1mb-10mb tr[data-size-decimal-category="1mb-10mb"],
-body.size-decimal-category-excluded--10mb-100mb tr[data-size-decimal-category="10mb-100mb"],
-body.size-decimal-category-excluded--100mb-1gb tr[data-size-decimal-category="100mb-1gb"],
-body.size-decimal-category-excluded--1gb-10gb tr[data-size-decimal-category="1gb-10gb"],
-body.size-decimal-category-excluded--10gb-100gb tr[data-size-decimal-category="10gb-100gb"],
-body.size-decimal-category-excluded--more-than-100gb tr[data-size-decimal-category="more-than-100gb"] {
+.css-filtered-list.size-decimal-category-excluded--less-than-1mb tr[data-size-decimal-category="less-than-1mb"],
+.css-filtered-list.size-decimal-category-excluded--1mb-10mb tr[data-size-decimal-category="1mb-10mb"],
+.css-filtered-list.size-decimal-category-excluded--10mb-100mb tr[data-size-decimal-category="10mb-100mb"],
+.css-filtered-list.size-decimal-category-excluded--100mb-1gb tr[data-size-decimal-category="100mb-1gb"],
+.css-filtered-list.size-decimal-category-excluded--1gb-10gb tr[data-size-decimal-category="1gb-10gb"],
+.css-filtered-list.size-decimal-category-excluded--10gb-100gb tr[data-size-decimal-category="10gb-100gb"],
+.css-filtered-list.size-decimal-category-excluded--more-than-100gb tr[data-size-decimal-category="more-than-100gb"] {
     display: none;
 }
 
@@ -171,4 +171,8 @@ label, input[type="checkbox"] {
     font-weight: bold;
     margin-right: 6px;
     cursor: help;
+}
+
+a.open-infohash {
+    white-space: nowrap;
 }

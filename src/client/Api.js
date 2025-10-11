@@ -1,6 +1,7 @@
 
 /**
  * @typedef {import("./../server/repositories/Infohashes").AppInfohash} api_findTorrentsInLocalDb_DbRow
+ * @typedef {import("./QbtSearch").QbtSearchResult} QbtSearchResult
  */
 
 const parseResponse = rs => rs.status !== 200

@@ -1,6 +1,7 @@
 {
 	"compilerOptions": {
-		"lib": ["esnext"],
+        "allowImportingTsExtensions": true,
+        "lib": ["esnext"],
 		"jsx": "react-jsx",
 		"allowJs": true,
 		"target": "esnext",

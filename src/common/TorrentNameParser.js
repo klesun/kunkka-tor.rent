@@ -4,13 +4,15 @@
  * I was not satisfied with existing ones, as they did not support cases when torrent
  * consists of several different parts, like "Seasons 1-3 + Movie 1 + Spinoffs"
  *
- * @param {string} tracker = 'rutracker.org'
+ * @param {{
+ *     name: string,
+ *     tracker?: 'rutracker.org' | string | null,
+ * }} params
  *  on rutracker and nnm (probably on others as well) there is a wizard page
  *  where you input details and name gets generated in a normalized format
  */
-const TorrentNameParser = ({
-    name, tracker = null,
-}) => {
+const TorrentNameParser = (params) => {
+    const { name, tracker = null } = params;
     let mediaType = 'unknown';
     // for starters don't try to interpret it as multi-part torrent, but preserve multiformat for future
     if (name.match(/480p|720p|1080p/) ||

@@ -1,6 +1,6 @@
 
 // @ts-ignore
-import Tracker = require('torrent-tracker');
+import Tracker = require("torrent-tracker");
 
 type TrackerRecord = {
     url: string,
@@ -8,43 +8,43 @@ type TrackerRecord = {
 };
 
 export const trackerRecords: TrackerRecord[] = [
-    {url: 'udp://9.rarbg.to:2920/announce', maxHashesPerRequest: 101},
+    { url: "udp://9.rarbg.to:2920/announce", maxHashesPerRequest: 101 },
 
-    {url: 'udp://opentor.org:2710/announce', maxHashesPerRequest: 75},
-    {url: 'udp://valakas.rollo.dnsabr.com:2710/announce', maxHashesPerRequest: 75},
-    {url: 'udp://open.stealth.si:80/announce', maxHashesPerRequest: 75},
-    {url: 'udp://tracker.opentrackr.org:1337/announce', maxHashesPerRequest: 75},
-    {url: 'udp://tracker.zerobytes.xyz:1337/announce', maxHashesPerRequest: 75},
-    {url: 'udp://tracker2.dler.org:80/announce', maxHashesPerRequest: 75},
-    {url: 'udp://vibe.community:6969/announce', maxHashesPerRequest: 75},
-    {url: 'udp://wassermann.online:6969/announce', maxHashesPerRequest: 75},
-    {url: 'udp://retracker.lanta-net.ru:2710/announce', maxHashesPerRequest: 75},
+    { url: "udp://opentor.org:2710/announce", maxHashesPerRequest: 75 },
+    { url: "udp://valakas.rollo.dnsabr.com:2710/announce", maxHashesPerRequest: 75 },
+    { url: "udp://open.stealth.si:80/announce", maxHashesPerRequest: 75 },
+    { url: "udp://tracker.opentrackr.org:1337/announce", maxHashesPerRequest: 75 },
+    { url: "udp://tracker.zerobytes.xyz:1337/announce", maxHashesPerRequest: 75 },
+    { url: "udp://tracker2.dler.org:80/announce", maxHashesPerRequest: 75 },
+    { url: "udp://vibe.community:6969/announce", maxHashesPerRequest: 75 },
+    { url: "udp://wassermann.online:6969/announce", maxHashesPerRequest: 75 },
+    { url: "udp://retracker.lanta-net.ru:2710/announce", maxHashesPerRequest: 75 },
     // {url: 'udp://tracker.openbittorrent.com:80/announce', maxHashesPerRequest: 75},
     // {url: 'udp://tracker.openbittorrent.com:6969/announce', maxHashesPerRequest: 75},
-    {url: 'udp://www.torrent.eu.org:451/announce', maxHashesPerRequest: 75},
-    {url: 'udp://tracker.torrent.eu.org:451/announce', maxHashesPerRequest: 75},
-    {url: 'udp://udp-tracker.shittyurl.org:6969/announce', maxHashesPerRequest: 75},
+    { url: "udp://www.torrent.eu.org:451/announce", maxHashesPerRequest: 75 },
+    { url: "udp://tracker.torrent.eu.org:451/announce", maxHashesPerRequest: 75 },
+    { url: "udp://udp-tracker.shittyurl.org:6969/announce", maxHashesPerRequest: 75 },
 
-    {url: 'udp://u.wwwww.wtf:1/announce', maxHashesPerRequest: 50},
-    {url: 'http://nyaa.tracker.wf:7777/announce', maxHashesPerRequest: 50},
-    {url: 'http://p4p.arenabg.com:1337/announce', maxHashesPerRequest: 50},
+    { url: "udp://u.wwwww.wtf:1/announce", maxHashesPerRequest: 50 },
+    { url: "http://nyaa.tracker.wf:7777/announce", maxHashesPerRequest: 50 },
+    { url: "http://p4p.arenabg.com:1337/announce", maxHashesPerRequest: 50 },
 
-    {url: 'http://p4p.arenabg.com:1337/announce', maxHashesPerRequest: 50},
+    { url: "http://p4p.arenabg.com:1337/announce", maxHashesPerRequest: 50 },
 
-    {url: 'udp://tracker.internetwarriors.net:1337/announce', maxHashesPerRequest: 50},
-    {url: 'udp://tracker1.bt.moack.co.kr:80/announce', maxHashesPerRequest: 50},
-    {url: 'udp://opentracker.i2p.rocks:6969/announce', maxHashesPerRequest: 50},
-    {url: 'udp://explodie.org:6969/announce', maxHashesPerRequest: 50},
-    {url: 'udp://u.wwwww.wtf:1/announce', maxHashesPerRequest: 50},
-    {url: 'udp://tracker.coppersurfer.tk:6969/announce', maxHashesPerRequest: 50},
-    {url: 'udp://tracker.leechers-paradise.org:6969/announce', maxHashesPerRequest: 50},
-    {url: 'udp://exodus.desync.com:6969/announce', maxHashesPerRequest: 50},
-    {url: 'udp://9.rarbg.me:2710/announce', maxHashesPerRequest: 50},
-    {url: 'udp://9.rarbg.to:2710/announce', maxHashesPerRequest: 50},
-    {url: 'udp://tracker.tiny-vps.com:6969/announce', maxHashesPerRequest: 50},
-    {url: 'udp://open.demonii.si:1337/announce', maxHashesPerRequest: 50},
+    { url: "udp://tracker.internetwarriors.net:1337/announce", maxHashesPerRequest: 50 },
+    { url: "udp://tracker1.bt.moack.co.kr:80/announce", maxHashesPerRequest: 50 },
+    { url: "udp://opentracker.i2p.rocks:6969/announce", maxHashesPerRequest: 50 },
+    { url: "udp://explodie.org:6969/announce", maxHashesPerRequest: 50 },
+    { url: "udp://u.wwwww.wtf:1/announce", maxHashesPerRequest: 50 },
+    { url: "udp://tracker.coppersurfer.tk:6969/announce", maxHashesPerRequest: 50 },
+    { url: "udp://tracker.leechers-paradise.org:6969/announce", maxHashesPerRequest: 50 },
+    { url: "udp://exodus.desync.com:6969/announce", maxHashesPerRequest: 50 },
+    { url: "udp://9.rarbg.me:2710/announce", maxHashesPerRequest: 50 },
+    { url: "udp://9.rarbg.to:2710/announce", maxHashesPerRequest: 50 },
+    { url: "udp://tracker.tiny-vps.com:6969/announce", maxHashesPerRequest: 50 },
+    { url: "udp://open.demonii.si:1337/announce", maxHashesPerRequest: 50 },
 
-    {url: 'udp://tracker1.bt.moack.co.kr:80/announce', maxHashesPerRequest: 50},
+    { url: "udp://tracker1.bt.moack.co.kr:80/announce", maxHashesPerRequest: 50 },
 
     // timeouts often
     //{url: 'udp://tracker0.ufibox.com:6969/announce', maxHashesPerRequest: 75},
@@ -72,13 +72,15 @@ const scrapeTracker = async function*(tr: TrackerRecord, infohashes: string[]): 
         let msg;
         try {
             msg = await new Promise<Record<string, ScrapeResponseData>>((resolve, reject) => {
-                tracker.scrape(chunk, {timeout: 15000}, (err: unknown, msg: Record<string, ScrapeResponseData>) => {
+                tracker.scrape(chunk, { timeout: 15000 }, (err: unknown, msg: Record<string, ScrapeResponseData>) => {
                     err ? reject(err) : resolve(msg);
                 });
             });
         } catch (error: unknown) {
-            (error as any).message += ' at ' + tr.url;
-            throw error;
+            (error as any).message += " at " + tr.url;
+            console.warn("Failed to scrape tracker " + tr.url);
+            console.warn(error);
+            return;
         }
         for (const [infohash, data] of Object.entries(msg)) {
             yield { ...data, infohash, trackerUrl: tr.url };
@@ -96,14 +98,14 @@ const combine = async function*<T>(
     function getNext(
         asyncIterator: AsyncGenerator<T, void, undefined>,
         index: number
-    ): Promise<{index: number, result: IteratorResult<T, void>}> {
+    ): Promise<{ index: number, result: IteratorResult<T, void> }> {
         return asyncIterator.next()
             .then(result => ({ index, result }));
     }
     const nextPromises = asyncIterators.map(getNext);
     try {
         while (count) {
-            const {index, result} = await Promise.race(nextPromises);
+            const { index, result } = await Promise.race(nextPromises);
             if (result.done) {
                 nextPromises[index] = never;
                 results[index] = result.value;

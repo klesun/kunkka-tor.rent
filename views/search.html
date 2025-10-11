@@ -25,96 +25,11 @@
 </head>
 
 <body>
-    <header>
-        <div class="header-text-block-space">
-            <div class="header-title-with-search-form">
-                <div class="header-main-title">
-                    <a href="/">
-                        <span class="kunkka-color">kunkka</span>-<span class="torrent-color">torrent</span>
-                    </a>
-                </div>
-                <div>
-                    <form method="get" action="./search.html">
-                        <input required="required" placeholder="Type file name here" name="pattern" type="text"/>
-                        <select name="category">
-                            <option selected value="all">All categories</option>
-                            <option disabled="">──────────</option>
-                            <option value="anime">Anime</option>
-                            <option value="books">Books</option>
-                            <option value="games">Games</option>
-                            <option value="movies">Movies</option>
-                            <option value="music">Music</option>
-                            <option value="pictures">Pictures</option>
-                            <option value="software">Software</option>
-                            <option value="tv">TV shows</option>
-                        </select>
-                        <input type="hidden" name="plugins" value="all"/>
-                        <button>Search</button>
-                    </form>
-                </div>
-            </div>
-            <p class="title-secondary-text">Torrent contents explorer - open files in browser, no need to download to PC</p>
-        </div>
-        <div class="header-image-remainder-space"></div>
-    </header>
-
-    <form id="filters_form">
-        <div class="filters-panel">
-            <div id="status_text">Loading...</div>
-
-            <div id="size_decimal_category_whitelist">
-                <label data-size-decimal-category="less-than-1mb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="less-than-1mb"/>
-                    <span>less-than-1mb</span>
-                </label>
-                <label data-size-decimal-category="1mb-10mb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="1mb-10mb"/>
-                    <span>1mb-10mb</span>
-                </label>
-                <label data-size-decimal-category="10mb-100mb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="10mb-100mb"/>
-                    <span>10mb-100mb</span>
-                </label>
-                <label data-size-decimal-category="100mb-1gb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="100mb-1gb"/>
-                    <span>100mb-1gb</span>
-                </label>
-                <label data-size-decimal-category="1gb-10gb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="1gb-10gb"/>
-                    <span>1gb-10gb</span>
-                </label>
-                <label data-size-decimal-category="10gb-100gb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="10gb-100gb"/>
-                    <span>10gb-100gb</span>
-                </label>
-                <label data-size-decimal-category="more-than-100gb">
-                    <input type="checkbox" checked="checked" name="includedDecimalCategory" value="more-than-100gb"/>
-                    <span>more-than-100gb</span>
-                </label>
-            </div>
-            <div id="media_types_whitelist"></div>
-        </div>
-    </form>
-
-    <div class="search-results-table-container">
-        <table class="resulting-list-of-torrents">
-            <thead>
-            <tr>
-                <th>Open</th>
-                <th>Name</th>
-                <th>Media</th>
-                <th>Size</th>
-                <th>Leechers</th>
-                <th>Seeders</th>
-                <th>Magnet (Download) Link</th>
-                <th>View in Tracker</th>
-            </tr>
-            </thead>
-            <tbody id="search_results_list"></tbody>
-        </table>
-    </div>
+    <div id="react-app-root-container"></div>
 
 <script type="module" src="./search.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
 <script src="https://klesun-misc.github.io/dev_data/common/js/Tls.js"></script>
 
