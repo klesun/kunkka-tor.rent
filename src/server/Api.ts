@@ -1,21 +1,21 @@
-import * as url from 'url';
-import {shortenFileInfo, shortenTorrentInfo, TorrentInfo, TorrentMainInfo} from "./actions/ScanInfoHashStatus";
-import * as http from "http";
-import {HTTP_PORT} from "./Constants";
+import * as url from "url";
+import type { TorrentInfo, TorrentMainInfo } from "./actions/ScanInfoHashStatus";
+import { shortenFileInfo, shortenTorrentInfo } from "./actions/ScanInfoHashStatus";
+import type * as http from "http";
+import { HTTP_PORT } from "./Constants";
 import Swarm = TorrentStream.Swarm;
 import TorrentEngine = TorrentStream.TorrentEngine;
 import Qbtv2 from "./Qbtv2";
-import {parseMagnetUrl} from "../common/Utils.js";
-const torrentStream = require('torrent-stream');
-const {timeout} = require('klesun-node-tools/src/Utils/Lang.js');
-const util = require('util');
-const execFile = util.promisify(require('child_process').execFile);
-import * as fs from 'fs';
-import * as parseTorrent from 'parse-torrent';
-import {BadGateway, BadRequest, NotImplemented, TooEarly} from "@curveball/http-errors";
+import { parseMagnetUrl } from "../common/Utils.js";
+const torrentStream = require("torrent-stream");
+const { timeout } = require("klesun-node-tools/src/Utils/Lang.js");
+const util = require("util");
+const execFile = util.promisify(require("child_process").execFile);
+import * as fs from "fs";
+import * as parseTorrent from "parse-torrent";
+import { BadGateway, BadRequest, NotImplemented, TooEarly } from "@curveball/http-errors";
 import TorrentNamesFts from "./repositories/TorrentNamesFts";
-import {readPost} from "./utils/Http";
-import {trackerRecords} from "./actions/ScrapeTrackersSeedInfo";
+import { trackerRecords } from "./actions/ScrapeTrackersSeedInfo";
 import Infohashes from "./repositories/Infohashes";
 import * as console from "node:console";
 
@@ -35,21 +35,21 @@ interface NowadaysSwarm extends Swarm {
     /** I take it, this list holds wires of peers that we managed to start exchanging data with */
     wires: SwarmWire[],
     /** Includes everything from wires + "choking" peers, that refuse to send us data */
-    _peers: Record<string, {wire: SwarmWire}>,
+    _peers: Record<string, { wire: SwarmWire }>,
     downloadSpeed: () => number,
     connections: unknown,
 }
 
 interface NowadaysEngine extends TorrentEngine {
-    swarm: NowadaysSwarm;
+    swarm: NowadaysSwarm,
 }
 
 function assertValidInfoHash(infoHash: string | null | undefined | string[]) {
     if (Array.isArray(infoHash)) {
-        throw new BadRequest('Only one infohash is expected in parameters');
+        throw new BadRequest("Only one infohash is expected in parameters");
     }
     if (!infoHash || infoHash.length !== 40 && !infoHash.match(/^[a-zA-Z2-7]{32}$/)) {
-        throw new BadRequest('Invalid infoHash, must be a 40 characters long hex string or a 32 characters long base32 string');
+        throw new BadRequest("Invalid infoHash, must be a 40 characters long hex string or a 32 characters long base32 string");
     }
 }
 
@@ -70,13 +70,13 @@ const makeSwarmSummary = (swarm: NowadaysSwarm) => {
     const seeders = [];
     const chokers = [];
     for (const [address, peer] of Object.entries(swarm._peers)) {
-        const {wire} = peer;
+        const { wire } = peer;
         if (!wire) {
-            chokers.push({address, downloaded: 0});
+            chokers.push({ address, downloaded: 0 });
             continue;
         }
-        const {downloaded, peerChoking, peerInterested} = wire;
-        const record = {downloaded, address, peerInterested: peerInterested || undefined};
+        const { downloaded, peerChoking, peerInterested } = wire;
+        const record = { downloaded, address, peerInterested: peerInterested || undefined };
         if (peerChoking) {
             chokers.push(record);
         } else {
@@ -93,12 +93,12 @@ const makeSwarmSummary = (swarm: NowadaysSwarm) => {
 };
 
 const checkInfoHashMeta = async (rq: http.IncomingMessage) => {
-    const {infoHash} = url.parse(<string>rq.url, true).query;
+    const { infoHash } = url.parse(<string>rq.url, true).query;
     assertValidInfoHash(infoHash);
 
-    const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
+    const engine = torrentStream("magnet:?xt=urn:btih:" + infoHash);
     const whenMeta = new Promise<TorrentInfo>(resolve => {
-        engine.on('torrent', async (torrent: TorrentMainInfo) => {
+        engine.on("torrent", async (torrent: TorrentMainInfo) => {
             resolve(shortenTorrentInfo(torrent));
         });
     });
@@ -106,16 +106,16 @@ const checkInfoHashMeta = async (rq: http.IncomingMessage) => {
     const startedMs = Date.now();
     return timeout(5, whenMeta)
         .then((meta: TorrentInfo) => {
-            console.log('ololo meta in ' + ((Date.now() - startedMs) / 1000).toFixed(3) + ' seconds - ' + meta.name);
+            console.log("ololo meta in " + ((Date.now() - startedMs) / 1000).toFixed(3) + " seconds - " + meta.name);
             return meta;
         })
         .finally(() => engine.destroy());
 };
 
 const checkInfoHashPeers = async (rq: http.IncomingMessage) => {
-    const {infoHash} = url.parse(<string>rq.url, true).query;
+    const { infoHash } = url.parse(<string>rq.url, true).query;
     assertValidInfoHash(infoHash);
-    const engine = torrentStream('magnet:?xt=urn:btih:' + infoHash);
+    const engine = torrentStream("magnet:?xt=urn:btih:" + infoHash);
     // would be real cool to send response incrementally...
     engine.listen();
     await new Promise(resolve => setTimeout(resolve, 5 * 1000));
@@ -148,8 +148,8 @@ const Api = () => {
     const prepareTorrentStream = async (infoHash: string, trackers: string[] = []): Promise<NowadaysEngine> => {
         assertValidInfoHash(infoHash);
         if (!infoHashToWhenReadyEngine[infoHash]) {
-            const magnetLink = 'magnet:?xt=urn:btih:' + infoHash +
-                trackers.map(tr => '&tr=' + encodeURIComponent(tr)).join('');
+            const magnetLink = "magnet:?xt=urn:btih:" + infoHash +
+                trackers.map(tr => "&tr=" + encodeURIComponent(tr)).join("");
             const engine = torrentStream(magnetLink, {
                 verify: false,
                 tracker: true,
@@ -158,7 +158,7 @@ const Api = () => {
             // TODO: clear when no ping for 30 seconds or something
             infoHashToEngine[infoHash] = engine;
             infoHashToWhenReadyEngine[infoHash] = Promise.resolve().then(async () => {
-                await new Promise(resolve => engine.on('ready', resolve));
+                await new Promise(resolve => engine.on("ready", resolve));
                 return engine;
             });
         }
@@ -166,31 +166,31 @@ const Api = () => {
     };
 
     const getFfmpegInfo = async (rq: http.IncomingMessage) => {
-        const {infoHash, filePath} = <Record<string, string>>url.parse(<string>rq.url, true).query;
+        const { infoHash, filePath } = <Record<string, string>>url.parse(<string>rq.url, true).query;
         assertValidInfoHash(infoHash);
         if (!filePath) {
-            throw new BadRequest('filePath parameter is mandatory');
+            throw new BadRequest("filePath parameter is mandatory");
         }
         await prepareTorrentStream(infoHash);
-        const streamUrl = 'http://localhost:' + HTTP_PORT + '/torrent-stream?infoHash=' +
-            infoHash + '&filePath=' + encodeURIComponent(filePath);
-        const ffprobeArgs = ['-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', streamUrl];
+        const streamUrl = "http://localhost:" + HTTP_PORT + "/torrent-stream?infoHash=" +
+            infoHash + "&filePath=" + encodeURIComponent(filePath);
+        const ffprobeArgs = ["-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", streamUrl];
         let execResult;
         try {
-            execResult = await execFile('ffprobe', ffprobeArgs);
+            execResult = await execFile("ffprobe", ffprobeArgs);
         } catch (error) {
-            console.error('Ffprobe failed for params:', ffprobeArgs);
+            console.error("Ffprobe failed for params:", ffprobeArgs);
             throw error;
         }
-        const {stdout, stderr} = execResult;
+        const { stdout, stderr } = execResult;
         return JSON.parse(stdout);
     };
 
     const connectToSwarm = async (rq: http.IncomingMessage) => {
         const query = url.parse(<string>rq.url, true).query;
 
-        let {infoHash, tr = []} = query;
-        tr = !tr ? [] : typeof tr === 'string' ? [tr] : tr;
+        let { infoHash, tr = [] } = query;
+        tr = !tr ? [] : typeof tr === "string" ? [tr] : tr;
 
         assertValidInfoHash(infoHash);
         const engine = await prepareTorrentStream(<string>infoHash, tr);
@@ -201,11 +201,11 @@ const Api = () => {
 
     const getExistingEngine = (rq: http.IncomingMessage) => {
         const query = url.parse(<string>rq.url, true).query;
-        let {infoHash} = <Record<string, string>>query;
+        const { infoHash } = <Record<string, string>>query;
         assertValidInfoHash(infoHash);
         const engine = infoHashToEngine[infoHash] || null;
         if (!engine) {
-            throw new TooEarly('Engine must be initialized first');
+            throw new TooEarly("Engine must be initialized first");
         }
         return engine;
     };
@@ -217,9 +217,9 @@ const Api = () => {
 
     const printDetailedSwarmInfo = async (rq: http.IncomingMessage) => {
         const engine = getExistingEngine(rq);
-        const {connections, wires, _peers, ...rest} = engine.swarm;
+        const { connections, wires, _peers, ...rest } = engine.swarm;
         // change order, as circular replacer makes wires null on first level because they were referenced in connections
-        const normalized = {...rest, wires, _peers, connections};
+        const normalized = { ...rest, wires, _peers, connections };
         return JSON.parse(JSON.stringify(normalized, getCircularReplacer()));
     };
 
@@ -260,27 +260,27 @@ const Api = () => {
      * to download torrents, so need to integrate with qbt python plugins
      */
     const downloadTorrentFile = async (rq: http.IncomingMessage) => {
-        const {fileUrl} = <Record<string, string>>url.parse(<string>rq.url, true).query;
-        const scriptPath = __dirname + '/../../scripts/download_torrent_file.sh';
+        const { fileUrl } = <Record<string, string>>url.parse(<string>rq.url, true).query;
+        const scriptPath = __dirname + "/../../scripts/download_torrent_file.sh";
         const args = [fileUrl];
         let result;
         try {
             result = await execFile(scriptPath, args);
         } catch (exc) {
-            const msg = (exc && typeof exc === "object" && ("stderr" in exc) && exc.stderr ? 'STDERR: ' + String(exc.stderr) + '\n' : '') +
-                'Python script failed to retrieve torrent';
+            const msg = (exc && typeof exc === "object" && ("stderr" in exc) && exc.stderr ? "STDERR: " + String(exc.stderr) + "\n" : "") +
+                "Python script failed to retrieve torrent";
             if (msg.includes("UNSUPPORTED_TRACKER")) {
                 return await tryInterpretAsMagnet(fileUrl);
             } else {
                 throw new BadGateway(msg);
             }
         }
-        const {stdout, stderr} = result;
+        const { stdout, stderr } = result;
         const [path, effectiveUrl] = stdout.trim().split(/\s+/);
         if (!effectiveUrl.match(/^https?:\/\//)) {
-            const msg = 'Unexpected response from python script,' +
-                '\nSTDOUT:\n' + stdout + (stderr.trim() ? 'STDERR:\n' + stderr : '') + '\nno match:\n' +
-                fileUrl + '\n' +
+            const msg = "Unexpected response from python script," +
+                "\nSTDOUT:\n" + stdout + (stderr.trim() ? "STDERR:\n" + stderr : "") + "\nno match:\n" +
+                fileUrl + "\n" +
                 effectiveUrl;
             throw new BadGateway(msg);
         }
@@ -294,21 +294,21 @@ const Api = () => {
                 || path.match(/^[a-zA-Z2-7]{32}$/) // base32
         ) {
             infoHash = path;
-        } else if (path.startsWith('/tmp/')) {
+        } else if (path.startsWith("/tmp/")) {
             const torrentFileBuf = await fs.promises.readFile(path);
-            let torrentFileData = parseTorrent(torrentFileBuf);
+            const torrentFileData = parseTorrent(torrentFileBuf);
             announce = torrentFileData.announce || [];
             infoHash = torrentFileData.infoHash;
         } else {
-            const msg = 'Unexpected downloaded torrent file path format - ' + path;
+            const msg = "Unexpected downloaded torrent file path format - " + path;
             throw new NotImplemented(msg);
         }
 
-        return {infoHash, announce};
+        return { infoHash, announce };
     };
 
     const findTorrentsInLocalDb = async (req: http.IncomingMessage) => {
-        const {userInput} = <Record<string, string>>url.parse(<string>req.url, true).query;
+        const { userInput } = <Record<string, string>>url.parse(<string>req.url, true).query;
         const ftsRows = await torrentNamesFts.select(userInput);
         return infohashes.selectIn(ftsRows.map(r => r.infohash));
     };
@@ -335,5 +335,5 @@ export default Api;
 
 export type IApi = ReturnType<typeof Api>;
 
-export type IApi_getSwarmInfo_rs = ReturnType<ReturnType<typeof Api>['getSwarmInfo']>;
-export type IApi_connectToSwarm_rs = ReturnType<ReturnType<typeof Api>['connectToSwarm']>;
+export type IApi_getSwarmInfo_rs = ReturnType<ReturnType<typeof Api>["getSwarmInfo"]>;
+export type IApi_connectToSwarm_rs = ReturnType<ReturnType<typeof Api>["connectToSwarm"]>;
