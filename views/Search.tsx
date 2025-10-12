@@ -23,9 +23,9 @@ const SIZE_RANGE_CODES = {
     "less-than-1mb": Math.pow(10, 6), // a text-only book
     "1mb-10mb": Math.pow(10, 7), // a set of books or a single mp3 song
     "10mb-100mb": Math.pow(10, 8), // a flac song
-    "100mb-1gb": Math.pow(10, 9), // a soundtrack or all volumes of a medium length manga
-    // TODO: 500mb-2gb to exclude 1.5 GiB unencoded anime episodes
-    "1gb-10gb": Math.pow(10, 10), // a season of an anime
+    "100mb-500mb": 5 * Math.pow(10, 8), // a soundtrack or all volumes of a medium length manga
+    "500mb-2gb": 2 * Math.pow(10, 9), // unencoded anime episode
+    "2gb-10gb": Math.pow(10, 10), // a season of an anime
     "10gb-100gb": Math.pow(10, 11), // an ak movie or all seasons of a long-running anime
     "more-than-100gb": Infinity,
 };
@@ -104,9 +104,15 @@ function getRowKey(record: QbtSearchResultItemExtended) {
     }
 }
 
+function isPoorQualityRecording(resultItem: QbtSearchResultItemExtended) {
+    // TS = TeleSync - camera recording from theater
+    return resultItem.fileName.match(/\b(?:HD|)TS\b/);
+}
+
 function ResultRow(props: {
     record: QbtSearchResultItemExtended | QbtSearchResultItemFromLocalDb,
     scrape: Scrape | undefined,
+    index: number,
 }) {
     const resultItem = props.record;
 
@@ -141,8 +147,9 @@ function ResultRow(props: {
         data-media-type={resultItem.mediaType}
         data-size-decimal-category={getSizeDecimalCategory(resultItem.fileSize)}
     >
+        <td>{props.index}</td>
         <td>{openAnchor}</td>
-        <td className="torrent-file-name">{resultItem.fileName}</td>
+        <td className={"torrent-file-name" + (isPoorQualityRecording(resultItem) ? " poor-quality-recording" : "")}>{resultItem.fileName}</td>
         <td>{resultItem.mediaType}</td>
         {makeSizeTd(resultItem.fileSize)}
         <td className="leechers-number">{resultItem.nbLeechers}</td>
@@ -457,6 +464,7 @@ export default function Search(props: {
             <table className="resulting-list-of-torrents">
                 <thead>
                     <tr>
+                        <th>#</th>
                         <th>Open</th>
                         <th>Name</th>
                         <th>Media</th>
@@ -474,9 +482,10 @@ export default function Search(props: {
                     ...[...excludedMediaTypes]
                         .map(mediaType => "media-type-excluded--" + mediaType),
                 ].join(" ")}>
-                    {records.map(record => {
+                    {records.map((record, i) => {
                         const infoHash = getInfoHashNow(record)?.infoHash?.toLowerCase();
                         return <ResultRow
+                            index={i}
                             key={getRowKey(record)}
                             record={record}
                             scrape={!infoHash ? undefined : infoHashToScrape.get(infoHash)}

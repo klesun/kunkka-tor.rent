@@ -20,6 +20,9 @@ tbody {
     font-size: 12px;
     max-width: 480px;
 }
+.torrent-file-name.poor-quality-recording {
+    color: #907235;
+}
 td.infohash {
     width: 260px;
     overflow-wrap: anywhere;
@@ -147,16 +150,18 @@ tr.viewed-file {
 label[data-size-decimal-category="less-than-1mb"], tr[data-size-decimal-category="less-than-1mb"] .torrent-size { color: #90b16f; }
 label[data-size-decimal-category="1mb-10mb"], tr[data-size-decimal-category="1mb-10mb"] .torrent-size { color: #78b83d; }
 label[data-size-decimal-category="10mb-100mb"], tr[data-size-decimal-category="10mb-100mb"] .torrent-size { color: #589929; }
-label[data-size-decimal-category="100mb-1gb"], tr[data-size-decimal-category="100mb-1gb"] .torrent-size { color: #a4b66c; }
-label[data-size-decimal-category="1gb-10gb"], tr[data-size-decimal-category="1gb-10gb"] .torrent-size { color: #ded52c; }
+label[data-size-decimal-category="100mb-500mb"], tr[data-size-decimal-category="100mb-500mb"] .torrent-size { color: #a4b66c; }
+label[data-size-decimal-category="500mb-2gb"], tr[data-size-decimal-category="500mb-2gb"] .torrent-size { color: #efe761; }
+label[data-size-decimal-category="2gb-10gb"], tr[data-size-decimal-category="2gb-10gb"] .torrent-size { color: #deb42c; }
 label[data-size-decimal-category="10gb-100gb"], tr[data-size-decimal-category="10gb-100gb"] .torrent-size { color: #ba5b1e; }
 label[data-size-decimal-category="more-than-100gb"], tr[data-size-decimal-category="more-than-100gb"] .torrent-size { color: #950505; }
 
 .css-filtered-list.size-decimal-category-excluded--less-than-1mb tr[data-size-decimal-category="less-than-1mb"],
 .css-filtered-list.size-decimal-category-excluded--1mb-10mb tr[data-size-decimal-category="1mb-10mb"],
 .css-filtered-list.size-decimal-category-excluded--10mb-100mb tr[data-size-decimal-category="10mb-100mb"],
-.css-filtered-list.size-decimal-category-excluded--100mb-1gb tr[data-size-decimal-category="100mb-1gb"],
-.css-filtered-list.size-decimal-category-excluded--1gb-10gb tr[data-size-decimal-category="1gb-10gb"],
+.css-filtered-list.size-decimal-category-excluded--100mb-500mb tr[data-size-decimal-category="100mb-500mb"],
+.css-filtered-list.size-decimal-category-excluded--500mb-2gb tr[data-size-decimal-category="500mb-2gb"],
+.css-filtered-list.size-decimal-category-excluded--2gb-10gb tr[data-size-decimal-category="2gb-10gb"],
 .css-filtered-list.size-decimal-category-excluded--10gb-100gb tr[data-size-decimal-category="10gb-100gb"],
 .css-filtered-list.size-decimal-category-excluded--more-than-100gb tr[data-size-decimal-category="more-than-100gb"] {
     display: none;
