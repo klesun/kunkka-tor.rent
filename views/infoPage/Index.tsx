@@ -610,7 +610,7 @@ function SwarmInfo(swarmInfo: Awaited<IApi_getSwarmInfo_rs>) {
 
     return <div>
         <div>Downloaded: {(downloaded / 1024 / 1024).toFixed(3)} MiB</div>
-        <div>Downloaded Speed: {(downloadSpeed / 1024 / 1024).toFixed(3)} MiB/s</div>
+        <div>Download Speed: {(downloadSpeed / 1024 / 1024).toFixed(3)} MiB/s</div>
         {JSON.stringify(rest, null, 4)}
     </div>;
 }
