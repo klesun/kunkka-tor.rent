@@ -2,9 +2,9 @@ import Api from "../../src/client/Api.js";
 import ExternalTrackMatcher, { SUBS_EXTENSIONS, VIDEO_EXTENSIONS, GOOD_AUDIO_EXTENSIONS } from "../../src/common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../../src/common/FixNaturalOrder.js";
 import type { IApi_connectToSwarm_rs, IApi_getSwarmInfo_rs } from "../../src/server/Api";
-import type {ShortTorrentFileInfo} from "../../src/server/actions/ScanInfoHashStatus";
+import type { ShortTorrentFileInfo } from "../../src/server/actions/ScanInfoHashStatus";
 import type { FfprobeOutput, FfprobeStream } from "../../src/client/FfprobeOutput";
-import type {FileHeader} from "../../node_modules/node-unrar-js/src/js/extractor";
+import type { FileHeader } from "../../node_modules/node-unrar-js/src/js/extractor";
 
 const { React, ReactDOM } = window;
 const { useEffect, useState, useRef } = React;
@@ -31,20 +31,20 @@ function FilesList({ seconds, isBadCodec, files, playCallback }: {
         return <tr
             key={f.path}
             className={!watched ? undefined : "watched-in-past"}
-            data-file-extension={f.path.replace(/^.*\./, '')}
+            data-file-extension={f.path.replace(/^.*\./, "")}
         >
             <td>{f.path}</td>
-            <td>{(f.length / 1024 / 1024).toFixed(3) + ' MiB'}</td>
+            <td>{(f.length / 1024 / 1024).toFixed(3) + " MiB"}</td>
             <td>
                 <button
                     onClick={() => playCallback(f)}
-                    title={!isBadCodec ? undefined : 'Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent'}
+                    title={!isBadCodec ? undefined : "Codec of this video file (h265/hevc/mpeg4) is non playable in some systems/browsers - you can only download it to pc and play with vlc or choose a different torrent"}
                 >Watch</button>
             </td>
         </tr>;
     });
     return <div>
-        <span>{seconds + ' seconds'}</span>
+        <span>{seconds + " seconds"}</span>
         <table>
             <tbody className="files-in-torrent">
                 {trs}
@@ -54,27 +54,27 @@ function FilesList({ seconds, isBadCodec, files, playCallback }: {
 }
 
 const typeToStreamInfoMaker: {
-    [type in Exclude<FfprobeStream['codec_type'], "audio">]: (
+    [type in Exclude<FfprobeStream["codec_type"], "audio">]: (
         stream: FfprobeStream & { codec_type: type }
     ) => React.ReactElement
 } = {
-    'video': (stream) => {
+    "video": (stream) => {
         const { width, height, display_aspect_ratio, avg_frame_rate, bits_per_raw_sample, pix_fmt, ...rest } = stream;
         return <span>
-            <span>{display_aspect_ratio + ' ' + width + 'x' + height}</span>
-            <span>{+avg_frame_rate.split('/')[0] / 1000}</span>
+            <span>{display_aspect_ratio + " " + width + "x" + height}</span>
+            <span>{+avg_frame_rate.split("/")[0] / 1000}</span>
             <span>Colors: {pix_fmt}</span>
         </span>;
     },
-    'subtitle': (stream) => {
-        const {language, title, NUMBER_OF_FRAMES} = stream.tags || {};
+    "subtitle": (stream) => {
+        const { language, title, NUMBER_OF_FRAMES } = stream.tags || {};
         return <span>
             <span>{language}</span>
-            <span>{title || ''}</span>
+            <span>{title || ""}</span>
             {!!NUMBER_OF_FRAMES && <span>{NUMBER_OF_FRAMES} frames</span>}
         </span>;
     },
-    'attachment': (stream) => {
+    "attachment": (stream) => {
         const { tags = { filename: "" } } = stream;
         const { filename } = tags;
         return <span>{filename || JSON.stringify(tags)}</span>;
@@ -85,12 +85,12 @@ function StreamItem({ stream }: { stream: FfprobeStream & { codec_type: Exclude<
     const { codec_name, codec_long_name, profile, codec_type, ...rest } = stream;
     const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
     const typeInfo = typedInfoMaker ? typedInfoMaker(rest) : JSON.stringify(rest).slice(0, 70);
-    const isBadCodec = ['h265', 'mpeg4', 'hdmv_pgs_subtitle', 'hevc'].includes(codec_name);
+    const isBadCodec = ["h265", "mpeg4", "hdmv_pgs_subtitle", "hevc"].includes(codec_name);
     const isGoodCodec = SUBS_EXTENSIONS.includes(codec_name);
     return <label>
         <span className={
-            isBadCodec ? 'bad-codec' :
-            isGoodCodec ? 'good-codec' :
+            isBadCodec ? "bad-codec" :
+            isGoodCodec ? "good-codec" :
             undefined
         }>{codec_name}</span>
         <span>{codec_type}</span>
@@ -105,15 +105,15 @@ function AudioStreamItem({ stream, onSelected }: {
     stream: FfprobeAudioStream,
     onSelected: () => void,
 }) {
-    const { codec_name, profile, codec_type} = stream;
+    const { codec_name, profile, codec_type } = stream;
 
     const { sample_fmt, sample_rate, channels, tags = {}, ...rest } = stream;
     const { language, title } = tags;
     const typeInfo = <span>
-        <span>{language || ''}</span>
-        <span>{title || ''}</span>
-        <span>{(+sample_rate / 1000) + ' kHz'}</span>
-        <span>{channels + ' ch'}</span>
+        <span>{language || ""}</span>
+        <span>{title || ""}</span>
+        <span>{(+sample_rate / 1000) + " kHz"}</span>
+        <span>{channels + " ch"}</span>
     </span>;
 
     const isBadCodec = isBadAudioCodec(codec_name);
@@ -125,8 +125,8 @@ function AudioStreamItem({ stream, onSelected }: {
             onChange={e => e.target.checked && onSelected() }
         />
         <span className={
-            isBadCodec ? 'bad-codec' :
-            isGoodCodec ? 'good-codec' :
+            isBadCodec ? "bad-codec" :
+            isGoodCodec ? "good-codec" :
             undefined
         }>{codec_name}</span>
         <span>{codec_type}</span>
@@ -135,15 +135,16 @@ function AudioStreamItem({ stream, onSelected }: {
     </label>;
 }
 
-const isBadAudioCodec = (codec_name: string) => ['ac3', 'eac3'].includes(codec_name);
+const isBadAudioCodec = (codec_name: string) => ["ac3", "eac3"].includes(codec_name);
 
 type AudioTrackParams = {
     getVideoRef: () => (HTMLVideoElement | null),
     fileApiParams: FileApiParams,
 };
 
+const EPS = 0.1;
+
 const syncTiming = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
-    const EPS = 0.1;
     // should think of a better way, there is a small delay between when you
     // set currentTime and when it actually starts playing at this time
     const diff = video.currentTime - audio.currentTime;
@@ -161,19 +162,29 @@ const syncTiming = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
 const syncState = (video: HTMLVideoElement, audio: HTMLAudioElement) => {
     if (video.paused) {
         if (!audio.paused) {
+            console.debug("Pausing the audio");
             audio.pause();
         }
-    } else if (audio.currentTime > video.currentTime) {
+    } else {
+        if (audio.paused) {
+            console.debug("Resuming the audio");
+            audio.play();
+        }
+    }
+
+    if (audio.currentTime - video.currentTime > EPS) {
         // video is buffering
         audio.muted = true;
+        console.debug("Muting the audio due to being ahead of video");
     } else if (Math.abs(audio.currentTime - video.currentTime) > 5) {
         // significant desync
         audio.muted = true;
+        console.debug("Muting the audio due to significant desync");
         syncTiming(video, audio);
     } else {
-        audio.muted = false;
-        if (audio.paused) {
-            audio.play();
+        if (audio.muted) {
+            console.debug("Unmuting the audio");
+            audio.muted = false;
         }
     }
 };
@@ -219,7 +230,7 @@ function SyncedAudioTrack(props: AudioTrackParams & {
         ref={audioRef}
         controls={true}
         preload="auto"
-        src={'/torrent-stream-extract-audio?' + new URLSearchParams({
+        src={"/torrent-stream-extract-audio?" + new URLSearchParams({
             ...props.fileApiParams,
             streamIndex: String(props.selectedAudioTrack.index),
             codecName: props.selectedAudioTrack.codec_name,
@@ -234,11 +245,11 @@ function FfprobeOutput({ ffprobeOutput, ...audioTrackParams }: AudioTrackParams 
 
     const { format, streams } = ffprobeOutput;
     const { format_name, format_long_name, probe_score, bit_rate } = format;
-    const audioTracks = streams.filter(s => s.codec_type === 'audio');
+    const audioTracks = streams.filter(s => s.codec_type === "audio");
     const hasBadAudioCodec = audioTracks.some(s => isBadAudioCodec(s.codec_name));
 
     const streamItems = streams.map(stream => {
-        const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+        const { index, codec_name, codec_long_name, profile, codec_type, ...rest } = stream;
         return <div data-codec-type={codec_type} key={index}>
             <span>#{index}</span>
             {codec_type === "audio"
@@ -256,7 +267,7 @@ function FfprobeOutput({ ffprobeOutput, ...audioTrackParams }: AudioTrackParams 
 
     return <form className={"ffmpeg-info" + (audioTracks.length > 1 || hasBadAudioCodec ? " can-change-audio-track" : "")}>
         <div className="container-info">
-            {format_long_name + ' - ' + format_name + ' ' + (+bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate'}
+            {format_long_name + " - " + format_name + " " + (+bit_rate / 1024 / 1024).toFixed(3) + " MiB/s bitrate"}
         </div>
         <div className="stream-list">{streamItems}</div>
         {selectedAudioTrack && <SyncedAudioTrack
@@ -282,20 +293,20 @@ function TextFileView({ src }: { src: string }) {
     </div>;
 }
 
-function makeFileView({src, extension}: {
+function makeFileView({ src, extension }: {
     src: string, extension: string,
 }) {
-    if (['png', 'jpg', 'jpeg'].includes(extension)) {
+    if (["png", "jpg", "jpeg"].includes(extension)) {
         // разожми меня покрепче, шакал
         return <div>
             <img src={src} style={{ maxWidth: "100%", maxHeight: "900px" }}/>
             <div>Loading image...</div>
         </div>;
-    } else if ([...SUBS_EXTENSIONS, 'txt', 'xml', 'json', 'yml', 'yaml', 'nfo', 'info', 'md5', 'sha', 'bat', 'rtf'].includes(extension)) {
+    } else if ([...SUBS_EXTENSIONS, "txt", "xml", "json", "yml", "yaml", "nfo", "info", "md5", "sha", "bat", "rtf"].includes(extension)) {
         return <TextFileView src={src} />;
     // pdf could be opened in an iframe
-    } else if (['exe', 'msi', 'pdf', 'djvu'].includes(extension)) {
-        window.open(src, '_blank');
+    } else if (["exe", "msi", "pdf", "djvu"].includes(extension)) {
+        window.open(src, "_blank");
         return <div>Binary file, initiating download...</div>;
     } else {
         return null;
@@ -309,12 +320,12 @@ type FileApiParams = {
 
 type ZipFileEntry = { path: string, size: number };
 
-type RarStreamer = (params: {reader: ReadableStreamReader<Uint8Array>}) => ({
+type RarStreamer = (params: { reader: ReadableStreamReader<Uint8Array> }) => ({
     iter: AsyncGenerator<FileHeader>,
     getBytes: () => Uint8Array,
     extractFile: (fileHeader: FileHeader) => [
-        {state: string},
-        {files: {extract: Blob[]}[]},
+        { state: string },
+        { files: { extract: Blob[] }[] },
     ],
 });
 
@@ -335,23 +346,23 @@ function FileEntryFromZip({ fileApiParams, entry }: { fileApiParams: FileApiPara
     if (!isOpen) {
         openedFile = <></>;
     } else {
-        const extension = entry.path.toLowerCase().replace(/^.*\./, '');
-        const src = '/ftp/zipReaderFile?' + new URLSearchParams({
+        const extension = entry.path.toLowerCase().replace(/^.*\./, "");
+        const src = "/ftp/zipReaderFile?" + new URLSearchParams({
             ...fileApiParams, zippedFilePath: entry.path,
         });
-        openedFile = makeFileView({src, extension});
+        openedFile = makeFileView({ src, extension });
         if (!openedFile) {
-            window.open(src, '_blank');
-            openedFile = Dom('div', {}, 'Binary file, initiating download...');
+            window.open(src, "_blank");
+            openedFile = Dom("div", {}, "Binary file, initiating download...");
         }
     }
 
     return <>
         <div>
             <span>{entry.path}</span>
-            <span>{' '}</span>
-            <span>{(entry.size / 1024 / 1024).toFixed(2) + ' MiB'}</span>
-            <span>{' '}</span>
+            <span>{" "}</span>
+            <span>{(entry.size / 1024 / 1024).toFixed(2) + " MiB"}</span>
+            <span>{" "}</span>
             {!isOpen
                 ? <button type="button" onClick={() => setIsOpen(true)}>View</button>
                 : <button type="button" onClick={() => setIsOpen(false)}>Hide</button>}
@@ -363,7 +374,7 @@ function FileEntryFromZip({ fileApiParams, entry }: { fileApiParams: FileApiPara
 function FileEntryFromRar({ file, iterating }: { file: FileHeader, iterating: ReturnType<RarStreamer> | undefined }) {
     const [isOpen, setIsOpen] = useState(false);
 
-    const extension = file.name.toLowerCase().replace(/^.*\./, '');
+    const extension = file.name.toLowerCase().replace(/^.*\./, "");
 
     let openedFile;
     if (!isOpen) {
@@ -372,24 +383,24 @@ function FileEntryFromRar({ file, iterating }: { file: FileHeader, iterating: Re
         openedFile = <div>RAR stream iteration is not active!</div>;
     } else {
         const [stateRec, resultRec] = iterating.extractFile(file);
-        if (stateRec.state !== 'SUCCESS') {
-            console.log('ololo stateRec', stateRec);
+        if (stateRec.state !== "SUCCESS") {
+            console.log("ololo stateRec", stateRec);
             openedFile = <div>No success in extracting file: {stateRec.state}</div>;
         } else {
             const mimeTypes: Record<string, string> = {
-                'png': 'image/png',
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'ogg': 'audio/ogg',
-                'mp3': 'audio/mp3',
+                "png": "image/png",
+                "jpg": "image/jpeg",
+                "jpeg": "image/jpeg",
+                "ogg": "audio/ogg",
+                "mp3": "audio/mp3",
             };
             const mimeType = mimeTypes[extension];
-            const blob = new Blob([resultRec.files[0].extract[1]], {type: mimeType});
+            const blob = new Blob([resultRec.files[0].extract[1]], { type: mimeType });
             const src = URL.createObjectURL(blob);
-            openedFile = makeFileView({src, extension});
+            openedFile = makeFileView({ src, extension });
             if (!openedFile) {
-                window.open(src, '_blank');
-                openedFile = Dom('div', {}, 'Binary file, initiating download...');
+                window.open(src, "_blank");
+                openedFile = Dom("div", {}, "Binary file, initiating download...");
             }
         }
     }
@@ -397,9 +408,9 @@ function FileEntryFromRar({ file, iterating }: { file: FileHeader, iterating: Re
     return <>
         <div>
             <span>{file.name}</span>
-            <span>{' '}</span>
-            <span>{(file.unpSize / 1024 / 1024).toFixed(2) + ' MiB'}</span>
-            <span>{' '}</span>
+            <span>{" "}</span>
+            <span>{(file.unpSize / 1024 / 1024).toFixed(2) + " MiB"}</span>
+            <span>{" "}</span>
             {!isOpen
                 ? <button type="button" onClick={() => setIsOpen(true)}>View</button>
                 : <button type="button" onClick={() => setIsOpen(false)}>Hide</button>}
@@ -420,15 +431,15 @@ function ExtractedZipFileView(fileApiParams: FileApiParams) {
         }).finally(() => setLoading(false));
     }, []);
 
-    const downloadSrc = '/torrent-stream?' + new URLSearchParams(fileApiParams);
+    const downloadSrc = "/torrent-stream?" + new URLSearchParams(fileApiParams);
     return <div>
         <div>{entries.map(entry => <div key={entry.path} style={{ textAlign: "right" }}>
             <FileEntryFromZip fileApiParams={fileApiParams} entry={entry}/>
         </div>)}</div>
         <div>
-            <button type="button" onClick={() => window.open(downloadSrc, '_blank')}>Download</button>
+            <button type="button" onClick={() => window.open(downloadSrc, "_blank")}>Download</button>
         </div>
-        <div>{loading ? 'Loading archive contents...' : 'Extracted ' + entries.length + ' files'}</div>
+        <div>{loading ? "Loading archive contents..." : "Extracted " + entries.length + " files"}</div>
     </div>;
 }
 
@@ -441,7 +452,7 @@ function ExtractedRarFileView({ src }: { src: string }) {
         fetch(src).then(async rs => {
             const RarStreamer = await getRarStreamer();
             const reader = rs.body!.getReader();
-            const iterating = RarStreamer({reader});
+            const iterating = RarStreamer({ reader });
             setIterating(iterating);
             let filesLoaded = 0;
             for await (const file of iterating.iter) {
@@ -459,9 +470,9 @@ function ExtractedRarFileView({ src }: { src: string }) {
             <FileEntryFromRar file={file} iterating={iterating}/>
         </div>)}</div>
         <div>
-            <button type="button" onClick={() => window.open(src, '_blank')}>Download</button>
+            <button type="button" onClick={() => window.open(src, "_blank")}>Download</button>
         </div>
-        <div>{loading ? 'Loading archive contents...' : 'Extracted ' + files.length + ' files'}</div>
+        <div>{loading ? "Loading archive contents..." : "Extracted " + files.length + " files"}</div>
     </div>;
 }
 
@@ -478,7 +489,7 @@ function getSubTracks(params: PlayerParams, ffprobeOutput: FfprobeOutput | undef
     });
     return <>
         {matchedTracks.map((subsTrack, subsIndex) => {
-            const subsSrc = '/torrent-stream-subs-ensure-vtt?' + new URLSearchParams({
+            const subsSrc = "/torrent-stream-subs-ensure-vtt?" + new URLSearchParams({
                 infoHash: infoHash,
                 filePath: subsTrack.path,
             });
@@ -493,12 +504,12 @@ function getSubTracks(params: PlayerParams, ffprobeOutput: FfprobeOutput | undef
         {ffprobeOutput && ffprobeOutput.streams
             .flatMap(s => s.codec_type === "subtitle" ? [s] : [])
             .map((sub, subsIndex) => {
-                const src = '/torrent-stream-extract-subs?' + new URLSearchParams({
+                const src = "/torrent-stream-extract-subs?" + new URLSearchParams({
                     ...fileApiParams, subsIndex: String(subsIndex),
                 });
                 const { tags } = sub;
                 const srclang = (tags || { language: undefined }).language;
-                const label = ((srclang || '') + ' ' + ((tags || { title: "" }).title || '')).trim();
+                const label = ((srclang || "") + " " + ((tags || { title: "" }).title || "")).trim();
                 return <track
                     src={src}
                     key={subsIndex}
@@ -529,11 +540,11 @@ function VideoFileView(props: PlayerParams & { src: string, extension: string })
 
         Api().getFfmpegInfo(fileApiParams)
             .then(setFfprobeOutput).catch(exc => {
-            if ([...VIDEO_EXTENSIONS, 'mp3', 'flac', 'aac'].includes(extension)) {
+            if ([...VIDEO_EXTENSIONS, "mp3", "flac", "aac"].includes(extension)) {
                 throw exc;
             } else {
                 // not a video file probably
-                window.open(src, '_blank');
+                window.open(src, "_blank");
             }
         });
     }, []);
@@ -546,7 +557,7 @@ function VideoFileView(props: PlayerParams & { src: string, extension: string })
         </div>
         <div className="media-info-section">
             <div className="file-name">{file.path}</div>
-            <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + ' MiB'}</div>
+            <div className="file-size">{(file.length / 1024 / 1024).toFixed(3) + " MiB"}</div>
             {!ffprobeOutput
                 ? <div>It may take a minute or so before playback can be started...</div>
                 : <FfprobeOutput
@@ -567,22 +578,22 @@ type PlayerParams = {
 function Player(props: PlayerParams) {
     const { infoHash, file, files } = props;
 
-    const streamPath = '/torrent-stream';
+    const streamPath = "/torrent-stream";
     const fileApiParams = {
         infoHash: infoHash,
         filePath: file.path,
     };
-    const src = streamPath + '?' + new URLSearchParams(fileApiParams);
+    const src = streamPath + "?" + new URLSearchParams(fileApiParams);
 
-    const extension = file.path.toLowerCase().replace(/^.*\./, '');
+    const extension = file.path.toLowerCase().replace(/^.*\./, "");
     let fileView: React.ReactElement | null;
     // TODO: use FixNaturalOrder.js
-    if (['zip', 'cbz', 'epub'].includes(extension)) {
+    if (["zip", "cbz", "epub"].includes(extension)) {
         fileView = <ExtractedZipFileView {...fileApiParams}/>;
-    } else if (['rar', 'cbr'].includes(extension)) {
+    } else if (["rar", "cbr"].includes(extension)) {
         return <ExtractedRarFileView src={src}/>;
     } else {
-        fileView = makeFileView({src, extension});
+        fileView = makeFileView({ src, extension });
     }
 
     if (fileView) {
@@ -610,7 +621,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
     const [openedFile, setOpenedFile] = useState<ShortTorrentFileInfo>();
 
     const updateSwarmInfo = async () => {
-        const swarmSummary = await Api().getSwarmInfo({infoHash});
+        const swarmSummary = await Api().getSwarmInfo({ infoHash });
         setSwarmInfo(swarmSummary);
     };
 
@@ -632,7 +643,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
     useEffect(() => {
         Api().connectToSwarm({ infoHash, tr: [] }).then(setMetaInfo);
 
-        let intervalStartMs = Date.now();
+        const intervalStartMs = Date.now();
         let swarmInfoInterval = window.setInterval(() => {
             if (Date.now() - intervalStartMs > 120 * 1000) {
                 // start with frequent updates to keep user in touch,
@@ -659,7 +670,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
                     </div>}
             </div>
             <div className="player-cont">{
-                !metaInfo ? 'Meta Data is loading...' : !openedFile ? 'Choose a File from the List.' : <Player
+                !metaInfo ? "Meta Data is loading..." : !openedFile ? "Choose a File from the List." : <Player
                     key={openedFile.path} infoHash={infoHash} file={openedFile} files={metaInfo.files}
                 />
             }</div>
