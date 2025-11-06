@@ -40,7 +40,7 @@ table.resulting-list-of-torrents {
     overflow-y: auto;
 }
 .search-results-table-container {
-    background-image: url(/unv/bg_4k_zeppelin_pov_no_margin.jpg);
+    background-image: url(../assets/img/bg_4k_zeppelin_pov_no_margin.jpg);
     background-repeat: no-repeat;
     background-position-y: 380px;
     background-position-x: center;
