@@ -625,6 +625,19 @@ export default function Index({ infoHash }: { infoHash: string }) {
         setSwarmInfo(swarmSummary);
     };
 
+    const pollForSwarmInfo = async (intervalStartMs: number) => {
+        while (true) {
+            await updateSwarmInfo();
+            // start with frequent updates to keep user in touch,
+            // then decrease frequency when video supposedly started
+            const waitMs = Date.now() - intervalStartMs > 120 * 1000
+                ? 5000 : 500;
+            // my router apparently dies when there are more than N hanging requests =/
+            // should probably address that eventually on the server side...
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
+    };
+
     const renderFileList = (metaInfo: Awaited<IApi_connectToSwarm_rs>) => {
         const seconds = (Date.now() - startedMs) / 1000;
         const isBadCodec = metaInfo.files.some(f => (
@@ -642,18 +655,8 @@ export default function Index({ infoHash }: { infoHash: string }) {
 
     useEffect(() => {
         Api().connectToSwarm({ infoHash, tr: [] }).then(setMetaInfo);
-
         const intervalStartMs = Date.now();
-        let swarmInfoInterval = window.setInterval(() => {
-            if (Date.now() - intervalStartMs > 120 * 1000) {
-                // start with frequent updates to keep user in touch,
-                // then decrease frequency when video supposedly started
-                clearInterval(swarmInfoInterval);
-                swarmInfoInterval = window.setInterval(updateSwarmInfo, 5000);
-            } else {
-                updateSwarmInfo();
-            }
-        }, 500);
+        pollForSwarmInfo(intervalStartMs);
     }, []);
 
     return <div>
