@@ -1,4 +1,4 @@
-## [kunkka-tor.rent](https://kunkka-tor.rent)
+## [kunkka-torrent](https://torrent.klesun.net)
 
 A web app that allows playing video/music from torrents directly in the browser, without downloading to PC
 

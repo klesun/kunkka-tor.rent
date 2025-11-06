@@ -4,6 +4,9 @@
  * @typedef {import("./QbtSearch").QbtSearchResult} QbtSearchResult
  */
 
+// const BACKEND_BASE_URL = "";
+const BACKEND_BASE_URL = "https://torrent.klesun.net";
+
 const parseResponse = rs => rs.status !== 200
     ? Promise.reject(rs.statusText)
     : rs.json();
@@ -70,7 +73,7 @@ const makeGetUrl = (route, params = null) => {
         );
     const queryPart = !params ? '' :
         '?' + new URLSearchParams(entries);
-    return route + queryPart;
+    return BACKEND_BASE_URL + route + queryPart;
 };
 
 const get = (route, params = null) => {
@@ -93,15 +96,8 @@ const postAsyncIter = (route, params = null) => {
     }).then(parseAsyncIterResponse);
 };
 
-const post = (route, params) => {
-    return fetch(route, {
-        method: 'POST',
-        body: JSON.stringify(params),
-    }).then(parseResponse);
-};
-
 const postWwwForm = (route, params) => {
-    return fetch(route, {
+    return fetch(BACKEND_BASE_URL + route, {
         headers: {
             'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
         },
