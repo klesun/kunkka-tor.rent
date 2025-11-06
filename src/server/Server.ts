@@ -16,6 +16,7 @@ const handleRq = (params: HandleHttpParams) => {
         params.rs.statusMessage = ((exc || {}).message || exc + '' || '(empty error)')
             // sanitize, as statusMessage seems to not allow special characters
             .slice(0, 300).replace(/[^ -~]/g, '?');
+        params.rs.setHeader("content-type", "application/json");
         params.rs.end(JSON.stringify({error: exc + '', stack: exc.stack}));
         const msg = 'kunkka-torrent HTTP request ' + params.rq.url + ' ' + ' failed';
         if (!exc.isOk) {
