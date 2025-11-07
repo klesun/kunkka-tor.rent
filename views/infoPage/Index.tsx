@@ -540,13 +540,13 @@ function VideoFileView(props: PlayerParams & { src: string, extension: string })
 
         Api().getFfmpegInfo(fileApiParams)
             .then(setFfprobeOutput).catch(exc => {
-            if ([...VIDEO_EXTENSIONS, "mp3", "flac", "aac"].includes(extension)) {
-                throw exc;
-            } else {
-                // not a video file probably
-                window.open(src, "_blank");
-            }
-        });
+                if ([...VIDEO_EXTENSIONS, "mp3", "flac", "aac"].includes(extension)) {
+                    throw exc;
+                } else {
+                    // not a video file probably
+                    window.open(src, "_blank");
+                }
+            });
     }, []);
 
     return <>
@@ -661,6 +661,7 @@ export default function Index({ infoHash }: { infoHash: string }) {
 
     return <div>
         <link rel="stylesheet" href="./../search.css"/>
+        {metaInfo && <h2>{metaInfo.torrent.name}</h2>}
         <div className="expanded-torrent-block">
             <div className="expanded-view-left-section">
                 {!metaInfo
