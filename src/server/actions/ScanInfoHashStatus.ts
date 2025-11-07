@@ -35,7 +35,7 @@ export type TorrentMainInfo = {
     name: string,
     length: number,
     files: TorrentFile[],
-}
+};
 
 export const shortenTorrentInfo = (torrent: TorrentMainInfo) => ({
     name: torrent.name,

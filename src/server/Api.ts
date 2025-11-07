@@ -42,6 +42,9 @@ interface NowadaysSwarm extends Swarm {
 
 interface NowadaysEngine extends TorrentEngine {
     swarm: NowadaysSwarm,
+    torrent: {
+        name: string,
+    },
 }
 
 function assertValidInfoHash(infoHash: string | null | undefined | string[]) {
@@ -195,6 +198,9 @@ const Api = () => {
         assertValidInfoHash(infoHash);
         const engine = await prepareTorrentStream(<string>infoHash, tr);
         return {
+            torrent: {
+                name: engine.torrent.name,
+            },
             files: engine.files.map(shortenFileInfo),
         };
     };
