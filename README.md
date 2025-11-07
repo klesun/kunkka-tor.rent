@@ -16,3 +16,21 @@ For the best value, you want to install qBittorrent and make sure that its Wib U
 You also likely want to install jackett and add its plugin to qBittorrent, it has tons of torrents
 https://github.com/Jackett/Jackett
 Don't forget to add indexers in its web ui!
+
+____________________
+
+## Server Dependencies
+You can run it locally if you have `./data/db/Infohashes.sqlite` and `./data/db/TorrentNamesFts.sqlite` files. You can download them from here:
+- http://torrent.klesun.net/data/db/Infohashes.sqlite
+- http://torrent.klesun.net/data/db/TorrentNamesFts.sqlite
+
+They are several GiB each.
+
+It is also advised to set up the following:
+- Install [ffmpeg](https://www.ffmpeg.org/download.html), it's needed for many of the playback features including changing sub/audio tracks
+- Install and start [qBittorrent](https://www.qbittorrent.org/download) and enable WebUI with port 44011 in settings and allow localhost access and disabling all security validation checkboxes. It is advised to also add some plugins, especially jacket mentioned earlier
+
+To start the server:
+- First, install dependencies with `npm i` ([node.js](https://nodejs.org/en/download) must be installed beforehand)
+- Then run `npm run dev`
+- The server should then be accessible in browser at the address: http://localhost:36865/
