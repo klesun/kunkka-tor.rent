@@ -13,7 +13,7 @@ const util = require("util");
 const execFile = util.promisify(require("child_process").execFile);
 import * as fs from "fs";
 import * as parseTorrent from "parse-torrent";
-import { BadGateway, BadRequest, NotImplemented, TooEarly } from "@curveball/http-errors";
+import {BadGateway, BadRequest, NotFound, NotImplemented, TooEarly} from "@curveball/http-errors";
 import TorrentNamesFts from "./repositories/TorrentNamesFts";
 import { trackerRecords } from "./actions/ScrapeTrackersSeedInfo";
 import Infohashes from "./repositories/Infohashes";
@@ -251,6 +251,8 @@ const Api = () => {
             } else {
                 throw new Error("Not implemented for response content type " + response.headers.get("content-type"));
             }
+        } else if (response.status === 404) {
+            throw new NotFound("Tracker returned 404 Not Found status for " + fileUrl);
         }
         throw new Error("Not implemented for response status " + response.status);
     };
