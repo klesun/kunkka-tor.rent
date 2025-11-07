@@ -216,19 +216,16 @@ const compare = (
     b: QbtSearchResultItemExtended,
     infoHashToScrape: InfoHashToScrape
 ) => {
-    const aInfoHash = getInfoHashNow(a);
-    const bInfoHash = getInfoHashNow(b);
-    if (aInfoHash && !bInfoHash) {
-        return 1;
-    } else if (bInfoHash && !aInfoHash) {
-        return -1;
-    }
-    const tryGetScrape = (infoHash: { infoHash: string }) => {
+    const tryGetScrape = (record: QbtSearchResultItemExtended) => {
+        const infoHash = getInfoHashNow(record);
+        if (!infoHash) {
+            return null;
+        }
         return infoHashToScrape.get(toLowerCase(infoHash.infoHash));
     };
     return -compareObjects(
-        { stored: a, scrape: aInfoHash && tryGetScrape(aInfoHash) },
-        { stored: b, scrape: bInfoHash && tryGetScrape(bInfoHash) },
+        { stored: a, scrape: tryGetScrape(a) },
+        { stored: b, scrape: tryGetScrape(b) },
     );
 };
 
@@ -486,12 +483,12 @@ export default function Search(props: {
                         .map(mediaType => "media-type-excluded--" + mediaType),
                 ].join(" ")}>
                     {records.map((record, i) => {
-                        const infoHash = getInfoHashNow(record)?.infoHash?.toLowerCase();
+                        const infoHash = getInfoHashNow(record)?.infoHash;
                         return <ResultRow
                             index={i}
                             key={getRowKey(record)}
                             record={record}
-                            scrape={!infoHash ? undefined : infoHashToScrape.get(infoHash)}
+                            scrape={!infoHash ? undefined : infoHashToScrape.get(toLowerCase(infoHash))}
                         />;
                     })}
                 </tbody>
