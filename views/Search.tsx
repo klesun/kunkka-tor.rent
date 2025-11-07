@@ -216,16 +216,19 @@ const compare = (
     b: QbtSearchResultItemExtended,
     infoHashToScrape: InfoHashToScrape
 ) => {
-    const tryGetScrape = (record: QbtSearchResultItemExtended) => {
-        const infoHash = getInfoHashNow(record);
-        if (!infoHash) {
-            return null;
-        }
+    const aInfoHash = getInfoHashNow(a);
+    const bInfoHash = getInfoHashNow(b);
+    if (aInfoHash && !bInfoHash) {
+        return 1;
+    } else if (bInfoHash && !aInfoHash) {
+        return -1;
+    }
+    const tryGetScrape = (infoHash: { infoHash: string }) => {
         return infoHashToScrape.get(toLowerCase(infoHash.infoHash));
     };
     return -compareObjects(
-        { stored: a, scrape: tryGetScrape(a) },
-        { stored: b, scrape: tryGetScrape(b) },
+        { stored: a, scrape: aInfoHash && tryGetScrape(aInfoHash) },
+        { stored: b, scrape: bInfoHash && tryGetScrape(bInfoHash) },
     );
 };
 
