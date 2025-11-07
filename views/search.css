@@ -181,3 +181,14 @@ label, input[type="checkbox"] {
 a.open-infohash {
     white-space: nowrap;
 }
+
+.tracker-cell-content {
+    display: flex;
+    align-items: center;
+    column-gap: 3px;
+}
+img.tracker-logo {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}

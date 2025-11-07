@@ -162,7 +162,10 @@ function ResultRow(props: {
         </td>
         <td className="infohash">{downloadAnchor}</td>
         <td>
-            <a href={resultItem.descrLink}>{resultItem.tracker}</a>
+            <div className="tracker-cell-content">
+                <img className="tracker-logo" src={`../assets/img/tracker_logos/${resultItem.tracker}.png`}/>
+                <a href={resultItem.descrLink}>{resultItem.tracker}</a>
+            </div>
         </td>
     </tr>;
 }
