@@ -34,7 +34,7 @@ const getAllUnambiguousMatches = (allFilePaths, allSubsOptions) => {
     });
     return allSubsOptions.flatMap(subRec => {
         const withRelevance = allVideoOptions.map(vidRec => ({...vidRec,
-            commonSubstring: longestCommonSubstring(vidRec.name, subRec.name),
+            commonSubstring: longestCommonSubstring(vidRec.name, subRec.name.replace("/Subs/", "/")),
         })).sort((a,b) => b.commonSubstring.length - a.commonSubstring.length);
 
         if (withRelevance.length > 1 &&
