@@ -1,8 +1,8 @@
 import * as url from "url";
 import type { TorrentInfo, TorrentMainInfo } from "./actions/ScanInfoHashStatus";
-import { shortenFileInfo, shortenTorrentInfo } from "./actions/ScanInfoHashStatus.js";
+import { shortenFileInfo, shortenTorrentInfo } from "./actions/ScanInfoHashStatus";
 import type * as http from "http";
-import { HTTP_PORT } from "./Constants.js";
+import { HTTP_PORT } from "./Constants";
 import Swarm = TorrentStream.Swarm;
 import TorrentEngine = TorrentStream.TorrentEngine;
 import Qbtv2 from "./Qbtv2";
@@ -14,9 +14,9 @@ const execFile = util.promisify(require("child_process").execFile);
 import * as fs from "fs";
 import * as parseTorrent from "parse-torrent";
 import { BadGateway, BadRequest, NotFound, NotImplemented, TooEarly } from "@curveball/http-errors";
-import TorrentNamesFts from "./repositories/TorrentNamesFts.js";
-import { trackerRecords } from "./actions/ScrapeTrackersSeedInfo.js";
-import Infohashes from "./repositories/Infohashes.js";
+import TorrentNamesFts from "./repositories/TorrentNamesFts";
+import { trackerRecords } from "./actions/ScrapeTrackersSeedInfo";
+import Infohashes from "./repositories/Infohashes";
 import * as console from "node:console";
 
 type SwarmWire = {

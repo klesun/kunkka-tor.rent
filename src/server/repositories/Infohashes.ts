@@ -1,4 +1,4 @@
-import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool.js";
+import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool";
 import type { InfohashDbRow, TrackerData } from "../typing/InfohashDbRow";
 import * as SqlUtil from "klesun-node-tools/src/Utils/SqlUtil.js";
 import type { Database } from "sqlite";
