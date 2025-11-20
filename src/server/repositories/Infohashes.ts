@@ -1,12 +1,7 @@
 import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool.js";
-import type { InfohashDbRow } from "../typing/InfohashDbRow";
+import type { InfohashDbRow, TrackerData } from "../typing/InfohashDbRow";
 import * as SqlUtil from "klesun-node-tools/src/Utils/SqlUtil.js";
 import type { Database } from "sqlite";
-import type { ParsedNyaaSiPage } from "../../../scripts/parse_nyaa_si_scrapes";
-
-function neverNull(): never {
-    throw new Error("Unexpected null value");
-}
 
 const ENDED = Symbol("ENDED");
 type ENDED = typeof ENDED;
@@ -107,11 +102,10 @@ const selectMany = async function<TRow>(db: Database, selectSql: string, placedV
     return rowsGenerator;
 };
 
-type TrackerData = Partial<ParsedNyaaSiPage["fields"]>;
-
 function deserialize(dbRow: InfohashDbRow) {
     const { trackerData_json, ...scalar } = dbRow;
-    const trackerData: TrackerData | null = !trackerData_json ? null : JSON.parse(trackerData_json);
+    const trackerData: TrackerData | null = !trackerData_json
+        ? null : JSON.parse<TrackerData>(trackerData_json);
     return { ...scalar, trackerData };
 }
 

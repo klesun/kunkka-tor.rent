@@ -1,3 +1,7 @@
+import type { JsonStringified } from "@mhc/utils/types/utility.ts";
+import type { ParsedNyaaSiPage } from "../../../scripts/parse_nyaa_si_scrapes.ts";
+
+export type TrackerData = Partial<ParsedNyaaSiPage["fields"]>;
 
 type InfohashDbRowBase = {
     infohash: string, // 40 hex chars
@@ -7,7 +11,7 @@ type InfohashDbRowBase = {
     source: string,
     occurrences: number,
     filesCount: number | null,
-    trackerData_json?: string | null,
+    trackerData_json?: JsonStringified<TrackerData> | null,
 };
 
 export type NoFilesInfoSource = "tpb_dump_2019" | "rutracker_dump_2020" | "torrents_csv" | "nyaa_si";
