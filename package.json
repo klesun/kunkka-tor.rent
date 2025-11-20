@@ -22,6 +22,7 @@
         "@swc/helpers": "^0.5.17",
         "eslint-plugin-unused-imports": "^4.2.0",
         "jsdom": "^27.0.0",
+        "@mhc/utils": "git://github.com/MHCAviation/utils#b06da51abbbc363297ff7f5e503ed519618687ce",
         "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/d34874bba56852160127ce11262e2ef502f3e890",
         "mime-types": "^2.1.27",
         "node-fetch": "^2.6.1",
