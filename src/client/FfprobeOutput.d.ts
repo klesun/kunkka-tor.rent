@@ -38,7 +38,7 @@ type AttachmentStreamBase = {
     "codec_long_name": never,
     "codec_type": "attachment",
     "codec_time_base": never,
-    "tags": {"filename":"verdanab.ttf","mimetype":"font/ttf"}
+    "tags": { "filename":"verdanab.ttf","mimetype":"font/ttf" },
 };
 
 type StreamBase = StaticStreamBase & (VideoStreamBase | AudioStreamBase | SubtitleStreamBase | AttachmentStreamBase);
@@ -74,9 +74,9 @@ export type FfprobeStream = VideoStreamBase & {
         "visual_impaired": 0,
         "clean_effects": 0,
         "attached_pic": 0,
-        "timed_thumbnails": 0
+        "timed_thumbnails": 0,
     },
-    "tags": {"HANDLER_NAME":"VideoHandler","DURATION":"00:24:35.162000000"}
+    "tags": { "HANDLER_NAME":"VideoHandler","DURATION":"00:24:35.162000000" },
 } | AudioStreamBase & {
     "sample_fmt": "fltp",
     "sample_rate": "48000",
@@ -96,9 +96,9 @@ export type FfprobeStream = VideoStreamBase & {
         "visual_impaired": 0,
         "clean_effects": 0,
         "attached_pic": 0,
-        "timed_thumbnails": 0
+        "timed_thumbnails": 0,
     },
-    "tags": {"HANDLER_NAME":"SoundHandler","DURATION":"00:24:35.167000000"}
+    "tags": { "HANDLER_NAME":"SoundHandler","DURATION":"00:24:35.167000000" },
 } | SubtitleStreamBase & {
     "start_pts": 0,
     "duration_ts": 1475167,
@@ -115,7 +115,7 @@ export type FfprobeStream = VideoStreamBase & {
         "visual_impaired": 0,
         "clean_effects": 0,
         "attached_pic": 0,
-        "timed_thumbnails": 0
+        "timed_thumbnails": 0,
     },
     "tags": {
         "language": "eng",
@@ -132,8 +132,8 @@ export type FfprobeStream = VideoStreamBase & {
         "_STATISTICS_WRITING_DATE_UTC-eng": "2018-12-31 18:19:07",
         "_STATISTICS_TAGS": "BPS DURATION NUMBER_OF_FRAMES NUMBER_OF_BYTES",
         "_STATISTICS_TAGS-eng": "BPS DURATION NUMBER_OF_FRAMES NUMBER_OF_BYTES",
-        "DURATION": "00:23:40.729000000"
-    }
+        "DURATION": "00:23:40.729000000",
+    },
 } | SubtitleStreamBase & {
     "r_frame_rate": "0/0",
     "avg_frame_rate": "0/0",
@@ -152,7 +152,7 @@ export type FfprobeStream = VideoStreamBase & {
         "visual_impaired": 0,
         "clean_effects": 0,
         "attached_pic": 0,
-        "timed_thumbnails": 0
+        "timed_thumbnails": 0,
     },
     "tags": {
         "language": "eng",
@@ -170,8 +170,8 @@ export type FfprobeStream = VideoStreamBase & {
         "_STATISTICS_WRITING_DATE_UTC-eng": "2018-12-31 18:19:07",
         "_STATISTICS_TAGS": "BPS DURATION NUMBER_OF_FRAMES NUMBER_OF_BYTES",
         "_STATISTICS_TAGS-eng": "BPS DURATION NUMBER_OF_FRAMES NUMBER_OF_BYTES",
-        "DURATION": "00:23:51.365000000"
-    }
+        "DURATION": "00:23:51.365000000",
+    },
 } | AttachmentStreamBase & {
     "codec_tag_string": "[0][0][0][0]",
     "codec_tag": "0x0000",
@@ -201,7 +201,7 @@ export type FfprobeStream = VideoStreamBase & {
         "descriptions": 0,
         "metadata": 0,
         "dependent": 0,
-        "still_image": 0
+        "still_image": 0,
     },
 };
 
@@ -217,7 +217,7 @@ export type FfprobeOutput = {
         "size": "258821648",
         "bit_rate": "1403619",
         "probe_score": 100,
-        "tags": {"COMPATIBLE_BRANDS":"isomiso2avc1mp41","MAJOR_BRAND":"isom","MINOR_VERSION":"512","ENCODER":"Lavf58.25.100"}
+        "tags": { "COMPATIBLE_BRANDS":"isomiso2avc1mp41","MAJOR_BRAND":"isom","MINOR_VERSION":"512","ENCODER":"Lavf58.25.100" },
     },
     "streams": FfprobeStream[],
 };

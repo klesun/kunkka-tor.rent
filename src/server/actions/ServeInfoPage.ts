@@ -1,36 +1,36 @@
 
-import * as Papaparse from 'papaparse';
-import * as fsSync from 'fs';
-import {HandleHttpParams} from "../HandleHttpRequest";
-import {InternalServerError} from "@curveball/http-errors";
+import * as Papaparse from "papaparse";
+import * as fsSync from "fs";
+import type { HandleHttpParams } from "../HandleHttpRequest";
+import { InternalServerError } from "@curveball/http-errors";
 import Infohashes from "../repositories/Infohashes";
-import {InfohashDbRow} from "../typing/InfohashDbRow";
+import type { InfohashDbRow } from "../typing/InfohashDbRow";
 
 const fs = fsSync.promises;
-const Xml = require('klesun-node-tools/src/Utils/Xml.js');
+const Xml = require("klesun-node-tools/src/Utils/Xml.js");
 
 type TorrentsCsvRecord = {
-    name: string;
-    size_bytes: string;
-    created_unix: string;
-    seeders: string;
-    leechers: string;
-    completed: string;
-    scraped_date: string;
-}
+    name: string,
+    size_bytes: string,
+    created_unix: string,
+    seeders: string,
+    leechers: string,
+    completed: string,
+    scraped_date: string,
+};
 
 type TorrentsCsvRecordFull = TorrentsCsvRecord & {
-    infohash: string;
+    infohash: string,
 };
 
 // I have 28 GiB of RAM, so I don't mind keeping whole CSV here... for now at least
-const torrentsCsvPath = __dirname + '/../../../node_modules/torrents-csv-data/torrents.csv';
-const whenInfoHashToRecord = fs.readFile(torrentsCsvPath, 'utf-8').then(csvText => {
-    const parsed = Papaparse.parse(csvText.trim(), {delimiter: ';'});
+const torrentsCsvPath = __dirname + "/../../../node_modules/torrents-csv-data/torrents.csv";
+const whenInfoHashToRecord = fs.readFile(torrentsCsvPath, "utf-8").then(csvText => {
+    const parsed = Papaparse.parse(csvText.trim(), { delimiter: ";" });
     const rows = <string[][]>parsed.data;
     const columns = rows.shift();
     if (!columns) {
-        throw new InternalServerError('torrents.csv is empty');
+        throw new InternalServerError("torrents.csv is empty");
     }
     const infohashToRecord: Map<string, TorrentsCsvRecord> = new Map();
     for (const row of rows) {
@@ -39,7 +39,7 @@ const whenInfoHashToRecord = fs.readFile(torrentsCsvPath, 'utf-8').then(csvText 
                 return [columns[i], row[i]];
             }),
         );
-        const {infohash, ...rest} = record;
+        const { infohash, ...rest } = record;
         infohashToRecord.set(infohash, rest);
     }
     return infohashToRecord;
@@ -55,9 +55,9 @@ const getInfohashRecord = (infoHash: string) => whenInfoHashToRecord.then(infoHa
 const formatSize = (bytes: number) => {
     const sizeMib = bytes / 1024 / 1024;
     if (sizeMib >= 1024) {
-        return (sizeMib / 1024).toFixed(1) + 'GiB';
+        return (sizeMib / 1024).toFixed(1) + "GiB";
     } else {
-        return sizeMib.toFixed(1) + 'MiB';
+        return sizeMib.toFixed(1) + "MiB";
     }
 };
 
@@ -82,7 +82,7 @@ function normalizeCsvRecord(csvRecord: TorrentsCsvRecord): NormalizedRecord {
         updatedDt: new Date(+csvRecord.scraped_date * 1000).toISOString(),
         length: Number(csvRecord.size_bytes),
         source: "torrents-csv",
-        description: `${formatSize(+csvRecord.size_bytes)} | ${csvRecord.seeders} seeds | ${csvRecord.leechers} leechers | ` + 'Created At: ' + new Date(+csvRecord.created_unix * 1000).toISOString(),
+        description: `${formatSize(+csvRecord.size_bytes)} | ${csvRecord.seeders} seeds | ${csvRecord.leechers} leechers | ` + "Created At: " + new Date(+csvRecord.created_unix * 1000).toISOString(),
     };
 }
 
@@ -107,37 +107,37 @@ const ServeInfoPage = async (params: HandleHttpParams, infoHash: string) => {
         csvRecord ? normalizeCsvRecord(csvRecord) :
         null;
 
-    const htmlRoot = Xml('html', {}, [
-        Xml('head', {}, [
-            Xml('title', {}, (normalized ? normalized.name + ' - torrent download/browse | ' : '') +  '🧲 ' + infoHash),
-            Xml('meta', {'charset': 'utf-8'}),
+    const htmlRoot = Xml("html", {}, [
+        Xml("head", {}, [
+            Xml("title", {}, (normalized ? normalized.name + " - torrent download/browse | " : "") +  "🧲 " + infoHash),
+            Xml("meta", { "charset": "utf-8" }),
             ...!normalized ? [] : [
-                Xml('meta', {name: 'description', content: normalized.description}),
-                Xml('meta', {property: 'og:description', content: normalized.description}),
+                Xml("meta", { name: "description", content: normalized.description }),
+                Xml("meta", { property: "og:description", content: normalized.description }),
             ],
-            Xml('link', { rel: 'stylesheet', src: '../infoPage/index.css' }),
+            Xml("link", { rel: "stylesheet", src: "../infoPage/index.css" }),
         ]),
-        Xml('body', {}, [
-            Xml('h1', {}, [
-                ...!normalized ? [] : [Xml('div', {}, normalized.name)],
-                Xml('div', {}, '🧲 ' + infoHash),
+        Xml("body", {}, [
+            Xml("h1", {}, [
+                ...!normalized ? [] : [Xml("div", {}, normalized.name)],
+                Xml("div", {}, "🧲 " + infoHash),
             ]),
             ...!normalized ? [] : [
-                Xml('div', {}, normalized.description),
-                Xml('div', {}, 'Updated At: ' + normalized.updatedDt),
-                Xml('div', {}, 'Source: ' + normalized.source),
+                Xml("div", {}, normalized.description),
+                Xml("div", {}, "Updated At: " + normalized.updatedDt),
+                Xml("div", {}, "Source: " + normalized.source),
             ],
-            Xml('div', { id: 'react-app-root-container' }),
+            Xml("div", { id: "react-app-root-container" }),
             `<script id="ssr-data-from-server" type="application/json">
                 ${escapeHtmlContent(JSON.stringify({ infoHash }))}
             </script>`,
-            Xml('script', { id: 'ssr-data-from-server', type: 'application/json' }, JSON.stringify({ infoHash })),
-            Xml('script', { type: 'module', src: '../infoPage/index.js' }),
-            Xml('script', { src: 'https://unpkg.com/react@18/umd/react.development.js' }),
-            Xml('script', { src: 'https://unpkg.com/react-dom@18/umd/react-dom.development.js' }),
+            Xml("script", { id: "ssr-data-from-server", type: "application/json" }, JSON.stringify({ infoHash })),
+            Xml("script", { type: "module", src: "../infoPage/index.js" }),
+            Xml("script", { src: "https://unpkg.com/react@18/umd/react.development.js" }),
+            Xml("script", { src: "https://unpkg.com/react-dom@18/umd/react-dom.development.js" }),
         ]),
     ]);
-    params.rs.setHeader('content-type', 'text/html');
+    params.rs.setHeader("content-type", "text/html");
     params.rs.write(htmlRoot.toString());
     params.rs.end();
 };

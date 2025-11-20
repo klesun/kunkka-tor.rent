@@ -104,7 +104,7 @@ type TagNameToClass = {
 
     track: HTMLElement,
     u: HTMLElement,
-    'var': HTMLElement,
+    "var": HTMLElement,
 
     h1: HTMLElement,
     h2: HTMLElement,

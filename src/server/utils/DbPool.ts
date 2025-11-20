@@ -1,6 +1,6 @@
-import * as sqlite3 from 'sqlite3';
-import * as sqlite from 'sqlite';
-import { Database } from "sqlite/build/Database";
+import * as sqlite3 from "sqlite3";
+import * as sqlite from "sqlite";
+import type { Database } from "sqlite/build/Database";
 import ParallelActionsQueue from "./ParallelActionsQueue";
 
 type FsPath = string;
@@ -9,7 +9,7 @@ type FsPath = string;
 export const SQLITE_MAX_VARIABLE_NUMBER = 32766;
 
 const DbPool = ({ filename, maxConnections = 1 }: {
-    filename: ':memory:' | FsPath, maxConnections?: number,
+    filename: ":memory:" | FsPath, maxConnections?: number,
 }) => {
     const dbActionQueue = ParallelActionsQueue(maxConnections);
     const connectionsPool = new Set<Database>();
@@ -48,14 +48,14 @@ const DbPool = ({ filename, maxConnections = 1 }: {
         action: (db: Database) => Promise<T>
     ): Promise<T> => {
         return withDb(dbConn => {
-            return dbConn.run('BEGIN TRANSACTION;')
+            return dbConn.run("BEGIN TRANSACTION;")
                 .then(() => action(dbConn))
                 .then(async (result) => {
-                    await dbConn.run('COMMIT TRANSACTION;');
+                    await dbConn.run("COMMIT TRANSACTION;");
                     return result;
                 })
                 .catch(async exc => {
-                    await dbConn.run('ROLLBACK TRANSACTION;');
+                    await dbConn.run("ROLLBACK TRANSACTION;");
                     throw exc;
                 });
         });

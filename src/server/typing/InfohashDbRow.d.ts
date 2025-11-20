@@ -8,12 +8,12 @@ type InfohashDbRowBase = {
     occurrences: number,
     filesCount: number | null,
     trackerData_json?: string | null,
-}
+};
 
-export type NoFilesInfoSource = 'tpb_dump_2019' | 'rutracker_dump_2020' | 'torrents_csv' | "nyaa_si";
+export type NoFilesInfoSource = "tpb_dump_2019" | "rutracker_dump_2020" | "torrents_csv" | "nyaa_si";
 
 export type InfohashDbRow = InfohashDbRowBase & ({
-    source: 'dht_crawler',
+    source: "dht_crawler",
     filesCount: number,
 } | {
     source: NoFilesInfoSource,

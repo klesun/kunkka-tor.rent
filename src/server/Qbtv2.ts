@@ -1,7 +1,7 @@
-import * as http from "http";
-import {BadGateway} from "@curveball/http-errors";
-import {readPost} from "./utils/Http";
-const fetch = require('node-fetch');
+import type * as http from "http";
+import { BadGateway } from "@curveball/http-errors";
+import { readPost } from "./utils/Http";
+const fetch = require("node-fetch");
 
 /**
  * a mapping to the Web API of qbittorrent
@@ -10,16 +10,16 @@ const fetch = require('node-fetch');
  *
  * @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list
  */
-const Qbtv2 = ({port = 44011} = {}) => {
+const Qbtv2 = ({ port = 44011 } = {}) => {
     return {
         search: {
             /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#start-search */
             start: async (rq: http.IncomingMessage, rs: http.ServerResponse) => {
-                const url = 'http://localhost:' + port + '/api/v2/search/start';
+                const url = "http://localhost:" + port + "/api/v2/search/start";
                 const params = {
                     // needed for cookie, too lazy to parse it on node's side
                     headers: rq.headers,
-                    method: 'POST',
+                    method: "POST",
                     body: await readPost(rq),
                 };
                 const fetchRs = await fetch(url, params);
@@ -32,24 +32,24 @@ const Qbtv2 = ({port = 44011} = {}) => {
                 try {
                     return JSON.parse(body);
                 } catch (exc) {
-                    throw new BadGateway('Failed to parse qbt json response - ' + body);
+                    throw new BadGateway("Failed to parse qbt json response - " + body);
                 }
             },
             /** @see https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-search-results */
             results: async (rq: http.IncomingMessage, rs: http.ServerResponse) => {
                 const rqBody = await readPost(rq);
-                const url = 'http://localhost:' + port + '/api/v2/search/results';
+                const url = "http://localhost:" + port + "/api/v2/search/results";
                 const fetchRs = await fetch(url, {
                     // needed for cookie, too lazy to parse it on node's side
                     headers: rq.headers,
-                    method: 'POST',
+                    method: "POST",
                     body: rqBody,
                 });
                 const body = await fetchRs.text();
                 try {
                     return JSON.parse(body);
                 } catch (exc) {
-                    throw new BadGateway('Failed to parse qbt json response - ' + body);
+                    throw new BadGateway("Failed to parse qbt json response - " + body);
                 }
             },
         },
