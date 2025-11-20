@@ -1,4 +1,4 @@
-import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool";
+import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool.js";
 import type { InfohashDbRow } from "../typing/InfohashDbRow";
 import * as SqlUtil from "klesun-node-tools/src/Utils/SqlUtil.js";
 import type { Database } from "sqlite";
@@ -135,7 +135,7 @@ const Infohashes = () => {
 
             await dbPool.withDb(async db => {
                 for (let i = 0; i < rows.length; i += rowsPerBatch) {
-                    const insertQuery = SqlUtil.makeInsertQuery({
+                    const insertQuery = SqlUtil.makeInsertQuery<InfohashDbRow>({
                         table, insertType: "replace", rows: rows.slice(i, i + rowsPerBatch),
                     });
                     await db.run(insertQuery.sql, ...insertQuery.placedValues);

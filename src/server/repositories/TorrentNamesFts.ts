@@ -1,6 +1,6 @@
-import DbPool, {SQLITE_MAX_VARIABLE_NUMBER} from "../utils/DbPool";
-import {UntabledQueryBase} from "klesun-node-tools/src/Utils/SqlUtil";
-import * as SqlUtil from 'klesun-node-tools/src/Utils/SqlUtil.js';
+import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool";
+import type { UntabledQueryBase } from "klesun-node-tools/src/Utils/SqlUtil";
+import * as SqlUtil from "klesun-node-tools/src/Utils/SqlUtil.js";
 
 export type DbRow = {
     infohash: string,
@@ -8,13 +8,13 @@ export type DbRow = {
 };
 
 const TorrentNamesFts = () => {
-    const table = 'TorrentNamesFts';
+    const table = "TorrentNamesFts";
     const dbPool = DbPool({
-        filename: __dirname + '/../../../data/db/' + table + '.sqlite',
+        filename: __dirname + "/../../../data/db/" + table + ".sqlite",
     });
     return {
         delete: async (params: UntabledQueryBase) => {
-            const {sql, placedValues} = SqlUtil
+            const { sql, placedValues } = SqlUtil
                 .makeDeleteQuery({ ...params, table });
             return dbPool.withDb(async db => {
                 return db.run(sql, placedValues);
@@ -27,9 +27,9 @@ const TorrentNamesFts = () => {
             );
             await dbPool.withDb(async db => {
                 for (let i = 0; i < rows.length; i += rowsPerBatch) {
-                    console.log('Inserting FTS batch from: ' + i);
+                    console.log("Inserting FTS batch from: " + i);
                     const insertQuery = SqlUtil.makeInsertQuery({
-                        table, insertType: 'insertNew', rows: rows.slice(i, i + rowsPerBatch),
+                        table, insertType: "insertNew", rows: rows.slice(i, i + rowsPerBatch),
                     });
                     await db.run(insertQuery.sql, ...insertQuery.placedValues);
                 }
@@ -37,11 +37,11 @@ const TorrentNamesFts = () => {
         },
         select: async (userInput: string): Promise<DbRow[]> => {
             const escapedInput = userInput
-                .split(' ')
+                .split(" ")
                 // eventually could recognize the "" in user's query as _exact match_ like in google
-                .map(w => w.split('').map(c => c === '"' ? '""' : c).join(''))
-                .map(w => '"' + w + '"')
-                .join(' ');
+                .map(w => w.split("").map(c => c === "\"" ? "\"\"" : c).join(""))
+                .map(w => "\"" + w + "\"")
+                .join(" ");
             const sql = `SELECT * FROM ${table} WHERE name MATCH ? ORDER BY rowid DESC LIMIT 5000`;
             const placedValues = [escapedInput];
             return dbPool.withDb<DbRow[]>(
