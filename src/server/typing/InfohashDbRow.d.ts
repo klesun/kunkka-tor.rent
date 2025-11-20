@@ -1,10 +1,11 @@
 import type { JsonStringified } from "@mhc/utils/types/utility.ts";
 import type { ParsedNyaaSiPage } from "../../../scripts/parse_nyaa_si_scrapes.ts";
+import type { Infohash } from "../../common/types.ts";
 
 export type TrackerData = Partial<ParsedNyaaSiPage["fields"]>;
 
 type InfohashDbRowBase = {
-    infohash: string, // 40 hex chars
+    infohash: Infohash, // 40 hex chars
     name: string,
     updatedDt: string, // new Date().toISOString(),
     length: number,
