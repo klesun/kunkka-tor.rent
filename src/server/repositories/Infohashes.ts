@@ -1,9 +1,8 @@
-import DbPool, {SQLITE_MAX_VARIABLE_NUMBER} from "../utils/DbPool";
-import {InfohashDbRow} from "../typing/InfohashDbRow";
-import * as SqlUtil from 'klesun-node-tools/src/Utils/SqlUtil.js';
-import * as console from "node:console";
-import { Database } from "sqlite";
-import {ParsedNyaaSiPage} from "../../../scripts/parse_nyaa_si_scrapes";
+import DbPool, { SQLITE_MAX_VARIABLE_NUMBER } from "../utils/DbPool";
+import type { InfohashDbRow } from "../typing/InfohashDbRow";
+import * as SqlUtil from "klesun-node-tools/src/Utils/SqlUtil.js";
+import type { Database } from "sqlite";
+import type { ParsedNyaaSiPage } from "../../../scripts/parse_nyaa_si_scrapes";
 
 function neverNull(): never {
     throw new Error("Unexpected null value");
@@ -119,9 +118,9 @@ function deserialize(dbRow: InfohashDbRow) {
 export type AppInfohash = ReturnType<typeof deserialize>;
 
 const Infohashes = () => {
-    const table = 'Infohashes';
+    const table = "Infohashes";
     const dbPool = DbPool({
-        filename: __dirname + '/../../../data/db/' + table + '.sqlite',
+        filename: __dirname + "/../../../data/db/" + table + ".sqlite",
     });
 
     return {
@@ -137,7 +136,7 @@ const Infohashes = () => {
             await dbPool.withDb(async db => {
                 for (let i = 0; i < rows.length; i += rowsPerBatch) {
                     const insertQuery = SqlUtil.makeInsertQuery({
-                        table, insertType: 'replace', rows: rows.slice(i, i + rowsPerBatch),
+                        table, insertType: "replace", rows: rows.slice(i, i + rowsPerBatch),
                     });
                     await db.run(insertQuery.sql, ...insertQuery.placedValues);
                 }
@@ -183,7 +182,7 @@ const Infohashes = () => {
                 });
                 if (chunk.length > 0) {
                     yield chunk.map(deserialize);
-                    lastId = chunk[chunk.length - 1].rowid
+                    lastId = chunk[chunk.length - 1].rowid;
                 } else {
                     break;
                 }
