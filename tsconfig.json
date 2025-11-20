@@ -3,6 +3,7 @@
         "allowImportingTsExtensions": true,
         "lib": ["esnext"],
 		"jsx": "react-jsx",
+        "module": "esnext",
 		"allowJs": true,
 		"target": "esnext",
 		"moduleResolution": "node",
