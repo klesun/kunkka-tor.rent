@@ -119,7 +119,6 @@ export default defineConfig([{
     rules: commonRules,
 }, {
     "files": [
-        "./src/**/*.ts",
         "./views/**/*.ts",
         "./views/**/*.tsx"
     ],
