@@ -187,6 +187,7 @@
 <script type="module">
     import Api from './src/client/Api.js';
     import TorrentNameParser from "./src/common/TorrentNameParser.js";
+    import { loadModule } from "https://klesun.github.io/ts-browser/src/ts-browser.js";
 
     /** @param {HTMLElement} parent */
     const shuffleChildren = (parent) => {
@@ -204,8 +205,9 @@
     });
 
     const torrentsCollection = document.getElementById("my-torrents-collection");
-    const api = Api();
+    const whenApi = loadModule("./src/client/Api.js").then(module => module.default());
     const openDir = async (path, level) => {
+        const api = await whenApi;
         torrentsCollection.innerHTML = "";
         const showEntry = (dirent) => {
             const li = document.createElement('li');
