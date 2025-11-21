@@ -1,5 +1,5 @@
-import type { api_findTorrentsInLocalDb_DbRow } from "../src/client/Api.js";
-import Api from "../src/client/Api.js";
+import type { api_findTorrentsInLocalDb_DbRow } from "../src/client/Api.ts";
+import Api from "../src/client/Api.ts";
 import TorrentNameParser from "../src/common/TorrentNameParser.js";
 import type {
     QbtSearchResult, QbtSearchResultItem,

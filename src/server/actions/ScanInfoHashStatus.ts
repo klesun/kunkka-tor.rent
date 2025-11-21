@@ -1,4 +1,4 @@
-import type { IApi } from "../Api";
+import type { IApi } from "../Api.ts";
 import TorrentFile = TorrentStream.TorrentFile;
 
 const torrentStream = require("torrent-stream");

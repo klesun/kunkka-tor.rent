@@ -1,7 +1,7 @@
 {
     "name": "kunkka-torrent",
     "scripts": {
-        "start": "node server.js",
+        "start": "npx vite-node server.ts",
         "parse-nya": "vite-node scripts/parse_nyaa_si_scrapes.ts",
         "add-fts": "vite-node scripts/add_fts_indexes.ts"
     },
@@ -18,11 +18,11 @@
     "license": "ISC",
     "dependencies": {
         "@curveball/http-errors": "^0.4.0",
+        "@mhc/utils": "git://github.com/MHCAviation/utils#b06da51abbbc363297ff7f5e503ed519618687ce",
         "@swc/core": "^1.13.5",
         "@swc/helpers": "^0.5.17",
         "eslint-plugin-unused-imports": "^4.2.0",
         "jsdom": "^27.0.0",
-        "@mhc/utils": "git://github.com/MHCAviation/utils#b06da51abbbc363297ff7f5e503ed519618687ce",
         "klesun-node-tools": "https://github.com/klesun-misc/klesun-node-tools/tarball/d34874bba56852160127ce11262e2ef502f3e890",
         "mime-types": "^2.1.27",
         "node-fetch": "^2.6.1",
@@ -41,7 +41,6 @@
         "torrent-stream": "^1.2.0",
         "torrent-tracker": "https://github.com/klesun-productions/torrent-tracker/tarball/f83d4adfe6de745041cc38dbd4f21b4cce1129c6",
         "torrents-csv-data": "git+https://codeberg.org/klesun/torrents-csv-data.git#e739231a782f64d4ba264b1606775248e8e4ff5a",
-        "ts-node": "10.9.2",
         "unzip-stream": "^0.3.1",
         "vite-node": "^3.2.4"
     },

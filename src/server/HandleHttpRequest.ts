@@ -2,7 +2,7 @@ import * as url from "url";
 import * as pump from "pump";
 import * as fsSync from "fs";
 import type * as http from "http";
-import type { IApi } from "./Api";
+import type { IApi } from "./Api.ts";
 import type { SerialData } from "./TypeDefs";
 import { lookup } from "mime-types";
 import { HTTP_PORT } from "./Constants";

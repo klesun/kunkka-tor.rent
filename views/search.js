@@ -1,7 +1,7 @@
-import Api from "../src/client/Api.js";
+import ApiUntyped from "../src/client/ApiUntyped.js";
 import { loadModule } from "https://klesun.github.io/ts-browser/src/ts-browser.js";
 
-const api = Api();
+const api = ApiUntyped();
 
 function neverNull() {
     throw new Error("Unexpected null value");

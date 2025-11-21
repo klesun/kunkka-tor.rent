@@ -2,7 +2,7 @@ import * as http from "http";
 import type { HandleHttpParams } from "./HandleHttpRequest";
 import HandleHttpRequest from "./HandleHttpRequest";
 import Api from "./Api";
-import * as SocketIo from "socket.io";
+import SocketIo from "socket.io";
 import type { ItemStatus } from "./actions/ScanInfoHashStatus";
 import ScanInfoHashStatus from "./actions/ScanInfoHashStatus";
 import { HTTP_PORT } from "./Constants";

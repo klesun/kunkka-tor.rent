@@ -343,5 +343,5 @@ export default Api;
 
 export type IApi = ReturnType<typeof Api>;
 
-export type IApi_getSwarmInfo_rs = ReturnType<ReturnType<typeof Api>["getSwarmInfo"]>;
-export type IApi_connectToSwarm_rs = ReturnType<ReturnType<typeof Api>["connectToSwarm"]>;
+export type IApi_getSwarmInfo_rs = Awaited<ReturnType<ReturnType<typeof Api>["getSwarmInfo"]>>;
+export type IApi_connectToSwarm_rs = Awaited<ReturnType<ReturnType<typeof Api>["connectToSwarm"]>>;

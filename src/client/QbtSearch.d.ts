@@ -1,4 +1,4 @@
-import type { api_findTorrentsInLocalDb_DbRow } from "./Api";
+import type { api_findTorrentsInLocalDb_DbRow } from "./Api.ts";
 
 export type QbtSearchResultItem = {
     descrLink: "https://pirateproxy.live/torrent/7504788/Warcraft_-_Frozen_Throne_DotA_1.26Version" | string,

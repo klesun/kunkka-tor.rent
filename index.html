@@ -185,7 +185,6 @@
 </main>
 
 <script type="module">
-    import Api from './src/client/Api.js';
     import TorrentNameParser from "./src/common/TorrentNameParser.js";
     import { loadModule } from "https://klesun.github.io/ts-browser/src/ts-browser.js";
 
@@ -205,7 +204,8 @@
     });
 
     const torrentsCollection = document.getElementById("my-torrents-collection");
-    const whenApi = loadModule("./src/client/Api.js").then(module => module.default());
+    // language=file-reference
+    const whenApi = loadModule("src/client/Api.ts").then(module => module.default());
     const openDir = async (path, level) => {
         const api = await whenApi;
         torrentsCollection.innerHTML = "";

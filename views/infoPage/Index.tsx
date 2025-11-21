@@ -1,7 +1,7 @@
-import Api from "../../src/client/Api.js";
+import Api from "../../src/client/Api.ts";
 import ExternalTrackMatcher, { SUBS_EXTENSIONS, VIDEO_EXTENSIONS, GOOD_AUDIO_EXTENSIONS } from "../../src/common/ExternalTrackMatcher.js";
 import FixNaturalOrder from "../../src/common/FixNaturalOrder.js";
-import type { IApi_connectToSwarm_rs, IApi_getSwarmInfo_rs } from "../../src/server/Api";
+import type { IApi_connectToSwarm_rs, IApi_getSwarmInfo_rs } from "../../src/server/Api.ts";
 import type { ShortTorrentFileInfo } from "../../src/server/actions/ScanInfoHashStatus";
 import type { FfprobeOutput, FfprobeStream } from "../../src/client/FfprobeOutput";
 import type { FileHeader } from "../../node_modules/node-unrar-js/src/js/extractor";

@@ -3,10 +3,12 @@
         "allowImportingTsExtensions": true,
         "lib": ["esnext"],
 		"jsx": "react-jsx",
+        "module": "esnext",
 		"allowJs": true,
 		"target": "esnext",
 		"moduleResolution": "node",
-		"noEmit": true,
+        "allowSyntheticDefaultImports": true,
+        "noEmit": true,
 		"strict": true
 	},
     "ts-node": {
